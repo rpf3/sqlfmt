@@ -23,5 +23,8 @@ tasks:
 
   lint:
     desc: Run golangci-lint (install from https://golangci-lint.run)
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: golangci-lint not found — install it from https://golangci-lint.run
     cmds:
       - golangci-lint run
