@@ -1,0 +1,114 @@
+package lexer
+
+import "strings"
+
+// keywords is the set of ANSI SQL reserved words (case-insensitive).
+// The map key is the uppercased word; the lexer performs a single
+// strings.ToUpper lookup so the original casing is preserved in Token.Value.
+var keywords = map[string]bool{
+	// Data manipulation
+	"SELECT":   true,
+	"FROM":     true,
+	"WHERE":    true,
+	"GROUP":    true,
+	"BY":       true,
+	"HAVING":   true,
+	"ORDER":    true,
+	"LIMIT":    true,
+	"OFFSET":   true,
+	"UNION":    true,
+	"INTERSECT": true,
+	"EXCEPT":   true,
+	"ALL":      true,
+	"DISTINCT": true,
+	"AS":       true,
+	"ON":       true,
+	"USING":    true,
+	// Joins
+	"JOIN":    true,
+	"INNER":   true,
+	"LEFT":    true,
+	"RIGHT":   true,
+	"FULL":    true,
+	"OUTER":   true,
+	"CROSS":   true,
+	"NATURAL": true,
+	// Data definition
+	"CREATE":  true,
+	"TABLE":   true,
+	"VIEW":    true,
+	"INDEX":   true,
+	"DROP":    true,
+	"ALTER":   true,
+	"ADD":     true,
+	"COLUMN":  true,
+	"RENAME":  true,
+	// Data modification
+	"INSERT":  true,
+	"INTO":    true,
+	"VALUES":  true,
+	"UPDATE":  true,
+	"SET":     true,
+	"DELETE":  true,
+	"TRUNCATE": true,
+	// Conditions and logic
+	"AND":     true,
+	"OR":      true,
+	"NOT":     true,
+	"IN":      true,
+	"EXISTS":  true,
+	"BETWEEN": true,
+	"LIKE":    true,
+	"ILIKE":   true,
+	"IS":      true,
+	"NULL":    true,
+	"TRUE":    true,
+	"FALSE":   true,
+	"CASE":    true,
+	"WHEN":    true,
+	"THEN":    true,
+	"ELSE":    true,
+	"END":     true,
+	// Subqueries / CTEs
+	"WITH":    true,
+	"RECURSIVE": true,
+	// Transactions
+	"BEGIN":    true,
+	"COMMIT":   true,
+	"ROLLBACK": true,
+	// Type-related
+	"CAST":    true,
+	"PRIMARY": true,
+	"KEY":     true,
+	"FOREIGN": true,
+	"REFERENCES": true,
+	"UNIQUE":  true,
+	"DEFAULT": true,
+	"CONSTRAINT": true,
+	// Functions / misc
+	"OVER":    true,
+	"PARTITION": true,
+	"ROWS":    true,
+	"RANGE":   true,
+	"UNBOUNDED": true,
+	"PRECEDING": true,
+	"FOLLOWING": true,
+	"CURRENT":  true,
+	"ROW":     true,
+	"FILTER":  true,
+	"WITHIN":  true,
+	"NULLS":   true,
+	"FIRST":   true,
+	"LAST":    true,
+	"ASC":     true,
+	"DESC":    true,
+	"FETCH":   true,
+	"NEXT":    true,
+	"ONLY":    true,
+	"LATERAL": true,
+}
+
+// isKeyword reports whether word (any casing) is a SQL reserved word.
+func isKeyword(word string) bool {
+	return keywords[strings.ToUpper(word)]
+}
