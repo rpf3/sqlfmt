@@ -1,0 +1,27 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the sqlfmt binary to ./bin/sqlfmt
+    cmds:
+      - go build -o ./bin/sqlfmt ./cmd/sqlfmt
+
+  run:
+    desc: Run sqlfmt (reads SQL from stdin, e.g. echo "SELECT 1" | task run)
+    cmds:
+      - go run ./cmd/sqlfmt
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  vet:
+    desc: Run go vet static analysis across all packages
+    cmds:
+      - go vet ./...
+
+  lint:
+    desc: Run golangci-lint (install from https://golangci-lint.run)
+    cmds:
+      - golangci-lint run
