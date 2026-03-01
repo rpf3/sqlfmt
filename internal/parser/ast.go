@@ -64,6 +64,37 @@ type ColumnReference struct {
 	Columns []string // column names; empty means implicit reference to table's PK
 }
 
+// AlterTableActionType identifies which ALTER TABLE action is being performed.
+type AlterTableActionType int
+
+const (
+	AlterAddColumn    AlterTableActionType = iota // ADD COLUMN <col_def>
+	AlterDropColumn                               // DROP COLUMN <name>
+	AlterAddConstraint                            // ADD [CONSTRAINT <name>] <constraint>
+	AlterDropConstraint                           // DROP CONSTRAINT <name>
+	AlterRenameTable                              // RENAME TO <new_name>
+	AlterRenameColumn                             // RENAME COLUMN <old> TO <new>
+)
+
+// AlterTableAction holds the data for one ALTER TABLE action.
+// Only the fields relevant to the action Type are populated.
+type AlterTableAction struct {
+	Type           AlterTableActionType
+	Column         *ColumnDef       // AlterAddColumn
+	ColumnName     string           // AlterDropColumn; also the old name for AlterRenameColumn
+	Constraint     *TableConstraint // AlterAddConstraint
+	ConstraintName string           // AlterDropConstraint
+	NewName        string           // AlterRenameTable and AlterRenameColumn
+}
+
+// AlterTableStmt represents: ALTER TABLE <name> <action>
+type AlterTableStmt struct {
+	Name   string
+	Action AlterTableAction
+}
+
+func (*AlterTableStmt) statementNode() {}
+
 // ColumnDef is one column in a CREATE TABLE column list.
 type ColumnDef struct {
 	Name        string           // column name

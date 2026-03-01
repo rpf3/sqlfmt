@@ -19,7 +19,13 @@ func TestFormatGolden(t *testing.T) {
 create table recipes(id integer NOT NULL,name VARCHAR( 255 ) DEFAULT 'untitled' NOT NULL,description VARCHAR(1000) DEFAULT NULL NULL,CONSTRAINT pk_recipes PRIMARY KEY( id ));
 create table recipe_ingredients(recipe_id integer NOT NULL,ingredient_id integer NOT NULL,quantity NUMERIC(10,2) NOT NULL,CONSTRAINT pk_recipe_ingredients PRIMARY KEY(recipe_id,ingredient_id),CONSTRAINT fk_recipe_ingredients_recipe FOREIGN KEY(recipe_id) REFERENCES recipes(id),CONSTRAINT fk_recipe_ingredients_ingredient FOREIGN KEY(ingredient_id) REFERENCES ingredients(id),CONSTRAINT chk_recipe_ingredients_quantity CHECK(quantity>0));
 CREATE INDEX IF NOT EXISTS ix_recipe_ingredients_ingredient ON recipe_ingredients(ingredient_id);
-CREATE UNIQUE INDEX uix_recipes_name ON recipes(name DESC);`
+CREATE UNIQUE INDEX uix_recipes_name ON recipes(name DESC);
+ALTER TABLE ingredients ADD COLUMN notes TEXT NULL;
+ALTER TABLE ingredients DROP COLUMN notes;
+ALTER TABLE recipes ADD CONSTRAINT uq_recipes_name_description UNIQUE(name,description);
+ALTER TABLE recipes DROP CONSTRAINT uq_recipes_name_description;
+ALTER TABLE ingredients RENAME TO ingredient;
+ALTER TABLE recipe_ingredients RENAME COLUMN quantity TO amount;`
 
 	got, err := Format(input)
 	if err != nil {

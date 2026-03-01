@@ -46,6 +46,7 @@ var keywords = map[string]bool{
 	// Data modification
 	"INSERT":  true,
 	"INTO":    true,
+	"TO":      true,
 	"VALUES":  true,
 	"UPDATE":  true,
 	"SET":     true,

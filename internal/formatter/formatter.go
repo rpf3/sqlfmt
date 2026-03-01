@@ -27,6 +27,8 @@ func formatStatement(stmt parser.Statement) string {
 		return formatCreateTable(s)
 	case *parser.CreateIndexStmt:
 		return formatCreateIndex(s)
+	case *parser.AlterTableStmt:
+		return formatAlterTable(s)
 	}
 	return ""
 }
@@ -67,6 +69,79 @@ func normalizeDefaultExpr(v string) string {
 	return strings.ToLower(v)
 }
 
+// writeColumnDef writes the canonical form of a column definition to b.
+// It does not include any leading indentation or comma — the caller handles that.
+func writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
+	b.WriteString(col.Name)
+	b.WriteString(" ")
+	b.WriteString(strings.ToLower(col.DataType))
+	if col.PrimaryKey {
+		b.WriteString(" primary key")
+	}
+	if col.Default != "" {
+		b.WriteString(" default ")
+		b.WriteString(normalizeDefaultExpr(col.Default))
+	}
+	switch col.Nullability {
+	case parser.NullabilityNotNull:
+		b.WriteString(" not null")
+	case parser.NullabilityNull:
+		b.WriteString(" null")
+	}
+	if col.Unique {
+		b.WriteString(" unique")
+	}
+	if col.Check != "" {
+		b.WriteString(" check (")
+		b.WriteString(col.Check)
+		b.WriteString(")")
+	}
+	if col.References != nil {
+		b.WriteString(" references ")
+		b.WriteString(col.References.Table)
+		if len(col.References.Columns) > 0 {
+			b.WriteString(" (")
+			b.WriteString(strings.Join(col.References.Columns, ", "))
+			b.WriteString(")")
+		}
+	}
+}
+
+// writeTableConstraint writes the canonical form of a table constraint to b,
+// starting with "constraint <name>\n\t\t" for named constraints (matching the
+// indentation used in both CREATE TABLE and ALTER TABLE ADD).
+func writeTableConstraint(b *strings.Builder, tc parser.TableConstraint) {
+	if tc.Name != "" {
+		b.WriteString("constraint ")
+		b.WriteString(tc.Name)
+		b.WriteString("\n\t\t")
+	}
+	switch tc.Type {
+	case parser.ConstraintPrimaryKey:
+		b.WriteString("primary key (")
+		b.WriteString(strings.Join(tc.Columns, ", "))
+		b.WriteString(")")
+	case parser.ConstraintForeignKey:
+		b.WriteString("foreign key (")
+		b.WriteString(strings.Join(tc.Columns, ", "))
+		b.WriteString(") references ")
+		b.WriteString(tc.RefTable)
+		if len(tc.RefColumns) > 0 {
+			b.WriteString(" (")
+			b.WriteString(strings.Join(tc.RefColumns, ", "))
+			b.WriteString(")")
+		}
+	case parser.ConstraintUnique:
+		b.WriteString("unique (")
+		b.WriteString(strings.Join(tc.Columns, ", "))
+		b.WriteString(")")
+	case parser.ConstraintCheck:
+		b.WriteString("check (")
+		b.WriteString(tc.Check)
+		b.WriteString(")")
+	}
+}
+
 func formatCreateTable(s *parser.CreateTableStmt) string {
 	var b strings.Builder
 	b.WriteString("create table ")
@@ -79,39 +154,7 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 		} else {
 			b.WriteString(",\t")
 		}
-		b.WriteString(col.Name)
-		b.WriteString(" ")
-		b.WriteString(strings.ToLower(col.DataType))
-		if col.PrimaryKey {
-			b.WriteString(" primary key")
-		}
-		if col.Default != "" {
-			b.WriteString(" default ")
-			b.WriteString(normalizeDefaultExpr(col.Default))
-		}
-		switch col.Nullability {
-		case parser.NullabilityNotNull:
-			b.WriteString(" not null")
-		case parser.NullabilityNull:
-			b.WriteString(" null")
-		}
-		if col.Unique {
-			b.WriteString(" unique")
-		}
-		if col.Check != "" {
-			b.WriteString(" check (")
-			b.WriteString(col.Check)
-			b.WriteString(")")
-		}
-		if col.References != nil {
-			b.WriteString(" references ")
-			b.WriteString(col.References.Table)
-			if len(col.References.Columns) > 0 {
-				b.WriteString(" (")
-				b.WriteString(strings.Join(col.References.Columns, ", "))
-				b.WriteString(")")
-			}
-		}
+		writeColumnDef(&b, col)
 		b.WriteString("\n")
 	}
 
@@ -120,38 +163,43 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 	}
 	for _, tc := range s.Constraints {
 		b.WriteString(",\t")
-		if tc.Name != "" {
-			b.WriteString("constraint ")
-			b.WriteString(tc.Name)
-			b.WriteString("\n\t\t")
-		}
-		switch tc.Type {
-		case parser.ConstraintPrimaryKey:
-			b.WriteString("primary key (")
-			b.WriteString(strings.Join(tc.Columns, ", "))
-			b.WriteString(")")
-		case parser.ConstraintForeignKey:
-			b.WriteString("foreign key (")
-			b.WriteString(strings.Join(tc.Columns, ", "))
-			b.WriteString(") references ")
-			b.WriteString(tc.RefTable)
-			if len(tc.RefColumns) > 0 {
-				b.WriteString(" (")
-				b.WriteString(strings.Join(tc.RefColumns, ", "))
-				b.WriteString(")")
-			}
-		case parser.ConstraintUnique:
-			b.WriteString("unique (")
-			b.WriteString(strings.Join(tc.Columns, ", "))
-			b.WriteString(")")
-		case parser.ConstraintCheck:
-			b.WriteString("check (")
-			b.WriteString(tc.Check)
-			b.WriteString(")")
-		}
+		writeTableConstraint(&b, tc)
 		b.WriteString("\n")
 	}
 
 	b.WriteString(");")
+	return b.String()
+}
+
+func formatAlterTable(s *parser.AlterTableStmt) string {
+	var b strings.Builder
+	b.WriteString("alter table ")
+	b.WriteString(s.Name)
+	b.WriteString("\n\t")
+
+	switch s.Action.Type {
+	case parser.AlterAddColumn:
+		b.WriteString("add column ")
+		writeColumnDef(&b, *s.Action.Column)
+	case parser.AlterDropColumn:
+		b.WriteString("drop column ")
+		b.WriteString(s.Action.ColumnName)
+	case parser.AlterAddConstraint:
+		b.WriteString("add ")
+		writeTableConstraint(&b, *s.Action.Constraint)
+	case parser.AlterDropConstraint:
+		b.WriteString("drop constraint ")
+		b.WriteString(s.Action.ConstraintName)
+	case parser.AlterRenameTable:
+		b.WriteString("rename to ")
+		b.WriteString(s.Action.NewName)
+	case parser.AlterRenameColumn:
+		b.WriteString("rename column ")
+		b.WriteString(s.Action.ColumnName)
+		b.WriteString(" to ")
+		b.WriteString(s.Action.NewName)
+	}
+
+	b.WriteString(";")
 	return b.String()
 }
