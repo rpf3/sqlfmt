@@ -82,8 +82,9 @@ var keywords = map[string]bool{
 	"KEY":     true,
 	"FOREIGN": true,
 	"REFERENCES": true,
-	"UNIQUE":  true,
-	"DEFAULT": true,
+	"UNIQUE":     true,
+	"CHECK":      true,
+	"DEFAULT":    true,
 	"CONSTRAINT": true,
 	// Functions / misc
 	"OVER":    true,

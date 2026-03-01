@@ -18,15 +18,17 @@ type TableConstraintType int
 const (
 	ConstraintPrimaryKey TableConstraintType = iota
 	ConstraintForeignKey
+	ConstraintCheck
 )
 
 // TableConstraint is a table-level constraint entry in a CREATE TABLE column list.
 type TableConstraint struct {
 	Name       string              // optional constraint name from CONSTRAINT <name>; empty if unnamed
 	Type       TableConstraintType
-	Columns    []string // local column names
+	Columns    []string // local column names (PK, FK)
 	RefTable   string   // for FK: referenced table name
 	RefColumns []string // for FK: referenced column names; empty means implicit PK reference
+	Check      string   // for CHECK: normalised expression text (without outer parens)
 }
 
 // Nullability represents an optional nullability constraint on a column.
@@ -51,5 +53,6 @@ type ColumnDef struct {
 	PrimaryKey  bool             // PRIMARY KEY inline constraint
 	Default     string           // DEFAULT expression verbatim; empty means no DEFAULT clause
 	Nullability Nullability      // optional nullability constraint
+	Check       string           // optional inline CHECK expression (without outer parens); empty if absent
 	References  *ColumnReference // optional inline REFERENCES clause
 }

@@ -66,6 +66,11 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 		case parser.NullabilityNull:
 			b.WriteString(" null")
 		}
+		if col.Check != "" {
+			b.WriteString(" check (")
+			b.WriteString(col.Check)
+			b.WriteString(")")
+		}
 		if col.References != nil {
 			b.WriteString(" references ")
 			b.WriteString(col.References.Table)
@@ -103,6 +108,10 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 				b.WriteString(strings.Join(tc.RefColumns, ", "))
 				b.WriteString(")")
 			}
+		case parser.ConstraintCheck:
+			b.WriteString("check (")
+			b.WriteString(tc.Check)
+			b.WriteString(")")
 		}
 		b.WriteString("\n")
 	}

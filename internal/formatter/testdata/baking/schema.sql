@@ -29,4 +29,6 @@ create table recipe_ingredients
 		foreign key (recipe_id) references recipes (id)
 ,	constraint fk_recipe_ingredients_ingredient
 		foreign key (ingredient_id) references ingredients (id)
+,	constraint chk_recipe_ingredients_quantity
+		check (quantity > 0)
 );
