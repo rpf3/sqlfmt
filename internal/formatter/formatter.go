@@ -36,6 +36,14 @@ func (f *formatter) kw(s string) string {
 	return s
 }
 
+// indent returns the configured indentation string (tab or spaces).
+func (f *formatter) indent() string {
+	if f.cfg.IndentStyle == config.IndentSpaces {
+		return strings.Repeat(" ", f.cfg.IndentWidth)
+	}
+	return "\t"
+}
+
 func (f *formatter) formatStatement(stmt parser.Statement) string {
 	switch s := stmt.(type) {
 	case *parser.CreateTableStmt:
@@ -70,6 +78,7 @@ func (f *formatter) formatDrop(s *parser.DropStmt) string {
 }
 
 func (f *formatter) formatCreateIndex(s *parser.CreateIndexStmt) string {
+	ind := f.indent()
 	var b strings.Builder
 	b.WriteString(f.kw("create "))
 	if s.Unique {
@@ -80,7 +89,8 @@ func (f *formatter) formatCreateIndex(s *parser.CreateIndexStmt) string {
 		b.WriteString(f.kw("if not exists "))
 	}
 	b.WriteString(s.Name)
-	b.WriteString("\n\t")
+	b.WriteString("\n")
+	b.WriteString(ind)
 	b.WriteString(f.kw("on "))
 	b.WriteString(s.Table)
 	b.WriteString(" (")
@@ -146,10 +156,13 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 
 // writeTableConstraint writes the canonical form of a table constraint to b.
 func (f *formatter) writeTableConstraint(b *strings.Builder, tc parser.TableConstraint) {
+	ind := f.indent()
 	if tc.Name != "" {
 		b.WriteString(f.kw("constraint "))
 		b.WriteString(tc.Name)
-		b.WriteString("\n\t\t")
+		b.WriteString("\n")
+		b.WriteString(ind)
+		b.WriteString(ind)
 	}
 	switch tc.Type {
 	case parser.ConstraintPrimaryKey:
@@ -178,6 +191,7 @@ func (f *formatter) writeTableConstraint(b *strings.Builder, tc parser.TableCons
 }
 
 func (f *formatter) formatCreateTable(s *parser.CreateTableStmt) string {
+	ind := f.indent()
 	var b strings.Builder
 	b.WriteString(f.kw("create table "))
 	b.WriteString(s.Name)
@@ -185,9 +199,9 @@ func (f *formatter) formatCreateTable(s *parser.CreateTableStmt) string {
 
 	for i, col := range s.Columns {
 		if i == 0 {
-			b.WriteString("\t")
+			b.WriteString(ind)
 		} else {
-			b.WriteString(",\t")
+			b.WriteString("," + ind)
 		}
 		f.writeColumnDef(&b, col)
 		b.WriteString("\n")
@@ -197,7 +211,7 @@ func (f *formatter) formatCreateTable(s *parser.CreateTableStmt) string {
 		b.WriteString("\n") // blank line separates columns from constraints
 	}
 	for _, tc := range s.Constraints {
-		b.WriteString(",\t")
+		b.WriteString("," + ind)
 		f.writeTableConstraint(&b, tc)
 		b.WriteString("\n")
 	}
@@ -207,10 +221,12 @@ func (f *formatter) formatCreateTable(s *parser.CreateTableStmt) string {
 }
 
 func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
+	ind := f.indent()
 	var b strings.Builder
 	b.WriteString(f.kw("alter table "))
 	b.WriteString(s.Name)
-	b.WriteString("\n\t")
+	b.WriteString("\n")
+	b.WriteString(ind)
 
 	switch s.Action.Type {
 	case parser.AlterAddColumn:
