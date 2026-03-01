@@ -109,6 +109,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("ALTER") {
 		return p.parseAlter()
 	}
+	if p.curKeyword("DROP") {
+		return p.parseDrop()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,
@@ -278,6 +281,49 @@ func (p *parser) parseAlterRename() (AlterTableAction, error) {
 		"expected TO or COLUMN after RENAME at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
+}
+
+// parseDrop handles DROP TABLE, DROP VIEW, and DROP INDEX.
+func (p *parser) parseDrop() (Statement, error) {
+	p.advance() // consume DROP
+
+	var objType DropObjectType
+	switch {
+	case p.curKeyword("TABLE"):
+		objType = DropTable
+	case p.curKeyword("VIEW"):
+		objType = DropView
+	case p.curKeyword("INDEX"):
+		objType = DropIndex
+	default:
+		return nil, fmt.Errorf(
+			"expected TABLE, VIEW, or INDEX after DROP at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+	p.advance() // consume TABLE/VIEW/INDEX
+
+	stmt := &DropStmt{Type: objType}
+
+	if p.curKeyword("IF") {
+		p.advance() // consume IF
+		if err := p.expectKeyword("EXISTS"); err != nil {
+			return nil, err
+		}
+		stmt.IfExists = true
+	}
+
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Name = nameTok.Value
+
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+
+	return stmt, nil
 }
 
 // parseCreate dispatches on CREATE TABLE / CREATE [UNIQUE] INDEX.
