@@ -25,8 +25,37 @@ func formatStatement(stmt parser.Statement) string {
 	switch s := stmt.(type) {
 	case *parser.CreateTableStmt:
 		return formatCreateTable(s)
+	case *parser.CreateIndexStmt:
+		return formatCreateIndex(s)
 	}
 	return ""
+}
+
+func formatCreateIndex(s *parser.CreateIndexStmt) string {
+	var b strings.Builder
+	b.WriteString("create ")
+	if s.Unique {
+		b.WriteString("unique ")
+	}
+	b.WriteString("index ")
+	if s.IfNotExists {
+		b.WriteString("if not exists ")
+	}
+	b.WriteString(s.Name)
+	b.WriteString("\n\ton ")
+	b.WriteString(s.Table)
+	b.WriteString(" (")
+	var colParts []string
+	for _, col := range s.Columns {
+		part := col.Name
+		if col.Desc {
+			part += " desc"
+		}
+		colParts = append(colParts, part)
+	}
+	b.WriteString(strings.Join(colParts, ", "))
+	b.WriteString(");")
+	return b.String()
 }
 
 // normalizeDefaultExpr lowercases the default expression unless it is a
