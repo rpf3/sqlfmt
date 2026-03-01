@@ -5,7 +5,7 @@ type Statement interface{ statementNode() }
 
 // CreateTableStmt represents: CREATE TABLE <name> (<columns> [, <constraints>])
 type CreateTableStmt struct {
-	Name        string           // table name (unquoted or quoted)
+	Name        string // table name (unquoted or quoted)
 	Columns     []ColumnDef
 	Constraints []TableConstraint
 }
@@ -41,7 +41,7 @@ const (
 
 // TableConstraint is a table-level constraint entry in a CREATE TABLE column list.
 type TableConstraint struct {
-	Name       string              // optional constraint name from CONSTRAINT <name>; empty if unnamed
+	Name       string // optional constraint name from CONSTRAINT <name>; empty if unnamed
 	Type       TableConstraintType
 	Columns    []string // local column names (PK, FK)
 	RefTable   string   // for FK: referenced table name
@@ -68,12 +68,12 @@ type ColumnReference struct {
 type AlterTableActionType int
 
 const (
-	AlterAddColumn    AlterTableActionType = iota // ADD COLUMN <col_def>
-	AlterDropColumn                               // DROP COLUMN <name>
-	AlterAddConstraint                            // ADD [CONSTRAINT <name>] <constraint>
-	AlterDropConstraint                           // DROP CONSTRAINT <name>
-	AlterRenameTable                              // RENAME TO <new_name>
-	AlterRenameColumn                             // RENAME COLUMN <old> TO <new>
+	AlterAddColumn      AlterTableActionType = iota // ADD COLUMN <col_def>
+	AlterDropColumn                                 // DROP COLUMN <name>
+	AlterAddConstraint                              // ADD [CONSTRAINT <name>] <constraint>
+	AlterDropConstraint                             // DROP CONSTRAINT <name>
+	AlterRenameTable                                // RENAME TO <new_name>
+	AlterRenameColumn                               // RENAME COLUMN <old> TO <new>
 )
 
 // AlterTableAction holds the data for one ALTER TABLE action.
