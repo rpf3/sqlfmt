@@ -218,6 +218,15 @@ func (p *parser) parseTableConstraint() (TableConstraint, error) {
 		return TableConstraint{Name: name, Type: ConstraintForeignKey, Columns: localCols, RefTable: refTable, RefColumns: refCols}, nil
 	}
 
+	if p.curKeyword("CHECK") {
+		p.advance() // consume CHECK
+		expr, err := p.parseCheckExpr()
+		if err != nil {
+			return TableConstraint{}, err
+		}
+		return TableConstraint{Name: name, Type: ConstraintCheck, Check: expr}, nil
+	}
+
 	return TableConstraint{}, fmt.Errorf(
 		"expected table constraint at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
@@ -245,6 +254,48 @@ func (p *parser) parseIdentList() ([]string, error) {
 		return nil, err
 	}
 	return idents, nil
+}
+
+// parseCheckExpr parses the parenthesised body of a CHECK constraint and
+// returns a normalised expression string (keywords lowercased, tokens
+// space-joined, outer parens stripped). Nested parens are handled via a
+// depth counter so expressions like CHECK (x IN (1, 2)) are captured whole.
+func (p *parser) parseCheckExpr() (string, error) {
+	if _, err := p.expect(lexer.LParen); err != nil {
+		return "", err
+	}
+	var parts []string
+	depth := 1
+	for {
+		tok := p.cur
+		if tok.Type == lexer.EOF {
+			return "", fmt.Errorf("unterminated CHECK expression at %d:%d", tok.Line, tok.Column)
+		}
+		if tok.Type == lexer.RParen {
+			depth--
+			if depth == 0 {
+				p.advance() // consume closing )
+				break
+			}
+			parts = append(parts, ")")
+		} else if tok.Type == lexer.LParen {
+			depth++
+			parts = append(parts, "(")
+		} else {
+			parts = append(parts, exprToken(tok))
+		}
+		p.advance()
+	}
+	return strings.Join(parts, " "), nil
+}
+
+// exprToken returns the normalised string for a single expression token:
+// keywords are lowercased; everything else is preserved verbatim.
+func exprToken(tok lexer.Token) string {
+	if tok.Type == lexer.Keyword {
+		return strings.ToLower(tok.Value)
+	}
+	return tok.Value
 }
 
 // parseReferences parses: REFERENCES <table> [( <columns> )]
@@ -310,6 +361,16 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		nullability = NullabilityNull
 	}
 
+	var check string
+	if p.curKeyword("CHECK") {
+		p.advance() // consume CHECK
+		var err error
+		check, err = p.parseCheckExpr()
+		if err != nil {
+			return ColumnDef{}, err
+		}
+	}
+
 	var ref *ColumnReference
 	if p.curKeyword("REFERENCES") {
 		refTable, refCols, err := p.parseReferences()
@@ -319,7 +380,7 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		ref = &ColumnReference{Table: refTable, Columns: refCols}
 	}
 
-	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Default: defaultExpr, Nullability: nullability, References: ref}, nil
+	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Default: defaultExpr, Nullability: nullability, Check: check, References: ref}, nil
 }
 
 // parseDataType reads a type name with an optional parameter list.
