@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/rpf3/sqlfmt/internal/config"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -34,7 +36,7 @@ func TestFormatGolden(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not read input file: %v", err)
 			}
-			got, err := Format(string(input))
+			got, err := Format(string(input), config.Default())
 			if err != nil {
 				t.Fatalf("Format() unexpected error: %v", err)
 			}
@@ -77,11 +79,11 @@ func TestFormatIdempotent(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not read %s: %v", path, err)
 			}
-			first, err := Format(string(golden))
+			first, err := Format(string(golden), config.Default())
 			if err != nil {
 				t.Fatalf("Format() first pass unexpected error: %v", err)
 			}
-			second, err := Format(first)
+			second, err := Format(first, config.Default())
 			if err != nil {
 				t.Fatalf("Format() second pass unexpected error: %v", err)
 			}
@@ -94,8 +96,49 @@ func TestFormatIdempotent(t *testing.T) {
 
 // TestFormatParseError verifies that invalid SQL returns a non-nil error.
 func TestFormatParseError(t *testing.T) {
-	_, err := Format("this is not valid sql")
+	_, err := Format("this is not valid sql", config.Default())
 	if err == nil {
 		t.Error("Format() expected error for invalid SQL, got nil")
 	}
+}
+
+// TestFormatKeywordCase verifies that keyword_case: upper uppercases all keywords.
+func TestFormatKeywordCase(t *testing.T) {
+	input := "create table t (id integer not null);"
+
+	t.Run("lower", func(t *testing.T) {
+		cfg := config.Default()
+		cfg.KeywordCase = config.KeywordLower
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		if strings.Contains(got, "CREATE") || strings.Contains(got, "TABLE") || strings.Contains(got, "INTEGER") {
+			t.Errorf("lower mode contains uppercase keywords:\n%s", got)
+		}
+		if !strings.Contains(got, "create table") {
+			t.Errorf("lower mode missing 'create table':\n%s", got)
+		}
+		if !strings.Contains(got, "not null") {
+			t.Errorf("lower mode missing 'not null':\n%s", got)
+		}
+	})
+
+	t.Run("upper", func(t *testing.T) {
+		cfg := config.Default()
+		cfg.KeywordCase = config.KeywordUpper
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		if !strings.Contains(got, "CREATE TABLE") {
+			t.Errorf("upper mode missing 'CREATE TABLE':\n%s", got)
+		}
+		if !strings.Contains(got, "NOT NULL") {
+			t.Errorf("upper mode missing 'NOT NULL':\n%s", got)
+		}
+		if !strings.Contains(got, "INTEGER") {
+			t.Errorf("upper mode missing 'INTEGER':\n%s", got)
+		}
+	})
 }

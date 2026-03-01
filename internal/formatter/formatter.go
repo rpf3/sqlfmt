@@ -3,76 +3,92 @@ package formatter
 import (
 	"strings"
 
+	"github.com/rpf3/sqlfmt/internal/config"
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
-// Format takes raw SQL and returns formatted SQL.
+// Format takes raw SQL and returns formatted SQL using cfg to control style.
 // It returns an error if the input cannot be parsed.
-func Format(input string) (string, error) {
+func Format(input string, cfg config.Config) (string, error) {
 	result := parser.Parse(input)
 	if len(result.Errors) > 0 {
 		return "", result.Errors[0]
 	}
 
+	f := &formatter{cfg: cfg}
 	var parts []string
 	for _, stmt := range result.Statements {
-		parts = append(parts, formatStatement(stmt))
+		parts = append(parts, f.formatStatement(stmt))
 	}
 	return strings.Join(parts, "\n\n") + "\n", nil
 }
 
-func formatStatement(stmt parser.Statement) string {
+// formatter holds configuration and provides all formatting methods.
+type formatter struct {
+	cfg config.Config
+}
+
+// kw transforms a canonical lowercase keyword phrase according to cfg.KeywordCase.
+func (f *formatter) kw(s string) string {
+	if f.cfg.KeywordCase == config.KeywordUpper {
+		return strings.ToUpper(s)
+	}
+	return s
+}
+
+func (f *formatter) formatStatement(stmt parser.Statement) string {
 	switch s := stmt.(type) {
 	case *parser.CreateTableStmt:
-		return formatCreateTable(s)
+		return f.formatCreateTable(s)
 	case *parser.CreateIndexStmt:
-		return formatCreateIndex(s)
+		return f.formatCreateIndex(s)
 	case *parser.AlterTableStmt:
-		return formatAlterTable(s)
+		return f.formatAlterTable(s)
 	case *parser.DropStmt:
-		return formatDrop(s)
+		return f.formatDrop(s)
 	}
 	return ""
 }
 
-func formatDrop(s *parser.DropStmt) string {
+func (f *formatter) formatDrop(s *parser.DropStmt) string {
 	var b strings.Builder
-	b.WriteString("drop ")
+	b.WriteString(f.kw("drop "))
 	switch s.Type {
 	case parser.DropTable:
-		b.WriteString("table ")
+		b.WriteString(f.kw("table "))
 	case parser.DropView:
-		b.WriteString("view ")
+		b.WriteString(f.kw("view "))
 	case parser.DropIndex:
-		b.WriteString("index ")
+		b.WriteString(f.kw("index "))
 	}
 	if s.IfExists {
-		b.WriteString("if exists ")
+		b.WriteString(f.kw("if exists "))
 	}
 	b.WriteString(s.Name)
 	b.WriteString(";")
 	return b.String()
 }
 
-func formatCreateIndex(s *parser.CreateIndexStmt) string {
+func (f *formatter) formatCreateIndex(s *parser.CreateIndexStmt) string {
 	var b strings.Builder
-	b.WriteString("create ")
+	b.WriteString(f.kw("create "))
 	if s.Unique {
-		b.WriteString("unique ")
+		b.WriteString(f.kw("unique "))
 	}
-	b.WriteString("index ")
+	b.WriteString(f.kw("index "))
 	if s.IfNotExists {
-		b.WriteString("if not exists ")
+		b.WriteString(f.kw("if not exists "))
 	}
 	b.WriteString(s.Name)
-	b.WriteString("\n\ton ")
+	b.WriteString("\n\t")
+	b.WriteString(f.kw("on "))
 	b.WriteString(s.Table)
 	b.WriteString(" (")
 	var colParts []string
 	for _, col := range s.Columns {
 		part := col.Name
 		if col.Desc {
-			part += " desc"
+			part += " " + f.kw("desc")
 		}
 		colParts = append(colParts, part)
 	}
@@ -81,44 +97,44 @@ func formatCreateIndex(s *parser.CreateIndexStmt) string {
 	return b.String()
 }
 
-// normalizeDefaultExpr lowercases the default expression unless it is a
-// string literal (single-quoted), which must be preserved verbatim.
-func normalizeDefaultExpr(v string) string {
+// normalizeDefaultExpr normalises the default expression according to keyword
+// case, unless it is a string literal (single-quoted), which is preserved verbatim.
+func (f *formatter) normalizeDefaultExpr(v string) string {
 	if len(v) > 0 && v[0] == '\'' {
 		return v
 	}
-	return strings.ToLower(v)
+	return f.kw(strings.ToLower(v))
 }
 
 // writeColumnDef writes the canonical form of a column definition to b.
 // It does not include any leading indentation or comma — the caller handles that.
-func writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
+func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 	b.WriteString(col.Name)
 	b.WriteString(" ")
-	b.WriteString(strings.ToLower(col.DataType))
+	b.WriteString(f.kw(strings.ToLower(col.DataType)))
 	if col.PrimaryKey {
-		b.WriteString(" primary key")
+		b.WriteString(" " + f.kw("primary key"))
 	}
 	if col.Default != "" {
-		b.WriteString(" default ")
-		b.WriteString(normalizeDefaultExpr(col.Default))
+		b.WriteString(" " + f.kw("default") + " ")
+		b.WriteString(f.normalizeDefaultExpr(col.Default))
 	}
 	switch col.Nullability {
 	case parser.NullabilityNotNull:
-		b.WriteString(" not null")
+		b.WriteString(" " + f.kw("not null"))
 	case parser.NullabilityNull:
-		b.WriteString(" null")
+		b.WriteString(" " + f.kw("null"))
 	}
 	if col.Unique {
-		b.WriteString(" unique")
+		b.WriteString(" " + f.kw("unique"))
 	}
 	if col.Check != "" {
-		b.WriteString(" check (")
+		b.WriteString(" " + f.kw("check") + " (")
 		b.WriteString(col.Check)
 		b.WriteString(")")
 	}
 	if col.References != nil {
-		b.WriteString(" references ")
+		b.WriteString(" " + f.kw("references") + " ")
 		b.WriteString(col.References.Table)
 		if len(col.References.Columns) > 0 {
 			b.WriteString(" (")
@@ -128,24 +144,22 @@ func writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 	}
 }
 
-// writeTableConstraint writes the canonical form of a table constraint to b,
-// starting with "constraint <name>\n\t\t" for named constraints (matching the
-// indentation used in both CREATE TABLE and ALTER TABLE ADD).
-func writeTableConstraint(b *strings.Builder, tc parser.TableConstraint) {
+// writeTableConstraint writes the canonical form of a table constraint to b.
+func (f *formatter) writeTableConstraint(b *strings.Builder, tc parser.TableConstraint) {
 	if tc.Name != "" {
-		b.WriteString("constraint ")
+		b.WriteString(f.kw("constraint "))
 		b.WriteString(tc.Name)
 		b.WriteString("\n\t\t")
 	}
 	switch tc.Type {
 	case parser.ConstraintPrimaryKey:
-		b.WriteString("primary key (")
+		b.WriteString(f.kw("primary key") + " (")
 		b.WriteString(strings.Join(tc.Columns, ", "))
 		b.WriteString(")")
 	case parser.ConstraintForeignKey:
-		b.WriteString("foreign key (")
+		b.WriteString(f.kw("foreign key") + " (")
 		b.WriteString(strings.Join(tc.Columns, ", "))
-		b.WriteString(") references ")
+		b.WriteString(") " + f.kw("references") + " ")
 		b.WriteString(tc.RefTable)
 		if len(tc.RefColumns) > 0 {
 			b.WriteString(" (")
@@ -153,19 +167,19 @@ func writeTableConstraint(b *strings.Builder, tc parser.TableConstraint) {
 			b.WriteString(")")
 		}
 	case parser.ConstraintUnique:
-		b.WriteString("unique (")
+		b.WriteString(f.kw("unique") + " (")
 		b.WriteString(strings.Join(tc.Columns, ", "))
 		b.WriteString(")")
 	case parser.ConstraintCheck:
-		b.WriteString("check (")
+		b.WriteString(f.kw("check") + " (")
 		b.WriteString(tc.Check)
 		b.WriteString(")")
 	}
 }
 
-func formatCreateTable(s *parser.CreateTableStmt) string {
+func (f *formatter) formatCreateTable(s *parser.CreateTableStmt) string {
 	var b strings.Builder
-	b.WriteString("create table ")
+	b.WriteString(f.kw("create table "))
 	b.WriteString(s.Name)
 	b.WriteString("\n(\n")
 
@@ -175,7 +189,7 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 		} else {
 			b.WriteString(",\t")
 		}
-		writeColumnDef(&b, col)
+		f.writeColumnDef(&b, col)
 		b.WriteString("\n")
 	}
 
@@ -184,7 +198,7 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 	}
 	for _, tc := range s.Constraints {
 		b.WriteString(",\t")
-		writeTableConstraint(&b, tc)
+		f.writeTableConstraint(&b, tc)
 		b.WriteString("\n")
 	}
 
@@ -192,32 +206,32 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 	return b.String()
 }
 
-func formatAlterTable(s *parser.AlterTableStmt) string {
+func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
 	var b strings.Builder
-	b.WriteString("alter table ")
+	b.WriteString(f.kw("alter table "))
 	b.WriteString(s.Name)
 	b.WriteString("\n\t")
 
 	switch s.Action.Type {
 	case parser.AlterAddColumn:
-		b.WriteString("add column ")
-		writeColumnDef(&b, *s.Action.Column)
+		b.WriteString(f.kw("add column "))
+		f.writeColumnDef(&b, *s.Action.Column)
 	case parser.AlterDropColumn:
-		b.WriteString("drop column ")
+		b.WriteString(f.kw("drop column "))
 		b.WriteString(s.Action.ColumnName)
 	case parser.AlterAddConstraint:
-		b.WriteString("add ")
-		writeTableConstraint(&b, *s.Action.Constraint)
+		b.WriteString(f.kw("add "))
+		f.writeTableConstraint(&b, *s.Action.Constraint)
 	case parser.AlterDropConstraint:
-		b.WriteString("drop constraint ")
+		b.WriteString(f.kw("drop constraint "))
 		b.WriteString(s.Action.ConstraintName)
 	case parser.AlterRenameTable:
-		b.WriteString("rename to ")
+		b.WriteString(f.kw("rename to "))
 		b.WriteString(s.Action.NewName)
 	case parser.AlterRenameColumn:
-		b.WriteString("rename column ")
+		b.WriteString(f.kw("rename column "))
 		b.WriteString(s.Action.ColumnName)
-		b.WriteString(" to ")
+		b.WriteString(" " + f.kw("to") + " ")
 		b.WriteString(s.Action.NewName)
 	}
 

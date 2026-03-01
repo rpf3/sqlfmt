@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/rpf3/sqlfmt/internal/config"
 	"github.com/rpf3/sqlfmt/internal/formatter"
 )
 
@@ -26,13 +27,24 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 1
 	}
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(stderr, "sqlfmt: could not determine working directory: %v\n", err)
+		return 1
+	}
+	cfg, err := config.FindAndLoad(cwd)
+	if err != nil {
+		fmt.Fprintf(stderr, "sqlfmt: config error: %v\n", err)
+		return 1
+	}
+
 	input, err := io.ReadAll(stdin)
 	if err != nil {
 		fmt.Fprintf(stderr, "sqlfmt: failed to read input: %v\n", err)
 		return 1
 	}
 
-	output, err := formatter.Format(string(input))
+	output, err := formatter.Format(string(input), cfg)
 	if err != nil {
 		fmt.Fprintf(stderr, "sqlfmt: %v\n", err)
 		return 1
