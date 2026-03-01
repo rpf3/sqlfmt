@@ -21,6 +21,7 @@ const (
 
 // TableConstraint is a table-level constraint entry in a CREATE TABLE column list.
 type TableConstraint struct {
+	Name    string              // optional constraint name from CONSTRAINT <name>; empty if unnamed
 	Type    TableConstraintType
 	Columns []string // column names referenced by the constraint
 }
