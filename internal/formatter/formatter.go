@@ -29,8 +29,29 @@ func formatStatement(stmt parser.Statement) string {
 		return formatCreateIndex(s)
 	case *parser.AlterTableStmt:
 		return formatAlterTable(s)
+	case *parser.DropStmt:
+		return formatDrop(s)
 	}
 	return ""
+}
+
+func formatDrop(s *parser.DropStmt) string {
+	var b strings.Builder
+	b.WriteString("drop ")
+	switch s.Type {
+	case parser.DropTable:
+		b.WriteString("table ")
+	case parser.DropView:
+		b.WriteString("view ")
+	case parser.DropIndex:
+		b.WriteString("index ")
+	}
+	if s.IfExists {
+		b.WriteString("if exists ")
+	}
+	b.WriteString(s.Name)
+	b.WriteString(";")
+	return b.String()
 }
 
 func formatCreateIndex(s *parser.CreateIndexStmt) string {

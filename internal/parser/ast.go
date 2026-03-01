@@ -95,6 +95,24 @@ type AlterTableStmt struct {
 
 func (*AlterTableStmt) statementNode() {}
 
+// DropObjectType identifies what kind of object a DROP statement targets.
+type DropObjectType int
+
+const (
+	DropTable DropObjectType = iota // DROP TABLE
+	DropView                        // DROP VIEW
+	DropIndex                       // DROP INDEX
+)
+
+// DropStmt represents: DROP (TABLE|VIEW|INDEX) [IF EXISTS] <name>
+type DropStmt struct {
+	Type     DropObjectType
+	IfExists bool
+	Name     string
+}
+
+func (*DropStmt) statementNode() {}
+
 // ColumnDef is one column in a CREATE TABLE column list.
 type ColumnDef struct {
 	Name        string           // column name
