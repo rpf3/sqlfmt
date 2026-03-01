@@ -144,7 +144,12 @@ func (p *parser) parseCreate() (Statement, error) {
 		p.advance()
 	}
 
-	return &CreateTableStmt{Name: nameTok.Value, Columns: cols, Constraints: constraints}, nil
+	stmt := &CreateTableStmt{
+		Name:        nameTok.Value,
+		Columns:     cols,
+		Constraints: constraints,
+	}
+	return stmt, nil
 }
 
 // parseColumnList parses one or more comma-separated column definitions and
@@ -181,41 +186,45 @@ func (p *parser) parseColumnList() ([]ColumnDef, []TableConstraint, error) {
 // parseTableConstraint parses a table-level constraint entry, with an
 // optional leading CONSTRAINT <name> prefix.
 func (p *parser) parseTableConstraint() (TableConstraint, error) {
-	var name string
+	var tc TableConstraint
+
 	if p.curKeyword("CONSTRAINT") {
 		p.advance() // consume CONSTRAINT
 		tok, err := p.expectIdent()
 		if err != nil {
 			return TableConstraint{}, err
 		}
-		name = tok.Value
+		tc.Name = tok.Value
 	}
 
 	if p.curKeyword("PRIMARY") && p.peekKeyword("KEY") {
 		p.advance() // consume PRIMARY
 		p.advance() // consume KEY
-
 		cols, err := p.parseIdentList()
 		if err != nil {
 			return TableConstraint{}, err
 		}
-		return TableConstraint{Name: name, Type: ConstraintPrimaryKey, Columns: cols}, nil
+		tc.Type = ConstraintPrimaryKey
+		tc.Columns = cols
+		return tc, nil
 	}
 
 	if p.curKeyword("FOREIGN") && p.peekKeyword("KEY") {
 		p.advance() // consume FOREIGN
 		p.advance() // consume KEY
-
 		localCols, err := p.parseIdentList()
 		if err != nil {
 			return TableConstraint{}, err
 		}
-
 		refTable, refCols, err := p.parseReferences()
 		if err != nil {
 			return TableConstraint{}, err
 		}
-		return TableConstraint{Name: name, Type: ConstraintForeignKey, Columns: localCols, RefTable: refTable, RefColumns: refCols}, nil
+		tc.Type = ConstraintForeignKey
+		tc.Columns = localCols
+		tc.RefTable = refTable
+		tc.RefColumns = refCols
+		return tc, nil
 	}
 
 	if p.curKeyword("UNIQUE") {
@@ -224,7 +233,9 @@ func (p *parser) parseTableConstraint() (TableConstraint, error) {
 		if err != nil {
 			return TableConstraint{}, err
 		}
-		return TableConstraint{Name: name, Type: ConstraintUnique, Columns: cols}, nil
+		tc.Type = ConstraintUnique
+		tc.Columns = cols
+		return tc, nil
 	}
 
 	if p.curKeyword("CHECK") {
@@ -233,7 +244,9 @@ func (p *parser) parseTableConstraint() (TableConstraint, error) {
 		if err != nil {
 			return TableConstraint{}, err
 		}
-		return TableConstraint{Name: name, Type: ConstraintCheck, Check: expr}, nil
+		tc.Type = ConstraintCheck
+		tc.Check = expr
+		return tc, nil
 	}
 
 	return TableConstraint{}, fmt.Errorf(
@@ -308,23 +321,25 @@ func exprToken(tok lexer.Token) string {
 }
 
 // parseReferences parses: REFERENCES <table> [( <columns> )]
-func (p *parser) parseReferences() (table string, columns []string, err error) {
-	if err = p.expectKeyword("REFERENCES"); err != nil {
-		return
+func (p *parser) parseReferences() (string, []string, error) {
+	if err := p.expectKeyword("REFERENCES"); err != nil {
+		return "", nil, err
 	}
-	tableTok, e := p.expectIdent()
-	if e != nil {
-		err = e
-		return
+	tableTok, err := p.expectIdent()
+	if err != nil {
+		return "", nil, err
 	}
-	table = tableTok.Value
+	var columns []string
 	if p.curIs(lexer.LParen) {
 		columns, err = p.parseIdentList()
+		if err != nil {
+			return "", nil, err
+		}
 	}
-	return
+	return tableTok.Value, columns, nil
 }
 
-// parseColumnDef parses "<name> <datatype>".
+// parseColumnDef parses a column definition: <name> <datatype> [constraints...].
 func (p *parser) parseColumnDef() (ColumnDef, error) {
 	nameTok, err := p.expectIdent()
 	if err != nil {
@@ -336,20 +351,23 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		return ColumnDef{}, err
 	}
 
-	var primaryKey bool
+	col := ColumnDef{
+		Name:     nameTok.Value,
+		DataType: dataType,
+	}
+
 	if p.curKeyword("PRIMARY") && p.peekKeyword("KEY") {
 		p.advance() // consume PRIMARY
 		p.advance() // consume KEY
-		primaryKey = true
+		col.PrimaryKey = true
 	}
 
-	var defaultExpr string
 	if p.curKeyword("DEFAULT") {
 		p.advance() // consume DEFAULT
 		tok := p.cur
 		switch tok.Type {
 		case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
-			defaultExpr = tok.Value
+			col.Default = tok.Value
 			p.advance()
 		default:
 			return ColumnDef{}, fmt.Errorf(
@@ -359,43 +377,38 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		}
 	}
 
-	var nullability Nullability
 	switch {
 	case p.curKeyword("NOT") && p.peekKeyword("NULL"):
 		p.advance() // consume NOT
 		p.advance() // consume NULL
-		nullability = NullabilityNotNull
+		col.Nullability = NullabilityNotNull
 	case p.curKeyword("NULL"):
 		p.advance() // consume NULL
-		nullability = NullabilityNull
+		col.Nullability = NullabilityNull
 	}
 
-	var unique bool
 	if p.curKeyword("UNIQUE") {
 		p.advance() // consume UNIQUE
-		unique = true
+		col.Unique = true
 	}
 
-	var check string
 	if p.curKeyword("CHECK") {
 		p.advance() // consume CHECK
-		var err error
-		check, err = p.parseCheckExpr()
+		col.Check, err = p.parseCheckExpr()
 		if err != nil {
 			return ColumnDef{}, err
 		}
 	}
 
-	var ref *ColumnReference
 	if p.curKeyword("REFERENCES") {
 		refTable, refCols, err := p.parseReferences()
 		if err != nil {
 			return ColumnDef{}, err
 		}
-		ref = &ColumnReference{Table: refTable, Columns: refCols}
+		col.References = &ColumnReference{Table: refTable, Columns: refCols}
 	}
 
-	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Default: defaultExpr, Nullability: nullability, Unique: unique, Check: check, References: ref}, nil
+	return col, nil
 }
 
 // parseDataType reads a type name with an optional parameter list.
