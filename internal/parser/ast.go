@@ -24,5 +24,6 @@ const (
 type ColumnDef struct {
 	Name        string      // column name
 	DataType    string      // e.g. "INTEGER", "TEXT", "VARCHAR(255)"
+	PrimaryKey  bool        // PRIMARY KEY inline constraint
 	Nullability Nullability // optional nullability constraint
 }

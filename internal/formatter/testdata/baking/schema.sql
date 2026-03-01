@@ -1,6 +1,6 @@
 create table ingredients
 (
-	id integer not null
+	id integer primary key
 ,	name text not null
 );
 

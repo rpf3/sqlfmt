@@ -15,7 +15,7 @@ func TestFormatGolden(t *testing.T) {
 	want := string(golden)
 
 	// Use a messily formatted but semantically identical input.
-	input := `create table ingredients(id integer NOT NULL,name text not null);
+	input := `create table ingredients(id integer PRIMARY KEY,name text not null);
 create table recipes(id integer NOT NULL,name text NOT NULL,description text NULL);`
 
 	got, err := Format(input)
