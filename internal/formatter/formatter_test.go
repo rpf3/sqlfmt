@@ -200,3 +200,126 @@ func TestFormatIndentStyle(t *testing.T) {
 		}
 	})
 }
+
+// TestFormatCommaStyle verifies leading vs trailing comma placement.
+func TestFormatCommaStyle(t *testing.T) {
+	t.Run("single_col_leading", func(t *testing.T) {
+		input := "create table t (id integer not null);"
+		cfg := config.Default()
+		cfg.CommaStyle = config.CommaLeading
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		// single column: no comma at all
+		if strings.Contains(got, ",") {
+			t.Errorf("single-col leading: unexpected comma:\n%s", got)
+		}
+	})
+
+	t.Run("single_col_trailing", func(t *testing.T) {
+		input := "create table t (id integer not null);"
+		cfg := config.Default()
+		cfg.CommaStyle = config.CommaTrailing
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		// single column: no comma at all
+		if strings.Contains(got, ",") {
+			t.Errorf("single-col trailing: unexpected comma:\n%s", got)
+		}
+	})
+
+	t.Run("multi_col_leading", func(t *testing.T) {
+		input := "create table t (id integer not null, name varchar(50) not null);"
+		cfg := config.Default()
+		cfg.CommaStyle = config.CommaLeading
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
+		// line with 'name' should start with ",\t"
+		var nameLine string
+		for _, l := range lines {
+			if strings.Contains(l, "name") {
+				nameLine = l
+				break
+			}
+		}
+		if !strings.HasPrefix(nameLine, ",\t") && !strings.HasPrefix(nameLine, ", ") {
+			t.Errorf("multi-col leading: name line should start with comma+indent:\n%q", nameLine)
+		}
+	})
+
+	t.Run("multi_col_trailing", func(t *testing.T) {
+		input := "create table t (id integer not null, name varchar(50) not null);"
+		cfg := config.Default()
+		cfg.CommaStyle = config.CommaTrailing
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
+		// 'id' line should end with ","
+		var idLine string
+		for _, l := range lines {
+			if strings.HasPrefix(strings.TrimSpace(l), "id ") {
+				idLine = l
+				break
+			}
+		}
+		if !strings.HasSuffix(idLine, ",") {
+			t.Errorf("multi-col trailing: id line should end with comma:\n%q", idLine)
+		}
+		// 'name' line should NOT end with ","
+		var nameLine string
+		for _, l := range lines {
+			if strings.HasPrefix(strings.TrimSpace(l), "name ") {
+				nameLine = l
+				break
+			}
+		}
+		if strings.HasSuffix(nameLine, ",") {
+			t.Errorf("multi-col trailing: name (last) line should not end with comma:\n%q", nameLine)
+		}
+	})
+
+	t.Run("cols_and_constraints_trailing", func(t *testing.T) {
+		input := `create table t (
+			id integer not null,
+			name varchar(50) not null,
+			constraint pk_t primary key (id),
+			constraint uq_t_name unique (name)
+		);`
+		cfg := config.Default()
+		cfg.CommaStyle = config.CommaTrailing
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
+		// The pk_t body ("primary key (id)") is not the last item, so it ends with ","
+		var pkBodyLine string
+		for _, l := range lines {
+			if strings.Contains(l, "primary key") {
+				pkBodyLine = l
+				break
+			}
+		}
+		if !strings.HasSuffix(pkBodyLine, ",") {
+			t.Errorf("trailing: pk body line should end with comma:\n%q", pkBodyLine)
+		}
+		// The uq_t_name body ("unique (name)") is the last item — no comma.
+		var uqBodyLine string
+		for _, l := range lines {
+			if strings.Contains(l, "unique") {
+				uqBodyLine = l
+			}
+		}
+		if strings.HasSuffix(uqBodyLine, ",") {
+			t.Errorf("trailing: last constraint body should not end with comma:\n%q", uqBodyLine)
+		}
+	})
+}
