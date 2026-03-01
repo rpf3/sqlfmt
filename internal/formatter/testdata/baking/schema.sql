@@ -12,3 +12,13 @@ create table recipes
 ,	description varchar(1000) default null null
 ,	constraint pk_recipes primary key (id)
 );
+
+create table recipe_ingredients
+(
+	recipe_id integer not null
+,	ingredient_id integer not null
+,	quantity numeric(10, 2) not null
+,	constraint pk_recipe_ingredients primary key (recipe_id, ingredient_id)
+,	constraint fk_recipe_ingredients_recipe foreign key (recipe_id) references recipes (id)
+,	constraint fk_recipe_ingredients_ingredient foreign key (ingredient_id) references ingredients (id)
+);

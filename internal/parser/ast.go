@@ -17,13 +17,16 @@ type TableConstraintType int
 
 const (
 	ConstraintPrimaryKey TableConstraintType = iota
+	ConstraintForeignKey
 )
 
 // TableConstraint is a table-level constraint entry in a CREATE TABLE column list.
 type TableConstraint struct {
-	Name    string              // optional constraint name from CONSTRAINT <name>; empty if unnamed
-	Type    TableConstraintType
-	Columns []string // column names referenced by the constraint
+	Name       string              // optional constraint name from CONSTRAINT <name>; empty if unnamed
+	Type       TableConstraintType
+	Columns    []string // local column names
+	RefTable   string   // for FK: referenced table name
+	RefColumns []string // for FK: referenced column names; empty means implicit PK reference
 }
 
 // Nullability represents an optional nullability constraint on a column.
@@ -35,11 +38,18 @@ const (
 	NullabilityNull                       // NULL
 )
 
+// ColumnReference holds the target of an inline REFERENCES clause.
+type ColumnReference struct {
+	Table   string
+	Columns []string // column names; empty means implicit reference to table's PK
+}
+
 // ColumnDef is one column in a CREATE TABLE column list.
 type ColumnDef struct {
-	Name        string      // column name
-	DataType    string      // e.g. "INTEGER", "TEXT", "VARCHAR(255)", "NUMERIC(10, 2)"
-	PrimaryKey  bool        // PRIMARY KEY inline constraint
-	Default     string      // DEFAULT expression verbatim; empty means no DEFAULT clause
-	Nullability Nullability // optional nullability constraint
+	Name        string           // column name
+	DataType    string           // e.g. "INTEGER", "TEXT", "VARCHAR(255)", "NUMERIC(10, 2)"
+	PrimaryKey  bool             // PRIMARY KEY inline constraint
+	Default     string           // DEFAULT expression verbatim; empty means no DEFAULT clause
+	Nullability Nullability      // optional nullability constraint
+	References  *ColumnReference // optional inline REFERENCES clause
 }

@@ -195,33 +195,73 @@ func (p *parser) parseTableConstraint() (TableConstraint, error) {
 		p.advance() // consume PRIMARY
 		p.advance() // consume KEY
 
-		if _, err := p.expect(lexer.LParen); err != nil {
-			return TableConstraint{}, err
-		}
-
-		var cols []string
-		for {
-			tok, err := p.expectIdent()
-			if err != nil {
-				return TableConstraint{}, err
-			}
-			cols = append(cols, tok.Value)
-			if !p.curIs(lexer.Comma) {
-				break
-			}
-			p.advance() // consume ','
-		}
-
-		if _, err := p.expect(lexer.RParen); err != nil {
+		cols, err := p.parseIdentList()
+		if err != nil {
 			return TableConstraint{}, err
 		}
 		return TableConstraint{Name: name, Type: ConstraintPrimaryKey, Columns: cols}, nil
+	}
+
+	if p.curKeyword("FOREIGN") && p.peekKeyword("KEY") {
+		p.advance() // consume FOREIGN
+		p.advance() // consume KEY
+
+		localCols, err := p.parseIdentList()
+		if err != nil {
+			return TableConstraint{}, err
+		}
+
+		refTable, refCols, err := p.parseReferences()
+		if err != nil {
+			return TableConstraint{}, err
+		}
+		return TableConstraint{Name: name, Type: ConstraintForeignKey, Columns: localCols, RefTable: refTable, RefColumns: refCols}, nil
 	}
 
 	return TableConstraint{}, fmt.Errorf(
 		"expected table constraint at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
+}
+
+// parseIdentList parses a parenthesised comma-separated list of identifiers.
+func (p *parser) parseIdentList() ([]string, error) {
+	if _, err := p.expect(lexer.LParen); err != nil {
+		return nil, err
+	}
+	var idents []string
+	for {
+		tok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		idents = append(idents, tok.Value)
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+	if _, err := p.expect(lexer.RParen); err != nil {
+		return nil, err
+	}
+	return idents, nil
+}
+
+// parseReferences parses: REFERENCES <table> [( <columns> )]
+func (p *parser) parseReferences() (table string, columns []string, err error) {
+	if err = p.expectKeyword("REFERENCES"); err != nil {
+		return
+	}
+	tableTok, e := p.expectIdent()
+	if e != nil {
+		err = e
+		return
+	}
+	table = tableTok.Value
+	if p.curIs(lexer.LParen) {
+		columns, err = p.parseIdentList()
+	}
+	return
 }
 
 // parseColumnDef parses "<name> <datatype>".
@@ -270,7 +310,16 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		nullability = NullabilityNull
 	}
 
-	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Default: defaultExpr, Nullability: nullability}, nil
+	var ref *ColumnReference
+	if p.curKeyword("REFERENCES") {
+		refTable, refCols, err := p.parseReferences()
+		if err != nil {
+			return ColumnDef{}, err
+		}
+		ref = &ColumnReference{Table: refTable, Columns: refCols}
+	}
+
+	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Default: defaultExpr, Nullability: nullability, References: ref}, nil
 }
 
 // parseDataType reads a type name with an optional parameter list.

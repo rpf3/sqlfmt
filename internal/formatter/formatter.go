@@ -66,6 +66,15 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 		case parser.NullabilityNull:
 			b.WriteString(" null")
 		}
+		if col.References != nil {
+			b.WriteString(" references ")
+			b.WriteString(col.References.Table)
+			if len(col.References.Columns) > 0 {
+				b.WriteString(" (")
+				b.WriteString(strings.Join(col.References.Columns, ", "))
+				b.WriteString(")")
+			}
+		}
 		b.WriteString("\n")
 	}
 
@@ -81,6 +90,16 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 			b.WriteString("primary key (")
 			b.WriteString(strings.Join(tc.Columns, ", "))
 			b.WriteString(")")
+		case parser.ConstraintForeignKey:
+			b.WriteString("foreign key (")
+			b.WriteString(strings.Join(tc.Columns, ", "))
+			b.WriteString(") references ")
+			b.WriteString(tc.RefTable)
+			if len(tc.RefColumns) > 0 {
+				b.WriteString(" (")
+				b.WriteString(strings.Join(tc.RefColumns, ", "))
+				b.WriteString(")")
+			}
 		}
 		b.WriteString("\n")
 	}
