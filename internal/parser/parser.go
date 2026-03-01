@@ -177,6 +177,13 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		return ColumnDef{}, err
 	}
 
+	var primaryKey bool
+	if p.curKeyword("PRIMARY") && p.peekKeyword("KEY") {
+		p.advance() // consume PRIMARY
+		p.advance() // consume KEY
+		primaryKey = true
+	}
+
 	var nullability Nullability
 	switch {
 	case p.curKeyword("NOT") && p.peekKeyword("NULL"):
@@ -188,7 +195,7 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		nullability = NullabilityNull
 	}
 
-	return ColumnDef{Name: nameTok.Value, DataType: dataType, Nullability: nullability}, nil
+	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Nullability: nullability}, nil
 }
 
 // parseDataType reads a type name (keyword or identifier).

@@ -44,6 +44,9 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 		b.WriteString(col.Name)
 		b.WriteString(" ")
 		b.WriteString(strings.ToLower(col.DataType))
+		if col.PrimaryKey {
+			b.WriteString(" primary key")
+		}
 		switch col.Nullability {
 		case parser.NullabilityNotNull:
 			b.WriteString(" not null")
