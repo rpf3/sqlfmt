@@ -44,6 +44,12 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 		b.WriteString(col.Name)
 		b.WriteString(" ")
 		b.WriteString(strings.ToLower(col.DataType))
+		switch col.Nullability {
+		case parser.NullabilityNotNull:
+			b.WriteString(" not null")
+		case parser.NullabilityNull:
+			b.WriteString(" null")
+		}
 		b.WriteString("\n")
 	}
 

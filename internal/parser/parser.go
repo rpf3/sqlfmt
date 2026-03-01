@@ -51,6 +51,11 @@ func (p *parser) curKeyword(kw string) bool {
 	return p.cur.Type == lexer.Keyword && strings.EqualFold(p.cur.Value, kw)
 }
 
+// peekKeyword reports whether peek is the keyword kw (case-insensitive).
+func (p *parser) peekKeyword(kw string) bool {
+	return p.peek.Type == lexer.Keyword && strings.EqualFold(p.peek.Value, kw)
+}
+
 // expect consumes cur if it matches t and returns it; otherwise records an
 // error and returns the zero Token.
 func (p *parser) expect(t lexer.TokenType) (lexer.Token, error) {
@@ -172,7 +177,18 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		return ColumnDef{}, err
 	}
 
-	return ColumnDef{Name: nameTok.Value, DataType: dataType}, nil
+	var nullability Nullability
+	switch {
+	case p.curKeyword("NOT") && p.peekKeyword("NULL"):
+		p.advance() // consume NOT
+		p.advance() // consume NULL
+		nullability = NullabilityNotNull
+	case p.curKeyword("NULL"):
+		p.advance() // consume NULL
+		nullability = NullabilityNull
+	}
+
+	return ColumnDef{Name: nameTok.Value, DataType: dataType, Nullability: nullability}, nil
 }
 
 // parseDataType reads a type name (keyword or identifier).

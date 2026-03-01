@@ -11,8 +11,18 @@ type CreateTableStmt struct {
 
 func (*CreateTableStmt) statementNode() {}
 
+// Nullability represents an optional nullability constraint on a column.
+type Nullability int
+
+const (
+	NullabilityNone    Nullability = iota // constraint not specified
+	NullabilityNotNull                    // NOT NULL
+	NullabilityNull                       // NULL
+)
+
 // ColumnDef is one column in a CREATE TABLE column list.
 type ColumnDef struct {
-	Name     string // column name
-	DataType string // e.g. "INTEGER", "TEXT", "VARCHAR(255)"
+	Name        string      // column name
+	DataType    string      // e.g. "INTEGER", "TEXT", "VARCHAR(255)"
+	Nullability Nullability // optional nullability constraint
 }
