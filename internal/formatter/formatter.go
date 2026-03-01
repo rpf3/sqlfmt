@@ -197,23 +197,46 @@ func (f *formatter) formatCreateTable(s *parser.CreateTableStmt) string {
 	b.WriteString(s.Name)
 	b.WriteString("\n(\n")
 
-	for i, col := range s.Columns {
-		if i == 0 {
+	totalItems := len(s.Columns) + len(s.Constraints)
+	itemIdx := 0
+
+	for _, col := range s.Columns {
+		if f.cfg.CommaStyle == config.CommaTrailing {
 			b.WriteString(ind)
+			f.writeColumnDef(&b, col)
+			if itemIdx < totalItems-1 {
+				b.WriteString(",")
+			}
 		} else {
-			b.WriteString("," + ind)
+			// leading comma style
+			if itemIdx == 0 {
+				b.WriteString(ind)
+			} else {
+				b.WriteString("," + ind)
+			}
+			f.writeColumnDef(&b, col)
 		}
-		f.writeColumnDef(&b, col)
 		b.WriteString("\n")
+		itemIdx++
 	}
 
 	if len(s.Constraints) > 0 {
 		b.WriteString("\n") // blank line separates columns from constraints
 	}
 	for _, tc := range s.Constraints {
-		b.WriteString("," + ind)
-		f.writeTableConstraint(&b, tc)
+		if f.cfg.CommaStyle == config.CommaTrailing {
+			b.WriteString(ind)
+			f.writeTableConstraint(&b, tc)
+			if itemIdx < totalItems-1 {
+				b.WriteString(",")
+			}
+		} else {
+			// leading comma style
+			b.WriteString("," + ind)
+			f.writeTableConstraint(&b, tc)
+		}
 		b.WriteString("\n")
+		itemIdx++
 	}
 
 	b.WriteString(");")
