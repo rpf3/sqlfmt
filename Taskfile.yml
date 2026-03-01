@@ -16,6 +16,11 @@ tasks:
     cmds:
       - go test ./...
 
+  fmt:
+    desc: Format all Go source files with gofmt
+    cmds:
+      - gofmt -w $(find . -name '*.go')
+
   vet:
     desc: Run go vet static analysis across all packages
     cmds:
