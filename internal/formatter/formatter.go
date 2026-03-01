@@ -31,18 +31,19 @@ func formatStatement(stmt parser.Statement) string {
 
 func formatCreateTable(s *parser.CreateTableStmt) string {
 	var b strings.Builder
-	b.WriteString("CREATE TABLE ")
+	b.WriteString("create table ")
 	b.WriteString(s.Name)
-	b.WriteString(" (\n")
+	b.WriteString("\n(\n")
 
 	for i, col := range s.Columns {
-		b.WriteString("    ")
+		if i == 0 {
+			b.WriteString("\t")
+		} else {
+			b.WriteString(",\t")
+		}
 		b.WriteString(col.Name)
 		b.WriteString(" ")
-		b.WriteString(col.DataType)
-		if i < len(s.Columns)-1 {
-			b.WriteString(",")
-		}
+		b.WriteString(strings.ToLower(col.DataType))
 		b.WriteString("\n")
 	}
 
