@@ -267,7 +267,7 @@ func (l *Lexer) readQuotedIdent() Token {
 }
 
 // readString scans a single-quoted string literal.
-// A doubled single-quote ('') is the ANSI SQL escape for a literal quote
+// A doubled single-quote (”) is the ANSI SQL escape for a literal quote
 // inside a string.
 // On unterminated input an Illegal token is returned with the partial content.
 func (l *Lexer) readString() Token {
