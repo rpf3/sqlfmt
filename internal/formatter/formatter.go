@@ -71,6 +71,11 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 
 	for _, tc := range s.Constraints {
 		b.WriteString(",\t")
+		if tc.Name != "" {
+			b.WriteString("constraint ")
+			b.WriteString(tc.Name)
+			b.WriteString(" ")
+		}
 		switch tc.Type {
 		case parser.ConstraintPrimaryKey:
 			b.WriteString("primary key (")

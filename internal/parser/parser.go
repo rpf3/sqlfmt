@@ -178,8 +178,19 @@ func (p *parser) parseColumnList() ([]ColumnDef, []TableConstraint, error) {
 	return cols, constraints, nil
 }
 
-// parseTableConstraint parses a table-level constraint entry.
+// parseTableConstraint parses a table-level constraint entry, with an
+// optional leading CONSTRAINT <name> prefix.
 func (p *parser) parseTableConstraint() (TableConstraint, error) {
+	var name string
+	if p.curKeyword("CONSTRAINT") {
+		p.advance() // consume CONSTRAINT
+		tok, err := p.expectIdent()
+		if err != nil {
+			return TableConstraint{}, err
+		}
+		name = tok.Value
+	}
+
 	if p.curKeyword("PRIMARY") && p.peekKeyword("KEY") {
 		p.advance() // consume PRIMARY
 		p.advance() // consume KEY
@@ -204,7 +215,7 @@ func (p *parser) parseTableConstraint() (TableConstraint, error) {
 		if _, err := p.expect(lexer.RParen); err != nil {
 			return TableConstraint{}, err
 		}
-		return TableConstraint{Type: ConstraintPrimaryKey, Columns: cols}, nil
+		return TableConstraint{Name: name, Type: ConstraintPrimaryKey, Columns: cols}, nil
 	}
 
 	return TableConstraint{}, fmt.Errorf(

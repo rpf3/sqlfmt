@@ -2,7 +2,7 @@ create table ingredients
 (
 	id integer not null
 ,	name varchar(255) default 'unnamed' not null
-,	primary key (id)
+,	constraint pk_ingredients primary key (id)
 );
 
 create table recipes
@@ -10,5 +10,5 @@ create table recipes
 	id integer not null
 ,	name varchar(255) default 'untitled' not null
 ,	description varchar(1000) default null null
-,	primary key (id)
+,	constraint pk_recipes primary key (id)
 );
