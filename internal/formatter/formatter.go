@@ -14,21 +14,23 @@ func Format(input string) (string, error) {
 		return "", result.Errors[0]
 	}
 
-	var b strings.Builder
+	var parts []string
 	for _, stmt := range result.Statements {
-		formatStatement(&b, stmt)
+		parts = append(parts, formatStatement(stmt))
 	}
-	return b.String(), nil
+	return strings.Join(parts, "\n\n") + "\n", nil
 }
 
-func formatStatement(b *strings.Builder, stmt parser.Statement) {
+func formatStatement(stmt parser.Statement) string {
 	switch s := stmt.(type) {
 	case *parser.CreateTableStmt:
-		formatCreateTable(b, s)
+		return formatCreateTable(s)
 	}
+	return ""
 }
 
-func formatCreateTable(b *strings.Builder, s *parser.CreateTableStmt) {
+func formatCreateTable(s *parser.CreateTableStmt) string {
+	var b strings.Builder
 	b.WriteString("CREATE TABLE ")
 	b.WriteString(s.Name)
 	b.WriteString(" (\n")
@@ -44,5 +46,6 @@ func formatCreateTable(b *strings.Builder, s *parser.CreateTableStmt) {
 		b.WriteString("\n")
 	}
 
-	b.WriteString(");\n")
+	b.WriteString(");")
+	return b.String()
 }

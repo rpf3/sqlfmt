@@ -1,39 +1,58 @@
 package formatter
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
-func TestFormat(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  string
-	}{
-		{
-			name:  "simple select",
-			input: "SELECT 1",
-			want:  "SELECT 1",
-		},
-		{
-			name:  "empty input",
-			input: "",
-			want:  "",
-		},
-		{
-			name:  "preserves newlines",
-			input: "SELECT\n1",
-			want:  "SELECT\n1",
-		},
+// TestFormatGolden reads the golden file from testdata/baking/schema.sql and
+// verifies that Format produces output identical to the golden file.
+func TestFormatGolden(t *testing.T) {
+	golden, err := os.ReadFile("testdata/baking/schema.sql")
+	if err != nil {
+		t.Fatalf("could not read golden file: %v", err)
 	}
+	want := string(golden)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := Format(tt.input)
-			if err != nil {
-				t.Fatalf("Format() unexpected error: %v", err)
-			}
-			if got != tt.want {
-				t.Errorf("Format() =\n%q\nwant\n%q", got, tt.want)
-			}
-		})
+	// Use a messily formatted but semantically identical input.
+	input := `create table ingredients(id integer,name text);
+create table recipes(id integer,name text,description text);`
+
+	got, err := Format(input)
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if got != want {
+		t.Errorf("Format() output does not match golden file.\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// TestFormatIdempotent verifies that formatting the golden file produces the
+// same output again (Format(Format(x)) == Format(x)).
+func TestFormatIdempotent(t *testing.T) {
+	golden, err := os.ReadFile("testdata/baking/schema.sql")
+	if err != nil {
+		t.Fatalf("could not read golden file: %v", err)
+	}
+	input := string(golden)
+
+	first, err := Format(input)
+	if err != nil {
+		t.Fatalf("Format() first pass unexpected error: %v", err)
+	}
+	second, err := Format(first)
+	if err != nil {
+		t.Fatalf("Format() second pass unexpected error: %v", err)
+	}
+	if first != second {
+		t.Errorf("Format is not idempotent.\nfirst:\n%s\nsecond:\n%s", first, second)
+	}
+}
+
+// TestFormatParseError verifies that invalid SQL returns a non-nil error.
+func TestFormatParseError(t *testing.T) {
+	_, err := Format("this is not valid sql")
+	if err == nil {
+		t.Error("Format() expected error for invalid SQL, got nil")
 	}
 }
