@@ -106,9 +106,177 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("CREATE") {
 		return p.parseCreate()
 	}
+	if p.curKeyword("ALTER") {
+		return p.parseAlter()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,
+	)
+}
+
+// parseAlter dispatches on ALTER TABLE (the only supported ALTER target for now).
+func (p *parser) parseAlter() (Statement, error) {
+	p.advance() // consume ALTER
+	if p.curKeyword("TABLE") {
+		return p.parseAlterTable()
+	}
+	return nil, fmt.Errorf(
+		"expected TABLE after ALTER at %d:%d, got %s %q",
+		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+	)
+}
+
+// parseAlterTable handles ALTER TABLE <name> <action>.
+func (p *parser) parseAlterTable() (Statement, error) {
+	if err := p.expectKeyword("TABLE"); err != nil {
+		return nil, err
+	}
+
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+
+	action, err := p.parseAlterTableAction()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+
+	stmt := &AlterTableStmt{
+		Name:   nameTok.Value,
+		Action: action,
+	}
+	return stmt, nil
+}
+
+// parseAlterTableAction reads the action keyword and delegates accordingly.
+func (p *parser) parseAlterTableAction() (AlterTableAction, error) {
+	if p.curKeyword("ADD") {
+		return p.parseAlterAdd()
+	}
+	if p.curKeyword("DROP") {
+		return p.parseAlterDrop()
+	}
+	if p.curKeyword("RENAME") {
+		return p.parseAlterRename()
+	}
+	return AlterTableAction{}, fmt.Errorf(
+		"expected ADD, DROP, or RENAME at %d:%d, got %s %q",
+		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+	)
+}
+
+// parseAlterAdd handles: ADD COLUMN <col_def> | ADD [CONSTRAINT ...] <constraint>
+func (p *parser) parseAlterAdd() (AlterTableAction, error) {
+	p.advance() // consume ADD
+
+	if p.curKeyword("COLUMN") {
+		p.advance() // consume COLUMN
+		col, err := p.parseColumnDef()
+		if err != nil {
+			return AlterTableAction{}, err
+		}
+		action := AlterTableAction{
+			Type:   AlterAddColumn,
+			Column: &col,
+		}
+		return action, nil
+	}
+
+	// ADD [CONSTRAINT <name>] PRIMARY KEY | FOREIGN KEY | UNIQUE | CHECK
+	tc, err := p.parseTableConstraint()
+	if err != nil {
+		return AlterTableAction{}, err
+	}
+	action := AlterTableAction{
+		Type:       AlterAddConstraint,
+		Constraint: &tc,
+	}
+	return action, nil
+}
+
+// parseAlterDrop handles: DROP COLUMN <name> | DROP CONSTRAINT <name>
+func (p *parser) parseAlterDrop() (AlterTableAction, error) {
+	p.advance() // consume DROP
+
+	if p.curKeyword("COLUMN") {
+		p.advance() // consume COLUMN
+		nameTok, err := p.expectIdent()
+		if err != nil {
+			return AlterTableAction{}, err
+		}
+		action := AlterTableAction{
+			Type:       AlterDropColumn,
+			ColumnName: nameTok.Value,
+		}
+		return action, nil
+	}
+
+	if p.curKeyword("CONSTRAINT") {
+		p.advance() // consume CONSTRAINT
+		nameTok, err := p.expectIdent()
+		if err != nil {
+			return AlterTableAction{}, err
+		}
+		action := AlterTableAction{
+			Type:           AlterDropConstraint,
+			ConstraintName: nameTok.Value,
+		}
+		return action, nil
+	}
+
+	return AlterTableAction{}, fmt.Errorf(
+		"expected COLUMN or CONSTRAINT after DROP at %d:%d, got %s %q",
+		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+	)
+}
+
+// parseAlterRename handles: RENAME TO <new_name> | RENAME COLUMN <old> TO <new>
+func (p *parser) parseAlterRename() (AlterTableAction, error) {
+	p.advance() // consume RENAME
+
+	if p.curKeyword("TO") {
+		p.advance() // consume TO
+		nameTok, err := p.expectIdent()
+		if err != nil {
+			return AlterTableAction{}, err
+		}
+		action := AlterTableAction{
+			Type:    AlterRenameTable,
+			NewName: nameTok.Value,
+		}
+		return action, nil
+	}
+
+	if p.curKeyword("COLUMN") {
+		p.advance() // consume COLUMN
+		oldTok, err := p.expectIdent()
+		if err != nil {
+			return AlterTableAction{}, err
+		}
+		if err := p.expectKeyword("TO"); err != nil {
+			return AlterTableAction{}, err
+		}
+		newTok, err := p.expectIdent()
+		if err != nil {
+			return AlterTableAction{}, err
+		}
+		action := AlterTableAction{
+			Type:       AlterRenameColumn,
+			ColumnName: oldTok.Value,
+			NewName:    newTok.Value,
+		}
+		return action, nil
+	}
+
+	return AlterTableAction{}, fmt.Errorf(
+		"expected TO or COLUMN after RENAME at %d:%d, got %s %q",
+		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
 }
 
