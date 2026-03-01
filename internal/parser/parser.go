@@ -184,6 +184,22 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		primaryKey = true
 	}
 
+	var defaultExpr string
+	if p.curKeyword("DEFAULT") {
+		p.advance() // consume DEFAULT
+		tok := p.cur
+		switch tok.Type {
+		case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
+			defaultExpr = tok.Value
+			p.advance()
+		default:
+			return ColumnDef{}, fmt.Errorf(
+				"expected default value at %d:%d, got %s %q",
+				tok.Line, tok.Column, tok.Type, tok.Value,
+			)
+		}
+	}
+
 	var nullability Nullability
 	switch {
 	case p.curKeyword("NOT") && p.peekKeyword("NULL"):
@@ -195,7 +211,7 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		nullability = NullabilityNull
 	}
 
-	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Nullability: nullability}, nil
+	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Default: defaultExpr, Nullability: nullability}, nil
 }
 
 // parseDataType reads a type name (keyword or identifier).

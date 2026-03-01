@@ -25,5 +25,6 @@ type ColumnDef struct {
 	Name        string      // column name
 	DataType    string      // e.g. "INTEGER", "TEXT", "VARCHAR(255)"
 	PrimaryKey  bool        // PRIMARY KEY inline constraint
+	Default     string      // DEFAULT expression verbatim; empty means no DEFAULT clause
 	Nullability Nullability // optional nullability constraint
 }

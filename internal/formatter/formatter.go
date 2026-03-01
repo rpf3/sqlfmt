@@ -29,6 +29,15 @@ func formatStatement(stmt parser.Statement) string {
 	return ""
 }
 
+// normalizeDefaultExpr lowercases the default expression unless it is a
+// string literal (single-quoted), which must be preserved verbatim.
+func normalizeDefaultExpr(v string) string {
+	if len(v) > 0 && v[0] == '\'' {
+		return v
+	}
+	return strings.ToLower(v)
+}
+
 func formatCreateTable(s *parser.CreateTableStmt) string {
 	var b strings.Builder
 	b.WriteString("create table ")
@@ -46,6 +55,10 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 		b.WriteString(strings.ToLower(col.DataType))
 		if col.PrimaryKey {
 			b.WriteString(" primary key")
+		}
+		if col.Default != "" {
+			b.WriteString(" default ")
+			b.WriteString(normalizeDefaultExpr(col.Default))
 		}
 		switch col.Nullability {
 		case parser.NullabilityNotNull:
