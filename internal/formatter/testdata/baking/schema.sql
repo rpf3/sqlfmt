@@ -1,10 +1,12 @@
-CREATE TABLE ingredients (
-    id INTEGER,
-    name TEXT
+create table ingredients
+(
+	id integer
+,	name text
 );
 
-CREATE TABLE recipes (
-    id INTEGER,
-    name TEXT,
-    description TEXT
+create table recipes
+(
+	id integer
+,	name text
+,	description text
 );
