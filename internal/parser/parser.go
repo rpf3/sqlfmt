@@ -112,15 +112,26 @@ func (p *parser) parseStatement() (Statement, error) {
 	)
 }
 
-// parseCreate handles CREATE TABLE.
+// parseCreate dispatches on CREATE TABLE / CREATE [UNIQUE] INDEX.
 func (p *parser) parseCreate() (Statement, error) {
 	p.advance() // consume CREATE
 
+	if p.curKeyword("UNIQUE") && p.peekKeyword("INDEX") {
+		p.advance() // consume UNIQUE
+		return p.parseCreateIndex(true)
+	}
+	if p.curKeyword("INDEX") {
+		return p.parseCreateIndex(false)
+	}
+	return p.parseCreateTable()
+}
+
+// parseCreateTable handles CREATE TABLE.
+func (p *parser) parseCreateTable() (Statement, error) {
 	if err := p.expectKeyword("TABLE"); err != nil {
 		return nil, err
 	}
 
-	// Table name: bare identifier or quoted identifier.
 	nameTok, err := p.expectIdent()
 	if err != nil {
 		return nil, err
@@ -139,7 +150,6 @@ func (p *parser) parseCreate() (Statement, error) {
 		return nil, err
 	}
 
-	// Optional trailing semicolon.
 	if p.curIs(lexer.Semicolon) {
 		p.advance()
 	}
@@ -150,6 +160,85 @@ func (p *parser) parseCreate() (Statement, error) {
 		Constraints: constraints,
 	}
 	return stmt, nil
+}
+
+// parseCreateIndex handles CREATE [UNIQUE] INDEX [IF NOT EXISTS] <name> ON <table> (<cols>).
+func (p *parser) parseCreateIndex(unique bool) (Statement, error) {
+	if err := p.expectKeyword("INDEX"); err != nil {
+		return nil, err
+	}
+
+	stmt := &CreateIndexStmt{Unique: unique}
+
+	if p.curKeyword("IF") {
+		p.advance() // consume IF
+		if err := p.expectKeyword("NOT"); err != nil {
+			return nil, err
+		}
+		if err := p.expectKeyword("EXISTS"); err != nil {
+			return nil, err
+		}
+		stmt.IfNotExists = true
+	}
+
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Name = nameTok.Value
+
+	if err := p.expectKeyword("ON"); err != nil {
+		return nil, err
+	}
+
+	tableTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Table = tableTok.Value
+
+	cols, err := p.parseIndexColumnList()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Columns = cols
+
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+
+	return stmt, nil
+}
+
+// parseIndexColumnList parses a parenthesised list of index columns with
+// optional ASC/DESC direction per column.
+func (p *parser) parseIndexColumnList() ([]IndexColumn, error) {
+	if _, err := p.expect(lexer.LParen); err != nil {
+		return nil, err
+	}
+	var cols []IndexColumn
+	for {
+		tok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		col := IndexColumn{Name: tok.Value}
+		if p.curKeyword("DESC") {
+			p.advance() // consume DESC
+			col.Desc = true
+		} else if p.curKeyword("ASC") {
+			p.advance() // consume ASC (default; no flag needed)
+		}
+		cols = append(cols, col)
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+	if _, err := p.expect(lexer.RParen); err != nil {
+		return nil, err
+	}
+	return cols, nil
 }
 
 // parseColumnList parses one or more comma-separated column definitions and

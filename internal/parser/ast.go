@@ -12,6 +12,23 @@ type CreateTableStmt struct {
 
 func (*CreateTableStmt) statementNode() {}
 
+// IndexColumn is one column entry in a CREATE INDEX column list.
+type IndexColumn struct {
+	Name string
+	Desc bool // true = DESC; false = ASC (the default)
+}
+
+// CreateIndexStmt represents: CREATE [UNIQUE] INDEX [IF NOT EXISTS] <name> ON <table> (<cols>)
+type CreateIndexStmt struct {
+	Unique      bool
+	IfNotExists bool
+	Name        string
+	Table       string
+	Columns     []IndexColumn
+}
+
+func (*CreateIndexStmt) statementNode() {}
+
 // TableConstraintType identifies the kind of table-level constraint.
 type TableConstraintType int
 
