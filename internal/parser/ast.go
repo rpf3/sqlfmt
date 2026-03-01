@@ -23,7 +23,7 @@ const (
 // ColumnDef is one column in a CREATE TABLE column list.
 type ColumnDef struct {
 	Name        string      // column name
-	DataType    string      // e.g. "INTEGER", "TEXT", "VARCHAR(255)"
+	DataType    string      // e.g. "INTEGER", "TEXT", "VARCHAR(255)", "NUMERIC(10, 2)"
 	PrimaryKey  bool        // PRIMARY KEY inline constraint
 	Default     string      // DEFAULT expression verbatim; empty means no DEFAULT clause
 	Nullability Nullability // optional nullability constraint

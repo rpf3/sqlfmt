@@ -214,8 +214,8 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Default: defaultExpr, Nullability: nullability}, nil
 }
 
-// parseDataType reads a type name (keyword or identifier).
-// For this minimal implementation it returns the uppercased token value.
+// parseDataType reads a type name with an optional parameter list.
+// Returns the uppercased name, e.g. "INTEGER", "VARCHAR(255)", "NUMERIC(10, 2)".
 func (p *parser) parseDataType() (string, error) {
 	tok := p.cur
 	if tok.Type != lexer.Keyword && tok.Type != lexer.Ident {
@@ -225,7 +225,34 @@ func (p *parser) parseDataType() (string, error) {
 		)
 	}
 	p.advance()
-	return strings.ToUpper(tok.Value), nil
+	name := strings.ToUpper(tok.Value)
+
+	if !p.curIs(lexer.LParen) {
+		return name, nil
+	}
+	p.advance() // consume (
+
+	var params []string
+	for {
+		tok = p.cur
+		if tok.Type != lexer.IntLit && tok.Type != lexer.FloatLit {
+			return "", fmt.Errorf(
+				"expected type parameter at %d:%d, got %s %q",
+				tok.Line, tok.Column, tok.Type, tok.Value,
+			)
+		}
+		params = append(params, tok.Value)
+		p.advance()
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ,
+	}
+
+	if _, err := p.expect(lexer.RParen); err != nil {
+		return "", err
+	}
+	return name + "(" + strings.Join(params, ", ") + ")", nil
 }
 
 // expectIdent consumes cur if it is a bare or quoted identifier.
