@@ -3,13 +3,27 @@ package parser
 // Statement is the common interface for all top-level SQL statements.
 type Statement interface{ statementNode() }
 
-// CreateTableStmt represents: CREATE TABLE <name> (<columns>)
+// CreateTableStmt represents: CREATE TABLE <name> (<columns> [, <constraints>])
 type CreateTableStmt struct {
-	Name    string      // table name (unquoted or quoted)
-	Columns []ColumnDef
+	Name        string           // table name (unquoted or quoted)
+	Columns     []ColumnDef
+	Constraints []TableConstraint
 }
 
 func (*CreateTableStmt) statementNode() {}
+
+// TableConstraintType identifies the kind of table-level constraint.
+type TableConstraintType int
+
+const (
+	ConstraintPrimaryKey TableConstraintType = iota
+)
+
+// TableConstraint is a table-level constraint entry in a CREATE TABLE column list.
+type TableConstraint struct {
+	Type    TableConstraintType
+	Columns []string // column names referenced by the constraint
+}
 
 // Nullability represents an optional nullability constraint on a column.
 type Nullability int

@@ -130,7 +130,7 @@ func (p *parser) parseCreate() (Statement, error) {
 		return nil, err
 	}
 
-	cols, err := p.parseColumnList()
+	cols, constraints, err := p.parseColumnList()
 	if err != nil {
 		return nil, err
 	}
@@ -144,25 +144,73 @@ func (p *parser) parseCreate() (Statement, error) {
 		p.advance()
 	}
 
-	return &CreateTableStmt{Name: nameTok.Value, Columns: cols}, nil
+	return &CreateTableStmt{Name: nameTok.Value, Columns: cols, Constraints: constraints}, nil
 }
 
-// parseColumnList parses one or more comma-separated column definitions.
-func (p *parser) parseColumnList() ([]ColumnDef, error) {
+// parseColumnList parses one or more comma-separated column definitions and
+// optional table-level constraints. Columns and constraints may appear in any
+// order in the source; the formatter normalises them to columns-then-constraints.
+func (p *parser) parseColumnList() ([]ColumnDef, []TableConstraint, error) {
 	var cols []ColumnDef
+	var constraints []TableConstraint
 	for {
-		col, err := p.parseColumnDef()
-		if err != nil {
-			return nil, err
+		if p.curKeyword("PRIMARY") || p.curKeyword("UNIQUE") ||
+			p.curKeyword("CHECK") || p.curKeyword("FOREIGN") ||
+			p.curKeyword("CONSTRAINT") {
+			tc, err := p.parseTableConstraint()
+			if err != nil {
+				return nil, nil, err
+			}
+			constraints = append(constraints, tc)
+		} else {
+			col, err := p.parseColumnDef()
+			if err != nil {
+				return nil, nil, err
+			}
+			cols = append(cols, col)
 		}
-		cols = append(cols, col)
 
 		if !p.curIs(lexer.Comma) {
 			break
 		}
 		p.advance() // consume ','
 	}
-	return cols, nil
+	return cols, constraints, nil
+}
+
+// parseTableConstraint parses a table-level constraint entry.
+func (p *parser) parseTableConstraint() (TableConstraint, error) {
+	if p.curKeyword("PRIMARY") && p.peekKeyword("KEY") {
+		p.advance() // consume PRIMARY
+		p.advance() // consume KEY
+
+		if _, err := p.expect(lexer.LParen); err != nil {
+			return TableConstraint{}, err
+		}
+
+		var cols []string
+		for {
+			tok, err := p.expectIdent()
+			if err != nil {
+				return TableConstraint{}, err
+			}
+			cols = append(cols, tok.Value)
+			if !p.curIs(lexer.Comma) {
+				break
+			}
+			p.advance() // consume ','
+		}
+
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return TableConstraint{}, err
+		}
+		return TableConstraint{Type: ConstraintPrimaryKey, Columns: cols}, nil
+	}
+
+	return TableConstraint{}, fmt.Errorf(
+		"expected table constraint at %d:%d, got %s %q",
+		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+	)
 }
 
 // parseColumnDef parses "<name> <datatype>".
