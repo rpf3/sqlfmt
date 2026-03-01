@@ -142,3 +142,61 @@ func TestFormatKeywordCase(t *testing.T) {
 		}
 	})
 }
+
+// TestFormatIndentStyle verifies tab vs spaces indentation.
+func TestFormatIndentStyle(t *testing.T) {
+	input := "create table t (id integer not null, name varchar(50) not null);"
+
+	t.Run("tab", func(t *testing.T) {
+		cfg := config.Default()
+		cfg.IndentStyle = config.IndentTab
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		if !strings.Contains(got, "\t") {
+			t.Errorf("tab mode: no tab character found:\n%s", got)
+		}
+	})
+
+	t.Run("spaces4", func(t *testing.T) {
+		cfg := config.Default()
+		cfg.IndentStyle = config.IndentSpaces
+		cfg.IndentWidth = 4
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		if strings.Contains(got, "\t") {
+			t.Errorf("spaces4 mode: tab character found:\n%s", got)
+		}
+		if !strings.Contains(got, "    ") {
+			t.Errorf("spaces4 mode: no 4-space indent found:\n%s", got)
+		}
+	})
+
+	t.Run("spaces2", func(t *testing.T) {
+		cfg := config.Default()
+		cfg.IndentStyle = config.IndentSpaces
+		cfg.IndentWidth = 2
+		got, err := Format(input, cfg)
+		if err != nil {
+			t.Fatalf("Format() unexpected error: %v", err)
+		}
+		if strings.Contains(got, "\t") {
+			t.Errorf("spaces2 mode: tab character found:\n%s", got)
+		}
+		// lines should be indented with exactly 2 spaces
+		lines := strings.Split(got, "\n")
+		found := false
+		for _, line := range lines {
+			if strings.HasPrefix(line, "  ") && !strings.HasPrefix(line, "   ") {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("spaces2 mode: no 2-space-only indent found:\n%s", got)
+		}
+	})
+}
