@@ -1,12 +1,12 @@
 create table ingredients
 (
-	id integer
-,	name text
+	id integer not null
+,	name text not null
 );
 
 create table recipes
 (
-	id integer
-,	name text
-,	description text
+	id integer not null
+,	name text not null
+,	description text null
 );
