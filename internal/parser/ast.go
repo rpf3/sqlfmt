@@ -19,6 +19,7 @@ const (
 	ConstraintPrimaryKey TableConstraintType = iota
 	ConstraintForeignKey
 	ConstraintCheck
+	ConstraintUnique
 )
 
 // TableConstraint is a table-level constraint entry in a CREATE TABLE column list.
@@ -53,6 +54,7 @@ type ColumnDef struct {
 	PrimaryKey  bool             // PRIMARY KEY inline constraint
 	Default     string           // DEFAULT expression verbatim; empty means no DEFAULT clause
 	Nullability Nullability      // optional nullability constraint
+	Unique      bool             // UNIQUE inline constraint
 	Check       string           // optional inline CHECK expression (without outer parens); empty if absent
 	References  *ColumnReference // optional inline REFERENCES clause
 }

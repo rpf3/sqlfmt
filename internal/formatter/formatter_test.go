@@ -15,7 +15,7 @@ func TestFormatGolden(t *testing.T) {
 	want := string(golden)
 
 	// Use a messily formatted but semantically identical input.
-	input := `create table ingredients(id integer NOT NULL,name VARCHAR(255) DEFAULT 'unnamed' not null,CONSTRAINT pk_ingredients PRIMARY KEY(id));
+	input := `create table ingredients(id integer NOT NULL,name VARCHAR(255) DEFAULT 'unnamed' not null,CONSTRAINT pk_ingredients PRIMARY KEY(id),CONSTRAINT uq_ingredients_name UNIQUE(name));
 create table recipes(id integer NOT NULL,name VARCHAR( 255 ) DEFAULT 'untitled' NOT NULL,description VARCHAR(1000) DEFAULT NULL NULL,CONSTRAINT pk_recipes PRIMARY KEY( id ));
 create table recipe_ingredients(recipe_id integer NOT NULL,ingredient_id integer NOT NULL,quantity NUMERIC(10,2) NOT NULL,CONSTRAINT pk_recipe_ingredients PRIMARY KEY(recipe_id,ingredient_id),CONSTRAINT fk_recipe_ingredients_recipe FOREIGN KEY(recipe_id) REFERENCES recipes(id),CONSTRAINT fk_recipe_ingredients_ingredient FOREIGN KEY(ingredient_id) REFERENCES ingredients(id),CONSTRAINT chk_recipe_ingredients_quantity CHECK(quantity>0));`
 

@@ -218,6 +218,15 @@ func (p *parser) parseTableConstraint() (TableConstraint, error) {
 		return TableConstraint{Name: name, Type: ConstraintForeignKey, Columns: localCols, RefTable: refTable, RefColumns: refCols}, nil
 	}
 
+	if p.curKeyword("UNIQUE") {
+		p.advance() // consume UNIQUE
+		cols, err := p.parseIdentList()
+		if err != nil {
+			return TableConstraint{}, err
+		}
+		return TableConstraint{Name: name, Type: ConstraintUnique, Columns: cols}, nil
+	}
+
 	if p.curKeyword("CHECK") {
 		p.advance() // consume CHECK
 		expr, err := p.parseCheckExpr()
@@ -361,6 +370,12 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		nullability = NullabilityNull
 	}
 
+	var unique bool
+	if p.curKeyword("UNIQUE") {
+		p.advance() // consume UNIQUE
+		unique = true
+	}
+
 	var check string
 	if p.curKeyword("CHECK") {
 		p.advance() // consume CHECK
@@ -380,7 +395,7 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		ref = &ColumnReference{Table: refTable, Columns: refCols}
 	}
 
-	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Default: defaultExpr, Nullability: nullability, Check: check, References: ref}, nil
+	return ColumnDef{Name: nameTok.Value, DataType: dataType, PrimaryKey: primaryKey, Default: defaultExpr, Nullability: nullability, Unique: unique, Check: check, References: ref}, nil
 }
 
 // parseDataType reads a type name with an optional parameter list.

@@ -66,6 +66,9 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 		case parser.NullabilityNull:
 			b.WriteString(" null")
 		}
+		if col.Unique {
+			b.WriteString(" unique")
+		}
 		if col.Check != "" {
 			b.WriteString(" check (")
 			b.WriteString(col.Check)
@@ -108,6 +111,10 @@ func formatCreateTable(s *parser.CreateTableStmt) string {
 				b.WriteString(strings.Join(tc.RefColumns, ", "))
 				b.WriteString(")")
 			}
+		case parser.ConstraintUnique:
+			b.WriteString("unique (")
+			b.WriteString(strings.Join(tc.Columns, ", "))
+			b.WriteString(")")
 		case parser.ConstraintCheck:
 			b.WriteString("check (")
 			b.WriteString(tc.Check)
