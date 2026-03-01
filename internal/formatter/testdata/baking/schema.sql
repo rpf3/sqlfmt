@@ -5,6 +5,8 @@ create table ingredients
 
 ,	constraint pk_ingredients
 		primary key (id)
+,	constraint uq_ingredients_name
+		unique (name)
 );
 
 create table recipes
