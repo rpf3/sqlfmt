@@ -3,6 +3,7 @@ package config_test
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/rpf3/sqlfmt/internal/config"
@@ -136,8 +137,55 @@ func TestFindAndLoadReturnsDefaultWhenAbsent(t *testing.T) {
 		t.Fatalf("FindAndLoad() unexpected error: %v", err)
 	}
 	want := config.Default()
-	if cfg != want {
+	if !reflect.DeepEqual(cfg, want) {
 		t.Errorf("FindAndLoad() got %+v, want default %+v", cfg, want)
+	}
+}
+
+func TestLoadLintRulesValid(t *testing.T) {
+	content := `
+keyword_case: lower
+lint:
+  inline-primary-key: error
+  unnamed-primary-key: off
+`
+	path := writeTemp(t, content)
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load() unexpected error: %v", err)
+	}
+	if cfg.LintRules[config.RuleInlinePrimaryKey] != config.RuleSeverityError {
+		t.Errorf("inline-primary-key: got %q, want %q", cfg.LintRules[config.RuleInlinePrimaryKey], config.RuleSeverityError)
+	}
+	if cfg.LintRules[config.RuleUnnamedPrimaryKey] != config.RuleSeverityOff {
+		t.Errorf("unnamed-primary-key: got %q, want %q", cfg.LintRules[config.RuleUnnamedPrimaryKey], config.RuleSeverityOff)
+	}
+}
+
+func TestLoadLintRulesNoSection(t *testing.T) {
+	path := writeTemp(t, "keyword_case: lower\n")
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load() unexpected error: %v", err)
+	}
+	if cfg.LintRules != nil {
+		t.Errorf("LintRules: got %v, want nil", cfg.LintRules)
+	}
+}
+
+func TestLoadLintRulesUnknownRule(t *testing.T) {
+	path := writeTemp(t, "lint:\n  no-such-rule: warn\n")
+	_, err := config.Load(path)
+	if err == nil {
+		t.Fatal("Load() expected error for unknown lint rule, got nil")
+	}
+}
+
+func TestLoadLintRulesInvalidSeverity(t *testing.T) {
+	path := writeTemp(t, "lint:\n  inline-primary-key: loud\n")
+	_, err := config.Load(path)
+	if err == nil {
+		t.Fatal("Load() expected error for invalid severity, got nil")
 	}
 }
 

@@ -32,12 +32,34 @@ const (
 	CommaTrailing CommaStyle = "trailing"
 )
 
-// Config holds all formatting options for sqlfmt.
+// RuleSeverity controls how a lint rule is reported.
+type RuleSeverity string
+
+const (
+	RuleSeverityOff   RuleSeverity = "off"
+	RuleSeverityWarn  RuleSeverity = "warn"
+	RuleSeverityError RuleSeverity = "error"
+)
+
+// Lint rule name constants — used in .sqlfmt.yml and referenced by the linter.
+const (
+	RuleInlinePrimaryKey  = "inline-primary-key"
+	RuleUnnamedPrimaryKey = "unnamed-primary-key"
+)
+
+// knownRules is the set of valid lint rule names for config validation.
+var knownRules = map[string]bool{
+	RuleInlinePrimaryKey:  true,
+	RuleUnnamedPrimaryKey: true,
+}
+
+// Config holds all formatting and linting options for sqlfmt.
 type Config struct {
-	KeywordCase KeywordCase `yaml:"keyword_case"`
-	IndentStyle IndentStyle `yaml:"indent_style"`
-	IndentWidth int         `yaml:"indent_width"`
-	CommaStyle  CommaStyle  `yaml:"comma_style"`
+	KeywordCase KeywordCase             `yaml:"keyword_case"`
+	IndentStyle IndentStyle             `yaml:"indent_style"`
+	IndentWidth int                     `yaml:"indent_width"`
+	CommaStyle  CommaStyle              `yaml:"comma_style"`
+	LintRules   map[string]RuleSeverity `yaml:"lint"`
 }
 
 // Default returns a Config with the canonical default values.
@@ -106,6 +128,14 @@ func validate(cfg Config) error {
 	case CommaLeading, CommaTrailing:
 	default:
 		return fmt.Errorf("invalid comma_style %q: must be \"leading\" or \"trailing\"", cfg.CommaStyle)
+	}
+	for rule, sev := range cfg.LintRules {
+		if !knownRules[rule] {
+			return fmt.Errorf("invalid lint rule %q: unknown rule name", rule)
+		}
+		if sev != RuleSeverityOff && sev != RuleSeverityWarn && sev != RuleSeverityError {
+			return fmt.Errorf("invalid severity %q for lint rule %q: must be \"off\", \"warn\", or \"error\"", sev, rule)
+		}
 	}
 	return nil
 }

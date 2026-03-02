@@ -50,8 +50,15 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "sqlfmt: %v\n", err)
 		return 1
 	}
+	hasLintError := false
 	for _, w := range warnings {
 		fmt.Fprintf(stderr, "sqlfmt: lint [%s]: %s\n", w.Rule, w.Message)
+		if w.Severity == config.RuleSeverityError {
+			hasLintError = true
+		}
+	}
+	if hasLintError {
+		return 1
 	}
 
 	output, err := formatter.Format(string(input), cfg)
