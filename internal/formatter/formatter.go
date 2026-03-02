@@ -84,6 +84,26 @@ func (f *formatter) writeCommaList(b *strings.Builder, items []string) {
 	}
 }
 
+// indentCTE formats s as a SELECT body with each non-empty line prefixed by
+// ind (single indent). Used for CTE bodies where the surrounding ( ) are at
+// column zero.
+func (f *formatter) indentCTE(s *parser.SelectStmt) string {
+	inner := f.formatSelectStmt(s)
+	inner = strings.TrimSuffix(inner, ";")
+	prefix := f.indent()
+	lines := strings.Split(inner, "\n")
+	var b strings.Builder
+	for i, line := range lines {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		if line != "" {
+			b.WriteString(prefix + line)
+		}
+	}
+	return b.String()
+}
+
 // indentSubquery formats s as a SELECT body with each non-empty line
 // prefixed by ind+ind (double indent). The surrounding ( ) delimiters and
 // any alias are the caller's responsibility.
@@ -107,6 +127,26 @@ func (f *formatter) indentSubquery(s *parser.SelectStmt) string {
 func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	ind := f.indent()
 	var b strings.Builder
+
+	// WITH clause (CTEs)
+	for i, cte := range s.CTEs {
+		if i == 0 {
+			b.WriteString(f.kw("with") + " " + cte.Name + " " + f.kw("as"))
+		} else if f.cfg.CommaStyle == config.CommaTrailing {
+			b.WriteString(cte.Name + " " + f.kw("as"))
+		} else {
+			// leading comma: ", name as"
+			b.WriteString(", " + cte.Name + " " + f.kw("as"))
+		}
+		b.WriteString("\n(\n")
+		b.WriteString(f.indentCTE(cte.Select))
+		// close paren with comma separator between CTEs
+		if i < len(s.CTEs)-1 && f.cfg.CommaStyle == config.CommaTrailing {
+			b.WriteString("\n),\n")
+		} else {
+			b.WriteString("\n)\n")
+		}
+	}
 
 	// SELECT [DISTINCT]
 	if s.Distinct {

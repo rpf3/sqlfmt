@@ -660,6 +660,54 @@ func TestFormatSelectWhereExistsSubquery(t *testing.T) {
 	}
 }
 
+// ─── CTE tests ────────────────────────────────────────────────────────────────
+
+func TestFormatCTESingle(t *testing.T) {
+	input := "with active_orders as (select t.id, t.customer_id, t.total_amount from orders as t where t.status = 'active') select c.name, sum(o.total_amount) as lifetime_value from active_orders as o inner join customers as c on c.id = o.customer_id group by c.name order by lifetime_value desc;"
+	want := "with active_orders as\n(\n\tselect\n\t\tt.id\n\t,\tt.customer_id\n\t,\tt.total_amount\n\tfrom\n\t\torders as t\n\twhere\n\t\tt.status = 'active'\n)\nselect\n\tc.name\n,\tsum(o.total_amount) as lifetime_value\nfrom\n\tactive_orders as o\ninner join\n\tcustomers as c\n\t\ton c.id = o.customer_id\ngroup by\n\tc.name\norder by\n\tlifetime_value desc;\n"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestFormatCTEMultiple(t *testing.T) {
+	input := "with active_orders as (select t.id, t.customer_id from orders as t where t.status = 'active'), order_totals as (select t.customer_id, count(*) as order_count from active_orders as t group by t.customer_id) select c.name, ot.order_count from order_totals as ot inner join customers as c on c.id = ot.customer_id;"
+	want := "with active_orders as\n(\n\tselect\n\t\tt.id\n\t,\tt.customer_id\n\tfrom\n\t\torders as t\n\twhere\n\t\tt.status = 'active'\n)\n, order_totals as\n(\n\tselect\n\t\tt.customer_id\n\t,\tcount(*) as order_count\n\tfrom\n\t\tactive_orders as t\n\tgroup by\n\t\tt.customer_id\n)\nselect\n\tc.name\n,\tot.order_count\nfrom\n\torder_totals as ot\ninner join\n\tcustomers as c\n\t\ton c.id = ot.customer_id;\n"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestFormatCTEIdempotent(t *testing.T) {
+	inputs := []string{
+		"with active_orders as (select t.id, t.customer_id, t.total_amount from orders as t where t.status = 'active') select c.name, sum(o.total_amount) as lifetime_value from active_orders as o inner join customers as c on c.id = o.customer_id group by c.name order by lifetime_value desc;",
+		"with active_orders as (select t.id, t.customer_id from orders as t where t.status = 'active'), order_totals as (select t.customer_id, count(*) as order_count from active_orders as t group by t.customer_id) select c.name, ot.order_count from order_totals as ot inner join customers as c on c.id = ot.customer_id;",
+	}
+	for _, input := range inputs {
+		t.Run(input[:40], func(t *testing.T) {
+			first, err := Format(input, config.Default())
+			if err != nil {
+				t.Fatalf("first pass error: %v", err)
+			}
+			second, err := Format(first, config.Default())
+			if err != nil {
+				t.Fatalf("second pass error: %v", err)
+			}
+			if first != second {
+				t.Errorf("not idempotent:\nfirst:\n%s\nsecond:\n%s", first, second)
+			}
+		})
+	}
+}
+
 func TestFormatSelectSubqueryIdempotent(t *testing.T) {
 	inputs := []string{
 		"select s.status, s.order_count from (select t.status, count(*) as order_count from orders as t group by t.status) as s where s.order_count > 5;",

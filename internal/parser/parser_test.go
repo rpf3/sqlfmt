@@ -20,6 +20,11 @@ func parseSelect(t *testing.T, sql string) *SelectStmt {
 	return stmt
 }
 
+func parseWith(t *testing.T, sql string) *SelectStmt {
+	t.Helper()
+	return parseSelect(t, sql) // WITH statements also produce a *SelectStmt
+}
+
 // ─── core SELECT tests ────────────────────────────────────────────────────────
 
 func TestParseSelectStar(t *testing.T) {
@@ -432,5 +437,70 @@ func TestParseSelectMultipleJoins(t *testing.T) {
 		if stmt.Joins[i].Name != want {
 			t.Errorf("Joins[%d].Name: got %q, want %q", i, stmt.Joins[i].Name, want)
 		}
+	}
+}
+
+// ─── CTE tests ────────────────────────────────────────────────────────────────
+
+func TestParseCTESingle(t *testing.T) {
+	sql := "with active_orders as (select t.id, t.customer_id, t.total_amount from orders as t where t.status = 'active') select c.name, sum(o.total_amount) as lifetime_value from active_orders as o inner join customers as c on c.id = o.customer_id group by c.name order by lifetime_value desc;"
+	stmt := parseWith(t, sql)
+
+	if len(stmt.CTEs) != 1 {
+		t.Fatalf("CTEs: got %d, want 1", len(stmt.CTEs))
+	}
+	cte := stmt.CTEs[0]
+	if cte.Name != "active_orders" {
+		t.Errorf("CTEs[0].Name: got %q, want %q", cte.Name, "active_orders")
+	}
+	if cte.Select == nil {
+		t.Fatal("CTEs[0].Select: got nil, want non-nil")
+	}
+	if len(cte.Select.Columns) != 3 {
+		t.Fatalf("CTEs[0].Columns: got %d, want 3", len(cte.Select.Columns))
+	}
+	if cte.Select.Where != "t.status = 'active'" {
+		t.Errorf("CTEs[0].Where: got %q, want %q", cte.Select.Where, "t.status = 'active'")
+	}
+	// main SELECT
+	if len(stmt.Columns) != 2 {
+		t.Fatalf("main Columns: got %d, want 2", len(stmt.Columns))
+	}
+	if stmt.From.Name != "active_orders" || stmt.From.Alias != "o" {
+		t.Errorf("main From: got {Name:%q Alias:%q}", stmt.From.Name, stmt.From.Alias)
+	}
+	if len(stmt.Joins) != 1 || stmt.Joins[0].Name != "customers" {
+		t.Errorf("main Joins: got %v", stmt.Joins)
+	}
+	if len(stmt.GroupBy) != 1 || stmt.GroupBy[0] != "c.name" {
+		t.Errorf("main GroupBy: got %v", stmt.GroupBy)
+	}
+	if len(stmt.OrderBy) != 1 || stmt.OrderBy[0].Expr != "lifetime_value" || stmt.OrderBy[0].Direction != DirectionDesc {
+		t.Errorf("main OrderBy: got %v", stmt.OrderBy)
+	}
+}
+
+func TestParseCTEMultiple(t *testing.T) {
+	sql := "with active_orders as (select t.id, t.customer_id from orders as t where t.status = 'active'), order_totals as (select t.customer_id, count(*) as order_count from active_orders as t group by t.customer_id) select c.name, ot.order_count from order_totals as ot inner join customers as c on c.id = ot.customer_id;"
+	stmt := parseWith(t, sql)
+
+	if len(stmt.CTEs) != 2 {
+		t.Fatalf("CTEs: got %d, want 2", len(stmt.CTEs))
+	}
+	if stmt.CTEs[0].Name != "active_orders" {
+		t.Errorf("CTEs[0].Name: got %q, want %q", stmt.CTEs[0].Name, "active_orders")
+	}
+	if stmt.CTEs[1].Name != "order_totals" {
+		t.Errorf("CTEs[1].Name: got %q, want %q", stmt.CTEs[1].Name, "order_totals")
+	}
+	if stmt.CTEs[1].Select == nil {
+		t.Fatal("CTEs[1].Select: got nil, want non-nil")
+	}
+	if len(stmt.CTEs[1].Select.GroupBy) != 1 || stmt.CTEs[1].Select.GroupBy[0] != "t.customer_id" {
+		t.Errorf("CTEs[1].GroupBy: got %v", stmt.CTEs[1].Select.GroupBy)
+	}
+	// main SELECT
+	if stmt.From.Name != "order_totals" {
+		t.Errorf("main From.Name: got %q, want %q", stmt.From.Name, "order_totals")
 	}
 }
