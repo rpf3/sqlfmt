@@ -420,6 +420,38 @@ func TestTokenizePositions(t *testing.T) {
 	}
 }
 
+// ─── SELECT-related keyword coverage ─────────────────────────────────────────
+
+func TestTokenizeSelectKeywords(t *testing.T) {
+	// All keywords required for SELECT parsing and formatting. This test acts
+	// as a compile-time guard: if a keyword is accidentally removed from the
+	// keywords map, at least one case here will fail.
+	words := []string{
+		// Core SELECT
+		"SELECT", "DISTINCT", "FROM", "WHERE", "AS",
+		"GROUP", "BY", "HAVING", "ORDER", "ASC", "DESC",
+		// Row limiting
+		"OFFSET", "ROWS", "ROW", "FETCH", "NEXT", "FIRST", "ONLY", "LIMIT",
+		// Joins
+		"JOIN", "INNER", "LEFT", "RIGHT", "FULL", "OUTER", "CROSS",
+		"ON", "USING",
+		// Subqueries and CTEs
+		"EXISTS", "IN", "WITH",
+		// Window functions
+		"OVER", "PARTITION",
+		// Logic
+		"AND", "OR", "NOT", "IS", "NULL", "BETWEEN", "LIKE",
+	}
+	for _, w := range words {
+		t.Run(w, func(t *testing.T) {
+			tokens := tokenize(t, w)
+			if tokens[0].Type != Keyword {
+				t.Errorf("%q: got type %v, want Keyword", w, tokens[0].Type)
+			}
+		})
+	}
+}
+
 // ─── Full SELECT statement ────────────────────────────────────────────────────
 
 func TestTokenizeSelectStatement(t *testing.T) {
