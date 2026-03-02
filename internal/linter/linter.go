@@ -58,4 +58,15 @@ func (l *linter) checkCreateTable(s *parser.CreateTableStmt) {
 			)
 		}
 	}
+	for _, tc := range s.Constraints {
+		if tc.Type == parser.ConstraintPrimaryKey && tc.Name == "" {
+			l.warn(
+				"unnamed-primary-key",
+				fmt.Sprintf(
+					"table %q: PRIMARY KEY constraint has no name; add CONSTRAINT <name> before PRIMARY KEY",
+					s.Name,
+				),
+			)
+		}
+	}
 }
