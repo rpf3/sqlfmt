@@ -56,6 +56,22 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 	switch s := stmt.(type) {
 	case *parser.CreateTableStmt:
 		l.checkCreateTable(s)
+	case *parser.CreateIndexStmt:
+		l.checkCreateIndex(s)
+	}
+}
+
+func (l *linter) checkCreateIndex(s *parser.CreateIndexStmt) {
+	for _, col := range s.Columns {
+		if col.Direction == parser.DirectionNone {
+			l.warn(
+				config.RuleIndexDirection,
+				fmt.Sprintf(
+					"index %q: column %q has no explicit direction; specify ASC or DESC",
+					s.Name, col.Name,
+				),
+			)
+		}
 	}
 }
 

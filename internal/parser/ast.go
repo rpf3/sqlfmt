@@ -12,10 +12,19 @@ type CreateTableStmt struct {
 
 func (*CreateTableStmt) statementNode() {}
 
+// Direction represents an explicit or absent sort direction on an index column.
+type Direction int
+
+const (
+	DirectionNone Direction = iota // no direction specified by the user
+	DirectionAsc                   // explicit ASC
+	DirectionDesc                  // explicit DESC
+)
+
 // IndexColumn is one column entry in a CREATE INDEX column list.
 type IndexColumn struct {
-	Name string
-	Desc bool // true = DESC; false = ASC (the default)
+	Name      string
+	Direction Direction
 }
 
 // CreateIndexStmt represents: CREATE [UNIQUE] INDEX [IF NOT EXISTS] <name> ON <table> (<cols>)

@@ -95,6 +95,56 @@ func TestLint(t *testing.T) {
 	}
 }
 
+func TestLintIndexDirection(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "no direction warns",
+			input:    `create index ix_orders_status on orders (status);`,
+			wantRule: "index-direction",
+		},
+		{
+			name:     "explicit asc is clean",
+			input:    `create index ix_orders_status on orders (status asc);`,
+			wantRule: "",
+		},
+		{
+			name:     "explicit desc is clean",
+			input:    `create index ix_orders_status on orders (status desc);`,
+			wantRule: "",
+		},
+		{
+			name:     "mixed: one unspecified warns",
+			input:    `create index ix_orders_composite on orders (customer_id asc, created_at);`,
+			wantRule: "index-direction",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			warnings, err := Lint(tt.input, config.Default())
+			if err != nil {
+				t.Fatalf("Lint returned unexpected error: %v", err)
+			}
+			if tt.wantRule == "" {
+				if len(warnings) != 0 {
+					t.Errorf("expected no warnings, got %d: %v", len(warnings), warnings)
+				}
+				return
+			}
+			if len(warnings) == 0 {
+				t.Fatalf("expected warning with rule %q, got none", tt.wantRule)
+			}
+			if warnings[0].Rule != tt.wantRule {
+				t.Errorf("warning rule = %q, want %q", warnings[0].Rule, tt.wantRule)
+			}
+		})
+	}
+}
+
 func TestLintParseError(t *testing.T) {
 	_, err := Lint("not valid sql", config.Default())
 	if err == nil {
