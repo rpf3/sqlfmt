@@ -8,6 +8,7 @@ import (
 
 	"github.com/rpf3/sqlfmt/internal/config"
 	"github.com/rpf3/sqlfmt/internal/formatter"
+	"github.com/rpf3/sqlfmt/internal/linter"
 )
 
 func main() {
@@ -42,6 +43,15 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if err != nil {
 		fmt.Fprintf(stderr, "sqlfmt: failed to read input: %v\n", err)
 		return 1
+	}
+
+	warnings, err := linter.Lint(string(input), cfg)
+	if err != nil {
+		fmt.Fprintf(stderr, "sqlfmt: %v\n", err)
+		return 1
+	}
+	for _, w := range warnings {
+		fmt.Fprintf(stderr, "sqlfmt: lint [%s]: %s\n", w.Rule, w.Message)
 	}
 
 	output, err := formatter.Format(string(input), cfg)
