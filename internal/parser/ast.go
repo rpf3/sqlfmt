@@ -122,6 +122,74 @@ type DropStmt struct {
 
 func (*DropStmt) statementNode() {}
 
+// ─── SELECT statement ─────────────────────────────────────────────────────────
+
+// SelectItem is one entry in a SELECT list.
+type SelectItem struct {
+	Expr  string // normalised expression (keywords lowercased); "*" for SELECT *
+	Alias string // alias from AS <name>; empty if no alias
+}
+
+// JoinType identifies the kind of JOIN.
+type JoinType int
+
+const (
+	JoinInner     JoinType = iota // [INNER] JOIN
+	JoinLeft                      // LEFT [OUTER] JOIN
+	JoinRight                     // RIGHT [OUTER] JOIN
+	JoinFullOuter                 // FULL OUTER JOIN
+	JoinCross                     // CROSS JOIN
+)
+
+// JoinClause is one JOIN clause attached to a SELECT's FROM source.
+type JoinClause struct {
+	Type  JoinType
+	Name  string   // joined table name
+	Alias string   // table alias; empty if none
+	On    string   // ON condition (raw expression); empty for CROSS or USING
+	Using []string // USING column list; empty if ON or CROSS
+}
+
+// OrderItem is one term in an ORDER BY list.
+type OrderItem struct {
+	Expr      string
+	Direction Direction
+}
+
+// CTEDef is one name/body pair in a WITH clause.
+type CTEDef struct {
+	Name   string
+	Select *SelectStmt
+}
+
+// SelectFromSource is the target of a FROM clause.
+// Exactly one of Name (a table name) or Subquery is non-zero.
+type SelectFromSource struct {
+	Name     string      // table name; empty for a subquery
+	Subquery *SelectStmt // derived table; nil for a named table
+	Alias    string      // alias for either kind; empty if no alias
+}
+
+// SelectStmt represents a [WITH ...] SELECT statement.
+type SelectStmt struct {
+	CTEs     []CTEDef // WITH clause; nil if no CTEs
+	Distinct bool
+	Columns  []SelectItem
+	From     SelectFromSource
+	Joins    []JoinClause // nil if no JOINs
+	Where    string       // raw WHERE predicate; empty if absent
+	GroupBy  []string     // GROUP BY expressions; nil if absent
+	Having   string       // raw HAVING predicate; empty if absent
+	OrderBy  []OrderItem  // ORDER BY items; nil if absent
+	Offset   string       // n from OFFSET n ROWS; empty if absent
+	Fetch    string       // n from FETCH NEXT n ROWS ONLY; empty if absent
+	Limit    string       // n from LIMIT n (non-ANSI); empty if absent
+}
+
+func (*SelectStmt) statementNode() {}
+
+// ─── CREATE TABLE ─────────────────────────────────────────────────────────────
+
 // ColumnDef is one column in a CREATE TABLE column list.
 type ColumnDef struct {
 	Name              string           // column name
