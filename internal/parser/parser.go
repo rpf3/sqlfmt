@@ -439,9 +439,10 @@ func (p *parser) parseIndexColumnList() ([]IndexColumn, error) {
 		col := IndexColumn{Name: tok.Value}
 		if p.curKeyword("DESC") {
 			p.advance() // consume DESC
-			col.Desc = true
+			col.Direction = DirectionDesc
 		} else if p.curKeyword("ASC") {
-			p.advance() // consume ASC (default; no flag needed)
+			p.advance() // consume ASC
+			col.Direction = DirectionAsc
 		}
 		cols = append(cols, col)
 		if !p.curIs(lexer.Comma) {

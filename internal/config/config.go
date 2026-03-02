@@ -46,6 +46,7 @@ const (
 	RuleInlinePrimaryKey  = "inline-primary-key"
 	RuleUnnamedPrimaryKey = "unnamed-primary-key"
 	RuleUnnamedDefault    = "unnamed-default"
+	RuleIndexDirection    = "index-direction"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -53,6 +54,7 @@ var knownRules = map[string]bool{
 	RuleInlinePrimaryKey:  true,
 	RuleUnnamedPrimaryKey: true,
 	RuleUnnamedDefault:    true,
+	RuleIndexDirection:    true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

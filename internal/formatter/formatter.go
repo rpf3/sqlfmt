@@ -97,7 +97,7 @@ func (f *formatter) formatCreateIndex(s *parser.CreateIndexStmt) string {
 	var colParts []string
 	for _, col := range s.Columns {
 		part := col.Name
-		if col.Desc {
+		if col.Direction == parser.DirectionDesc {
 			part += " " + f.kw("desc")
 		}
 		colParts = append(colParts, part)
