@@ -204,26 +204,88 @@ func TestParseSelectMixedWithCreateTable(t *testing.T) {
 	}
 }
 
-func TestParseSelectSubqueryInWhereRaw(t *testing.T) {
-	// Subqueries are captured as raw strings until #42 adds structured parsing.
+func TestParseSelectWhereInSubquery(t *testing.T) {
 	stmt := parseSelect(t,
 		"select t.id, t.name from customers as t where t.id in (select o.customer_id from orders as o where o.status = 'active');",
 	)
 
-	want := "t.id in (select o.customer_id from orders as o where o.status = 'active')"
-	if stmt.Where != want {
-		t.Errorf("Where:\ngot  %q\nwant %q", stmt.Where, want)
+	if stmt.Where != "" {
+		t.Errorf("Where: got %q, want empty", stmt.Where)
+	}
+	if stmt.WherePred != "t.id in" {
+		t.Errorf("WherePred: got %q, want %q", stmt.WherePred, "t.id in")
+	}
+	if stmt.WhereSubq == nil {
+		t.Fatal("WhereSubq: got nil, want non-nil")
+	}
+	if len(stmt.WhereSubq.Columns) != 1 || stmt.WhereSubq.Columns[0].Expr != "o.customer_id" {
+		t.Errorf("WhereSubq.Columns[0].Expr: got %v", stmt.WhereSubq.Columns)
+	}
+	if stmt.WhereSubq.From.Name != "orders" || stmt.WhereSubq.From.Alias != "o" {
+		t.Errorf("WhereSubq.From: got {Name:%q Alias:%q}", stmt.WhereSubq.From.Name, stmt.WhereSubq.From.Alias)
+	}
+	if stmt.WhereSubq.Where != "o.status = 'active'" {
+		t.Errorf("WhereSubq.Where: got %q, want %q", stmt.WhereSubq.Where, "o.status = 'active'")
 	}
 }
 
-func TestParseSelectExistsInWhereRaw(t *testing.T) {
+func TestParseSelectWhereExistsSubquery(t *testing.T) {
 	stmt := parseSelect(t,
 		"select t.id from customers as t where exists (select 1 from orders as o where o.customer_id = t.id);",
 	)
 
-	want := "exists (select 1 from orders as o where o.customer_id = t.id)"
-	if stmt.Where != want {
-		t.Errorf("Where:\ngot  %q\nwant %q", stmt.Where, want)
+	if stmt.Where != "" {
+		t.Errorf("Where: got %q, want empty", stmt.Where)
+	}
+	if stmt.WherePred != "exists" {
+		t.Errorf("WherePred: got %q, want %q", stmt.WherePred, "exists")
+	}
+	if stmt.WhereSubq == nil {
+		t.Fatal("WhereSubq: got nil, want non-nil")
+	}
+	if len(stmt.WhereSubq.Columns) != 1 || stmt.WhereSubq.Columns[0].Expr != "1" {
+		t.Errorf("WhereSubq.Columns[0].Expr: got %v", stmt.WhereSubq.Columns)
+	}
+	if stmt.WhereSubq.From.Name != "orders" || stmt.WhereSubq.From.Alias != "o" {
+		t.Errorf("WhereSubq.From: got {Name:%q Alias:%q}", stmt.WhereSubq.From.Name, stmt.WhereSubq.From.Alias)
+	}
+	if stmt.WhereSubq.Where != "o.customer_id = t.id" {
+		t.Errorf("WhereSubq.Where: got %q, want %q", stmt.WhereSubq.Where, "o.customer_id = t.id")
+	}
+}
+
+func TestParseSelectFromSubquery(t *testing.T) {
+	stmt := parseSelect(t,
+		"select s.status, s.order_count from (select t.status, count(*) as order_count from orders as t group by t.status) as s where s.order_count > 5;",
+	)
+
+	if stmt.From.Name != "" {
+		t.Errorf("From.Name: got %q, want empty", stmt.From.Name)
+	}
+	if stmt.From.Alias != "s" {
+		t.Errorf("From.Alias: got %q, want %q", stmt.From.Alias, "s")
+	}
+	subq := stmt.From.Subquery
+	if subq == nil {
+		t.Fatal("From.Subquery: got nil, want non-nil")
+	}
+	if len(subq.Columns) != 2 {
+		t.Fatalf("Subquery.Columns: got %d, want 2", len(subq.Columns))
+	}
+	if subq.Columns[0].Expr != "t.status" {
+		t.Errorf("Subquery.Columns[0].Expr: got %q, want %q", subq.Columns[0].Expr, "t.status")
+	}
+	if subq.Columns[1].Expr != "count(*)" || subq.Columns[1].Alias != "order_count" {
+		t.Errorf("Subquery.Columns[1]: got {Expr:%q Alias:%q}", subq.Columns[1].Expr, subq.Columns[1].Alias)
+	}
+	if subq.From.Name != "orders" || subq.From.Alias != "t" {
+		t.Errorf("Subquery.From: got {Name:%q Alias:%q}", subq.From.Name, subq.From.Alias)
+	}
+	if len(subq.GroupBy) != 1 || subq.GroupBy[0] != "t.status" {
+		t.Errorf("Subquery.GroupBy: got %v", subq.GroupBy)
+	}
+	if stmt.Where != "s.order_count > 5" {
+		t.Errorf("Where: got %q, want %q", stmt.Where, "s.order_count > 5")
 	}
 }
 

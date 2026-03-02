@@ -621,3 +621,64 @@ func TestFormatSelectJoinIdempotent(t *testing.T) {
 		})
 	}
 }
+
+// ─── subquery tests ───────────────────────────────────────────────────────────
+
+func TestFormatSelectFromSubquery(t *testing.T) {
+	input := "select s.status, s.order_count from (select t.status, count(*) as order_count from orders as t group by t.status) as s where s.order_count > 5;"
+	want := "select\n\ts.status\n,\ts.order_count\nfrom\n\t(\n\t\tselect\n\t\t\tt.status\n\t\t,\tcount(*) as order_count\n\t\tfrom\n\t\t\torders as t\n\t\tgroup by\n\t\t\tt.status\n\t) as s\nwhere\n\ts.order_count > 5;\n"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestFormatSelectWhereInSubquery(t *testing.T) {
+	input := "select t.id, t.name from customers as t where t.id in (select o.customer_id from orders as o where o.status = 'active');"
+	want := "select\n\tt.id\n,\tt.name\nfrom\n\tcustomers as t\nwhere\n\tt.id in\n\t(\n\t\tselect\n\t\t\to.customer_id\n\t\tfrom\n\t\t\torders as o\n\t\twhere\n\t\t\to.status = 'active'\n\t);\n"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestFormatSelectWhereExistsSubquery(t *testing.T) {
+	input := "select t.id, t.name from customers as t where exists (select 1 from orders as o where o.customer_id = t.id);"
+	want := "select\n\tt.id\n,\tt.name\nfrom\n\tcustomers as t\nwhere\n\texists\n\t(\n\t\tselect\n\t\t\t1\n\t\tfrom\n\t\t\torders as o\n\t\twhere\n\t\t\to.customer_id = t.id\n\t);\n"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestFormatSelectSubqueryIdempotent(t *testing.T) {
+	inputs := []string{
+		"select s.status, s.order_count from (select t.status, count(*) as order_count from orders as t group by t.status) as s where s.order_count > 5;",
+		"select t.id, t.name from customers as t where t.id in (select o.customer_id from orders as o where o.status = 'active');",
+		"select t.id from customers as t where exists (select 1 from orders as o where o.customer_id = t.id);",
+	}
+	for _, input := range inputs {
+		t.Run(input[:40], func(t *testing.T) {
+			first, err := Format(input, config.Default())
+			if err != nil {
+				t.Fatalf("first pass error: %v", err)
+			}
+			second, err := Format(first, config.Default())
+			if err != nil {
+				t.Fatalf("second pass error: %v", err)
+			}
+			if first != second {
+				t.Errorf("not idempotent:\nfirst:\n%s\nsecond:\n%s", first, second)
+			}
+		})
+	}
+}

@@ -847,10 +847,11 @@ func (p *parser) parseExprRaw(stopFn func() bool) (string, error) {
 	}
 }
 
-// parseSelect handles: SELECT [DISTINCT] <cols> FROM <table>
-// [WHERE <expr>] [GROUP BY <exprs>] [HAVING <expr>]
-// [ORDER BY <items>] [OFFSET n ROWS] [FETCH NEXT n ROWS ONLY | LIMIT n].
-func (p *parser) parseSelect() (Statement, error) {
+// parseSelectCore parses the body of a SELECT statement, consuming the SELECT
+// keyword through all clauses. It does NOT consume a trailing semicolon or
+// closing parenthesis — the caller handles those. It is used both for
+// top-level SELECTs (via parseSelect) and for subqueries.
+func (p *parser) parseSelectCore() (*SelectStmt, error) {
 	p.advance() // consume SELECT
 
 	stmt := &SelectStmt{}
@@ -884,16 +885,31 @@ func (p *parser) parseSelect() (Statement, error) {
 
 	if p.curKeyword("WHERE") {
 		p.advance()
-		where, err := p.parseExprRaw(func() bool {
-			return p.curKeyword("GROUP") || p.curKeyword("HAVING") ||
+		// Stop before a subquery opening so we can parse it structurally.
+		pred, err := p.parseExprRaw(func() bool {
+			return (p.curIs(lexer.LParen) && p.peekKeyword("SELECT")) ||
+				p.curKeyword("GROUP") || p.curKeyword("HAVING") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
-				p.curIs(lexer.Semicolon)
+				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
 		})
 		if err != nil {
 			return nil, err
 		}
-		stmt.Where = where
+		if p.curIs(lexer.LParen) && p.peekKeyword("SELECT") {
+			p.advance() // consume (
+			subq, err := p.parseSelectCore()
+			if err != nil {
+				return nil, err
+			}
+			if _, err := p.expect(lexer.RParen); err != nil {
+				return nil, err
+			}
+			stmt.WherePred = pred
+			stmt.WhereSubq = subq
+		} else {
+			stmt.Where = pred
+		}
 	}
 
 	if p.curKeyword("GROUP") && p.peekKeyword("BY") {
@@ -911,7 +927,7 @@ func (p *parser) parseSelect() (Statement, error) {
 		having, err := p.parseExprRaw(func() bool {
 			return p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
-				p.curIs(lexer.Semicolon)
+				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
 		})
 		if err != nil {
 			return nil, err
@@ -972,10 +988,19 @@ func (p *parser) parseSelect() (Statement, error) {
 		stmt.Limit = tok.Value
 	}
 
+	return stmt, nil
+}
+
+// parseSelect handles a top-level SELECT statement, delegating to
+// parseSelectCore and then consuming the trailing semicolon.
+func (p *parser) parseSelect() (Statement, error) {
+	stmt, err := p.parseSelectCore()
+	if err != nil {
+		return nil, err
+	}
 	if p.curIs(lexer.Semicolon) {
 		p.advance()
 	}
-
 	return stmt, nil
 }
 
@@ -1019,10 +1044,36 @@ func (p *parser) parseSelectItem() (SelectItem, error) {
 	return item, nil
 }
 
-// parseFromSource parses the target of a FROM clause.
-// For now (#39) only named tables are supported; subquery support is added in #42.
-// Bare aliases (without AS) are parsed so the lint rule for #34 can fire.
+// parseFromSource parses the target of a FROM clause: either a named table
+// or a derived table (SELECT ...) subquery. Bare aliases (without AS) are
+// also accepted for the lint rule in #34.
 func (p *parser) parseFromSource() (SelectFromSource, error) {
+	// Derived table: (SELECT ...)
+	if p.curIs(lexer.LParen) && p.peekKeyword("SELECT") {
+		p.advance() // consume (
+		subq, err := p.parseSelectCore()
+		if err != nil {
+			return SelectFromSource{}, err
+		}
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return SelectFromSource{}, err
+		}
+		source := SelectFromSource{Subquery: subq}
+		if p.curKeyword("AS") {
+			p.advance()
+			aliasTok, err := p.expectIdent()
+			if err != nil {
+				return SelectFromSource{}, err
+			}
+			source.Alias = aliasTok.Value
+		} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+			source.Alias = p.cur.Value
+			p.advance()
+		}
+		return source, nil
+	}
+
+	// Named table
 	nameTok, err := p.expectIdent()
 	if err != nil {
 		return SelectFromSource{}, err
