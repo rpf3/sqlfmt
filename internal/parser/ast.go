@@ -115,12 +115,13 @@ func (*DropStmt) statementNode() {}
 
 // ColumnDef is one column in a CREATE TABLE column list.
 type ColumnDef struct {
-	Name        string           // column name
-	DataType    string           // e.g. "INTEGER", "TEXT", "VARCHAR(255)", "NUMERIC(10, 2)"
-	PrimaryKey  bool             // PRIMARY KEY inline constraint
-	Default     string           // DEFAULT expression verbatim; empty means no DEFAULT clause
-	Nullability Nullability      // optional nullability constraint
-	Unique      bool             // UNIQUE inline constraint
-	Check       string           // optional inline CHECK expression (without outer parens); empty if absent
-	References  *ColumnReference // optional inline REFERENCES clause
+	Name              string           // column name
+	DataType          string           // e.g. "INTEGER", "TEXT", "VARCHAR(255)", "NUMERIC(10, 2)"
+	PrimaryKey        bool             // PRIMARY KEY inline constraint
+	DefaultConstraint string           // optional CONSTRAINT name preceding DEFAULT; empty if unnamed
+	Default           string           // DEFAULT expression verbatim; empty means no DEFAULT clause
+	Nullability       Nullability      // optional nullability constraint
+	Unique            bool             // UNIQUE inline constraint
+	Check             string           // optional inline CHECK expression (without outer parens); empty if absent
+	References        *ColumnReference // optional inline REFERENCES clause
 }

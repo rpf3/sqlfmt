@@ -46,6 +46,29 @@ func TestLint(t *testing.T) {
 			);`,
 			wantRule: "",
 		},
+		{
+			name: "unnamed default warns",
+			input: `create table orders (
+				id integer not null,
+				status varchar(20) default 'pending' not null
+			);`,
+			wantRule: "unnamed-default",
+		},
+		{
+			name: "named default is clean",
+			input: `create table orders (
+				id integer not null,
+				status varchar(20) constraint df_orders_status default 'pending' not null
+			);`,
+			wantRule: "",
+		},
+		{
+			name: "no default is clean",
+			input: `create table orders (
+				id integer not null
+			);`,
+			wantRule: "",
+		},
 	}
 
 	for _, tt := range tests {

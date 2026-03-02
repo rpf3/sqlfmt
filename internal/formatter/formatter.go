@@ -126,6 +126,10 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 		b.WriteString(" " + f.kw("primary key"))
 	}
 	if col.Default != "" {
+		if col.DefaultConstraint != "" {
+			b.WriteString(" " + f.kw("constraint") + " ")
+			b.WriteString(col.DefaultConstraint)
+		}
 		b.WriteString(" " + f.kw("default") + " ")
 		b.WriteString(f.normalizeDefaultExpr(col.Default))
 	}

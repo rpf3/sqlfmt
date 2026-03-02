@@ -94,6 +94,30 @@ func TestFormatIdempotent(t *testing.T) {
 	}
 }
 
+// TestFormatNamedDefaultConstraint verifies that a named DEFAULT constraint
+// round-trips through the formatter correctly.
+func TestFormatNamedDefaultConstraint(t *testing.T) {
+	input := `create table t (
+		id integer not null,
+		name varchar(255) constraint df_t_name default 'unknown' not null
+	);`
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "constraint df_t_name default") {
+		t.Errorf("expected 'constraint df_t_name default' in output:\n%s", got)
+	}
+	// Idempotency
+	got2, err := Format(got, config.Default())
+	if err != nil {
+		t.Fatalf("Format() second pass unexpected error: %v", err)
+	}
+	if got != got2 {
+		t.Errorf("Format is not idempotent.\nfirst:\n%s\nsecond:\n%s", got, got2)
+	}
+}
+
 // TestFormatParseError verifies that invalid SQL returns a non-nil error.
 func TestFormatParseError(t *testing.T) {
 	_, err := Format("this is not valid sql", config.Default())
