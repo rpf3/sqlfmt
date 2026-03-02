@@ -115,6 +115,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("SELECT") {
 		return p.parseSelect()
 	}
+	if p.curKeyword("WITH") {
+		return p.parseWithSelect()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,
@@ -1254,4 +1257,53 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 		joins = append(joins, jc)
 	}
 	return joins, nil
+}
+
+// parseWithSelect handles: WITH <name> AS (<select>) [, <name> AS (<select>)] ... SELECT ...
+func (p *parser) parseWithSelect() (Statement, error) {
+	p.advance() // consume WITH
+
+	var ctes []CTEDef
+	for {
+		nameTok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		if err := p.expectKeyword("AS"); err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(lexer.LParen); err != nil {
+			return nil, err
+		}
+		body, err := p.parseSelectCore()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return nil, err
+		}
+		ctes = append(ctes, CTEDef{Name: nameTok.Value, Select: body})
+
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+
+	if !p.curKeyword("SELECT") {
+		return nil, fmt.Errorf(
+			"expected SELECT after WITH clause at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+	stmt, err := p.parseSelectCore()
+	if err != nil {
+		return nil, err
+	}
+	stmt.CTEs = ctes
+
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+	return stmt, nil
 }
