@@ -347,3 +347,167 @@ func TestFormatCommaStyle(t *testing.T) {
 		}
 	})
 }
+
+// ─── SELECT formatting tests ──────────────────────────────────────────────────
+
+// TestFormatSelectStar verifies the minimal SELECT * FROM table form.
+func TestFormatSelectStar(t *testing.T) {
+	got, err := Format("select * from orders;", config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	want := "select\n\t*\nfrom\n\torders;\n"
+	if got != want {
+		t.Errorf("Format() mismatch:\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// TestFormatSelectColumns verifies column list with aliases and a WHERE clause.
+func TestFormatSelectColumns(t *testing.T) {
+	input := "SELECT t.id, t.name AS customer_name, t.created_at FROM orders AS t WHERE t.status = 'active';"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
+	// first line: select
+	if lines[0] != "select" {
+		t.Errorf("line[0]: got %q, want %q", lines[0], "select")
+	}
+	// second line: first column (no leading comma)
+	if lines[1] != "\tt.id" {
+		t.Errorf("line[1]: got %q, want %q", lines[1], "\tt.id")
+	}
+	// third line: second column with leading comma and alias
+	if lines[2] != ",\tt.name as customer_name" {
+		t.Errorf("line[2]: got %q, want %q", lines[2], ",\tt.name as customer_name")
+	}
+	// from clause
+	if !strings.Contains(got, "\nfrom\n\torders as t\n") {
+		t.Errorf("missing canonical FROM line in:\n%s", got)
+	}
+	// where clause
+	if !strings.Contains(got, "\nwhere\n\tt.status = 'active'") {
+		t.Errorf("missing canonical WHERE line in:\n%s", got)
+	}
+}
+
+// TestFormatSelectDistinct verifies DISTINCT is emitted on the select line.
+func TestFormatSelectDistinct(t *testing.T) {
+	got, err := Format("select distinct t.customer_id, t.status from orders as t;", config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if !strings.HasPrefix(got, "select distinct\n") {
+		t.Errorf("expected 'select distinct' as first line, got:\n%s", got)
+	}
+}
+
+// TestFormatSelectGroupByHaving verifies GROUP BY and HAVING formatting.
+func TestFormatSelectGroupByHaving(t *testing.T) {
+	input := "select t.status, count(*) as order_count from orders as t group by t.status having count(*) > 10;"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "\ngroup by\n\tt.status\n") {
+		t.Errorf("missing canonical GROUP BY in:\n%s", got)
+	}
+	if !strings.Contains(got, "\nhaving\n\tcount(*) > 10") {
+		t.Errorf("missing canonical HAVING in:\n%s", got)
+	}
+}
+
+// TestFormatSelectOrderBy verifies ORDER BY with explicit directions.
+func TestFormatSelectOrderBy(t *testing.T) {
+	input := "select t.id from orders as t order by t.created_at desc, t.id asc;"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "\norder by\n\tt.created_at desc\n,\tt.id asc;") {
+		t.Errorf("missing canonical ORDER BY in:\n%s", got)
+	}
+}
+
+// TestFormatSelectOffsetFetch verifies OFFSET and FETCH NEXT formatting.
+func TestFormatSelectOffsetFetch(t *testing.T) {
+	input := "select t.id from products as t order by t.name asc offset 40 rows fetch next 20 rows only;"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "\noffset\n\t40 rows\n") {
+		t.Errorf("missing canonical OFFSET in:\n%s", got)
+	}
+	if !strings.Contains(got, "\nfetch next\n\t20 rows only;") {
+		t.Errorf("missing canonical FETCH NEXT in:\n%s", got)
+	}
+}
+
+// TestFormatSelectIdempotent verifies that formatting a SELECT twice is stable.
+func TestFormatSelectIdempotent(t *testing.T) {
+	inputs := []string{
+		"select * from orders;",
+		"select t.id, t.name as n from orders as t where t.status = 'active';",
+		"select distinct t.x from t;",
+		"select t.a, count(*) as n from t group by t.a having count(*) > 1 order by t.a desc;",
+		"select t.id from t order by t.name asc offset 10 rows fetch next 5 rows only;",
+	}
+	for _, input := range inputs {
+		t.Run(input, func(t *testing.T) {
+			first, err := Format(input, config.Default())
+			if err != nil {
+				t.Fatalf("first pass error: %v", err)
+			}
+			second, err := Format(first, config.Default())
+			if err != nil {
+				t.Fatalf("second pass error: %v", err)
+			}
+			if first != second {
+				t.Errorf("not idempotent:\nfirst:\n%s\nsecond:\n%s", first, second)
+			}
+		})
+	}
+}
+
+// TestFormatSelectUpperKeywords verifies keyword case upper applies to SELECT clauses.
+func TestFormatSelectUpperKeywords(t *testing.T) {
+	cfg := config.Default()
+	cfg.KeywordCase = config.KeywordUpper
+	got, err := Format("select t.id, t.name as n from orders as t where t.id > 0 order by t.id desc;", cfg)
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	for _, kw := range []string{"SELECT", "FROM", "WHERE", "ORDER BY", "AS", "DESC"} {
+		if !strings.Contains(got, kw) {
+			t.Errorf("upper mode missing %q in:\n%s", kw, got)
+		}
+	}
+}
+
+// TestFormatSelectTrailingComma verifies trailing-comma style in SELECT list.
+func TestFormatSelectTrailingComma(t *testing.T) {
+	cfg := config.Default()
+	cfg.CommaStyle = config.CommaTrailing
+	got, err := Format("select t.id, t.name from orders as t;", cfg)
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
+	var idLine, nameLine string
+	for _, l := range lines {
+		if strings.Contains(l, "\tt.id") {
+			idLine = l
+		}
+		if strings.Contains(l, "\tt.name") {
+			nameLine = l
+		}
+	}
+	if !strings.HasSuffix(idLine, ",") {
+		t.Errorf("trailing: id line should end with comma: %q", idLine)
+	}
+	if strings.HasSuffix(nameLine, ",") {
+		t.Errorf("trailing: last column should not end with comma: %q", nameLine)
+	}
+}
