@@ -114,7 +114,19 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		b.WriteString(" " + f.kw("as") + " " + s.From.Alias)
 	}
 
-	// JOINs — added in #41
+	// JOINs
+	for _, jc := range s.Joins {
+		b.WriteString("\n" + f.kw(joinKeyword(jc.Type)))
+		b.WriteString("\n" + ind + jc.Name)
+		if jc.Alias != "" {
+			b.WriteString(" " + f.kw("as") + " " + jc.Alias)
+		}
+		if jc.On != "" {
+			b.WriteString("\n" + ind + ind + f.kw("on") + " " + jc.On)
+		} else if len(jc.Using) > 0 {
+			b.WriteString("\n" + ind + ind + f.kw("using") + " (" + strings.Join(jc.Using, ", ") + ")")
+		}
+	}
 
 	// WHERE
 	if s.Where != "" {
@@ -397,4 +409,23 @@ func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
 
 	b.WriteString(";")
 	return b.String()
+}
+
+// joinKeyword returns the canonical lowercase keyword phrase for a JoinType.
+// Bare JOIN and INNER JOIN both normalise to "inner join".
+// LEFT/RIGHT OUTER JOIN normalises to "left join"/"right join" (OUTER omitted).
+func joinKeyword(jt parser.JoinType) string {
+	switch jt {
+	case parser.JoinInner:
+		return "inner join"
+	case parser.JoinLeft:
+		return "left join"
+	case parser.JoinRight:
+		return "right join"
+	case parser.JoinFullOuter:
+		return "full outer join"
+	case parser.JoinCross:
+		return "cross join"
+	}
+	return "join"
 }

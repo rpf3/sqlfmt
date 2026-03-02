@@ -511,3 +511,113 @@ func TestFormatSelectTrailingComma(t *testing.T) {
 		t.Errorf("trailing: last column should not end with comma: %q", nameLine)
 	}
 }
+
+// ─── JOIN formatting tests ────────────────────────────────────────────────────
+
+// TestFormatSelectInnerJoin verifies the three-line JOIN block style.
+func TestFormatSelectInnerJoin(t *testing.T) {
+	input := "select o.id, c.name from orders as o inner join customers as c on c.id = o.customer_id where o.status = 'active';"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	// join keyword on its own line
+	if !strings.Contains(got, "\ninner join\n") {
+		t.Errorf("missing 'inner join' line in:\n%s", got)
+	}
+	// table indented one tab
+	if !strings.Contains(got, "\n\tcustomers as c\n") {
+		t.Errorf("missing indented table line in:\n%s", got)
+	}
+	// on condition double-indented
+	if !strings.Contains(got, "\n\t\ton c.id = o.customer_id\n") {
+		t.Errorf("missing double-indented ON line in:\n%s", got)
+	}
+}
+
+// TestFormatSelectBareJoinNormalisedToInner verifies bare JOIN → "inner join".
+func TestFormatSelectBareJoinNormalisedToInner(t *testing.T) {
+	got, err := Format("select * from a join b on b.id = a.bid;", config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "\ninner join\n") {
+		t.Errorf("bare JOIN should normalise to 'inner join' in:\n%s", got)
+	}
+}
+
+// TestFormatSelectFullOuterJoin verifies the full outer join keyword phrase.
+func TestFormatSelectFullOuterJoin(t *testing.T) {
+	input := "select o.id, c.name from orders as o full outer join customers as c on c.id = o.customer_id;"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "\nfull outer join\n") {
+		t.Errorf("missing 'full outer join' line in:\n%s", got)
+	}
+}
+
+// TestFormatSelectCrossJoin verifies CROSS JOIN has no ON or USING line.
+func TestFormatSelectCrossJoin(t *testing.T) {
+	input := "select s.name, c.name from sizes as s cross join colours as c;"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "\ncross join\n") {
+		t.Errorf("missing 'cross join' line in:\n%s", got)
+	}
+	if strings.Contains(got, "\t\ton ") || strings.Contains(got, "\t\tusing") {
+		t.Errorf("CROSS JOIN should have no ON/USING line in:\n%s", got)
+	}
+}
+
+// TestFormatSelectJoinUsing verifies USING clause is double-indented.
+func TestFormatSelectJoinUsing(t *testing.T) {
+	input := "select o.id, c.name from orders as o inner join customers as c using (customer_id);"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "\n\t\tusing (customer_id);") {
+		t.Errorf("missing double-indented USING line in:\n%s", got)
+	}
+}
+
+// TestFormatSelectMultipleJoins verifies consecutive JOIN blocks are all emitted.
+func TestFormatSelectMultipleJoins(t *testing.T) {
+	input := "select o.id from orders as o inner join customers as c on c.id = o.customer_id inner join products as p on p.id = o.product_id;"
+	got, err := Format(input, config.Default())
+	if err != nil {
+		t.Fatalf("Format() unexpected error: %v", err)
+	}
+	if strings.Count(got, "inner join") != 2 {
+		t.Errorf("expected 2 'inner join' occurrences in:\n%s", got)
+	}
+}
+
+// TestFormatSelectJoinIdempotent verifies formatting a JOIN query twice is stable.
+func TestFormatSelectJoinIdempotent(t *testing.T) {
+	inputs := []string{
+		"select o.id, c.name from orders as o inner join customers as c on c.id = o.customer_id;",
+		"select s.name, c.name from sizes as s cross join colours as c;",
+		"select o.id, c.name from orders as o inner join customers as c using (customer_id);",
+		"select o.id from orders as o left join items as i on i.order_id = o.id right join vendors as v on v.id = i.vendor_id;",
+	}
+	for _, input := range inputs {
+		t.Run(input, func(t *testing.T) {
+			first, err := Format(input, config.Default())
+			if err != nil {
+				t.Fatalf("first pass error: %v", err)
+			}
+			second, err := Format(first, config.Default())
+			if err != nil {
+				t.Fatalf("second pass error: %v", err)
+			}
+			if first != second {
+				t.Errorf("not idempotent:\nfirst:\n%s\nsecond:\n%s", first, second)
+			}
+		})
+	}
+}

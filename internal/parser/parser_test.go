@@ -242,3 +242,133 @@ func TestParseSelectGroupByMultiple(t *testing.T) {
 		t.Errorf("GroupBy[1]: got %q, want %q", stmt.GroupBy[1], "c.name")
 	}
 }
+
+// ─── JOIN tests ───────────────────────────────────────────────────────────────
+
+func TestParseSelectInnerJoin(t *testing.T) {
+	stmt := parseSelect(t,
+		"select o.id, c.name from orders as o inner join customers as c on c.id = o.customer_id where o.status = 'active';",
+	)
+
+	if len(stmt.Joins) != 1 {
+		t.Fatalf("Joins: got %d, want 1", len(stmt.Joins))
+	}
+	jc := stmt.Joins[0]
+	if jc.Type != JoinInner {
+		t.Errorf("Type: got %v, want JoinInner", jc.Type)
+	}
+	if jc.Name != "customers" {
+		t.Errorf("Name: got %q, want %q", jc.Name, "customers")
+	}
+	if jc.Alias != "c" {
+		t.Errorf("Alias: got %q, want %q", jc.Alias, "c")
+	}
+	if jc.On != "c.id = o.customer_id" {
+		t.Errorf("On: got %q, want %q", jc.On, "c.id = o.customer_id")
+	}
+	if stmt.Where != "o.status = 'active'" {
+		t.Errorf("Where: got %q", stmt.Where)
+	}
+}
+
+func TestParseSelectBareJoin(t *testing.T) {
+	// bare JOIN (without INNER) should be treated as INNER JOIN
+	stmt := parseSelect(t,
+		"select * from orders as o join customers as c on c.id = o.customer_id;",
+	)
+
+	if len(stmt.Joins) != 1 || stmt.Joins[0].Type != JoinInner {
+		t.Fatalf("expected 1 JoinInner, got %v", stmt.Joins)
+	}
+}
+
+func TestParseSelectLeftJoin(t *testing.T) {
+	stmt := parseSelect(t,
+		"select c.id, c.name, o.total_amount from customers as c left join orders as o on o.customer_id = c.id;",
+	)
+
+	if len(stmt.Joins) != 1 {
+		t.Fatalf("Joins: got %d, want 1", len(stmt.Joins))
+	}
+	if stmt.Joins[0].Type != JoinLeft {
+		t.Errorf("Type: got %v, want JoinLeft", stmt.Joins[0].Type)
+	}
+	if stmt.Joins[0].On != "o.customer_id = c.id" {
+		t.Errorf("On: got %q", stmt.Joins[0].On)
+	}
+}
+
+func TestParseSelectRightJoin(t *testing.T) {
+	stmt := parseSelect(t,
+		"select o.id, c.name from orders as o right join customers as c on c.id = o.customer_id;",
+	)
+
+	if len(stmt.Joins) != 1 || stmt.Joins[0].Type != JoinRight {
+		t.Errorf("expected JoinRight, got %v", stmt.Joins)
+	}
+}
+
+func TestParseSelectFullOuterJoin(t *testing.T) {
+	stmt := parseSelect(t,
+		"select o.id, c.name from orders as o full outer join customers as c on c.id = o.customer_id;",
+	)
+
+	if len(stmt.Joins) != 1 || stmt.Joins[0].Type != JoinFullOuter {
+		t.Errorf("expected JoinFullOuter, got %v", stmt.Joins)
+	}
+}
+
+func TestParseSelectCrossJoin(t *testing.T) {
+	stmt := parseSelect(t,
+		"select s.name as size, c.name as colour from sizes as s cross join colours as c;",
+	)
+
+	if len(stmt.Joins) != 1 {
+		t.Fatalf("Joins: got %d, want 1", len(stmt.Joins))
+	}
+	jc := stmt.Joins[0]
+	if jc.Type != JoinCross {
+		t.Errorf("Type: got %v, want JoinCross", jc.Type)
+	}
+	if jc.On != "" {
+		t.Errorf("On: expected empty, got %q", jc.On)
+	}
+	if len(jc.Using) != 0 {
+		t.Errorf("Using: expected empty, got %v", jc.Using)
+	}
+}
+
+func TestParseSelectJoinUsing(t *testing.T) {
+	stmt := parseSelect(t,
+		"select o.id, c.name from orders as o inner join customers as c using (customer_id);",
+	)
+
+	if len(stmt.Joins) != 1 {
+		t.Fatalf("Joins: got %d, want 1", len(stmt.Joins))
+	}
+	jc := stmt.Joins[0]
+	if jc.On != "" {
+		t.Errorf("On: expected empty, got %q", jc.On)
+	}
+	if len(jc.Using) != 1 || jc.Using[0] != "customer_id" {
+		t.Errorf("Using: got %v, want [customer_id]", jc.Using)
+	}
+}
+
+func TestParseSelectMultipleJoins(t *testing.T) {
+	sql := `select o.id, c.name, p.name from orders as o
+		inner join customers as c on c.id = o.customer_id
+		inner join order_items as oi on oi.order_id = o.id
+		inner join products as p on p.id = oi.product_id;`
+	stmt := parseSelect(t, sql)
+
+	if len(stmt.Joins) != 3 {
+		t.Fatalf("Joins: got %d, want 3", len(stmt.Joins))
+	}
+	names := []string{"customers", "order_items", "products"}
+	for i, want := range names {
+		if stmt.Joins[i].Name != want {
+			t.Errorf("Joins[%d].Name: got %q, want %q", i, stmt.Joins[i].Name, want)
+		}
+	}
+}

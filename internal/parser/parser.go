@@ -876,6 +876,12 @@ func (p *parser) parseSelect() (Statement, error) {
 	}
 	stmt.From = from
 
+	joins, err := p.parseJoinClauses()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Joins = joins
+
 	if p.curKeyword("WHERE") {
 		p.advance()
 		where, err := p.parseExprRaw(func() bool {
@@ -1090,4 +1096,111 @@ func (p *parser) parseOrderByList() ([]OrderItem, error) {
 		p.advance() // consume ','
 	}
 	return items, nil
+}
+
+// isNextJoin reports whether the current token starts a JOIN clause.
+// It uses peek-ahead to avoid false-positives on SQL functions named LEFT,
+// RIGHT, etc.: LEFT(str, n) has peek=LParen, while LEFT JOIN has peek=JOIN
+// and LEFT OUTER JOIN has peek=OUTER.
+func (p *parser) isNextJoin() bool {
+	return p.curKeyword("JOIN") ||
+		(p.curKeyword("INNER") && p.peekKeyword("JOIN")) ||
+		(p.curKeyword("LEFT") && (p.peekKeyword("JOIN") || p.peekKeyword("OUTER"))) ||
+		(p.curKeyword("RIGHT") && (p.peekKeyword("JOIN") || p.peekKeyword("OUTER"))) ||
+		(p.curKeyword("FULL") && (p.peekKeyword("OUTER") || p.peekKeyword("JOIN"))) ||
+		(p.curKeyword("CROSS") && p.peekKeyword("JOIN"))
+}
+
+// parseJoinClauses consumes zero or more JOIN clauses following a FROM source.
+// Each clause is: <join-type> <table> [AS <alias>] (ON <expr> | USING (<cols>)).
+func (p *parser) parseJoinClauses() ([]JoinClause, error) {
+	var joins []JoinClause
+	for p.isNextJoin() {
+		var joinType JoinType
+		switch {
+		case p.curKeyword("INNER"):
+			p.advance() // consume INNER
+			p.advance() // consume JOIN
+			joinType = JoinInner
+		case p.curKeyword("JOIN"):
+			p.advance() // consume JOIN (bare, means INNER)
+			joinType = JoinInner
+		case p.curKeyword("LEFT"):
+			p.advance() // consume LEFT
+			if p.curKeyword("OUTER") {
+				p.advance() // consume optional OUTER
+			}
+			if err := p.expectKeyword("JOIN"); err != nil {
+				return nil, err
+			}
+			joinType = JoinLeft
+		case p.curKeyword("RIGHT"):
+			p.advance() // consume RIGHT
+			if p.curKeyword("OUTER") {
+				p.advance() // consume optional OUTER
+			}
+			if err := p.expectKeyword("JOIN"); err != nil {
+				return nil, err
+			}
+			joinType = JoinRight
+		case p.curKeyword("FULL"):
+			p.advance() // consume FULL
+			if p.curKeyword("OUTER") {
+				p.advance() // consume optional OUTER
+			}
+			if err := p.expectKeyword("JOIN"); err != nil {
+				return nil, err
+			}
+			joinType = JoinFullOuter
+		case p.curKeyword("CROSS"):
+			p.advance() // consume CROSS
+			p.advance() // consume JOIN
+			joinType = JoinCross
+		}
+
+		nameTok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		jc := JoinClause{Type: joinType, Name: nameTok.Value}
+
+		// Optional alias (AS or bare)
+		if p.curKeyword("AS") {
+			p.advance()
+			aliasTok, err := p.expectIdent()
+			if err != nil {
+				return nil, err
+			}
+			jc.Alias = aliasTok.Value
+		} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+			jc.Alias = p.cur.Value
+			p.advance()
+		}
+
+		// ON condition or USING column list
+		if p.curKeyword("ON") {
+			p.advance()
+			expr, err := p.parseExprRaw(func() bool {
+				return p.isNextJoin() ||
+					p.curKeyword("WHERE") || p.curKeyword("GROUP") ||
+					p.curKeyword("HAVING") || p.curKeyword("ORDER") ||
+					p.curKeyword("OFFSET") || p.curKeyword("FETCH") ||
+					p.curKeyword("LIMIT") || p.curIs(lexer.Semicolon)
+			})
+			if err != nil {
+				return nil, err
+			}
+			jc.On = expr
+		} else if p.curKeyword("USING") {
+			p.advance()
+			cols, err := p.parseIdentList()
+			if err != nil {
+				return nil, err
+			}
+			jc.Using = cols
+		}
+
+		joins = append(joins, jc)
+	}
+	return joins, nil
 }
