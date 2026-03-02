@@ -112,6 +112,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("DROP") {
 		return p.parseDrop()
 	}
+	if p.curKeyword("SELECT") {
+		return p.parseSelect()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,
@@ -782,4 +785,309 @@ func (p *parser) expectIdent() (lexer.Token, error) {
 	}
 	p.advance()
 	return tok, nil
+}
+
+// ─── SELECT parsing ───────────────────────────────────────────────────────────
+
+// needsSelectSpace reports whether a space should be written between two
+// consecutive tokens when building a normalised expression string.
+// It applies SQL conventions: no space around dots, no space between an
+// identifier and its opening paren (function call), no space before a
+// closing paren or comma.
+func needsSelectSpace(prev, cur lexer.TokenType) bool {
+	if prev == lexer.LParen || prev == lexer.Dot {
+		return false
+	}
+	if cur == lexer.RParen || cur == lexer.Dot || cur == lexer.Comma {
+		return false
+	}
+	// No space between bare identifier and open-paren (function call).
+	// Keyword-before-paren (e.g. OVER (...), IN (...)) keeps the space.
+	if cur == lexer.LParen && (prev == lexer.Ident || prev == lexer.QuotedIdent) {
+		return false
+	}
+	return true
+}
+
+// parseExprRaw reads tokens into a normalised expression string, tracking
+// parenthesis depth. At depth > 0 all tokens are consumed unconditionally.
+// At depth 0, reading stops when stopFn returns true, when an unmatched
+// RParen is reached, or at EOF. Keywords are lowercased; spacing follows
+// SQL conventions via needsSelectSpace.
+func (p *parser) parseExprRaw(stopFn func() bool) (string, error) {
+	var b strings.Builder
+	var prevType lexer.TokenType
+	hasToken := false
+	depth := 0
+
+	for {
+		tok := p.cur
+		switch {
+		case tok.Type == lexer.EOF:
+			return b.String(), nil
+		case tok.Type == lexer.RParen && depth == 0:
+			return b.String(), nil // unmatched close-paren; leave for caller
+		case depth == 0 && stopFn():
+			return b.String(), nil
+		}
+
+		if tok.Type == lexer.LParen {
+			depth++
+		} else if tok.Type == lexer.RParen {
+			depth-- // depth was > 0 here
+		}
+
+		if hasToken && needsSelectSpace(prevType, tok.Type) {
+			b.WriteByte(' ')
+		}
+		b.WriteString(exprToken(tok))
+		prevType = tok.Type
+		hasToken = true
+		p.advance()
+	}
+}
+
+// parseSelect handles: SELECT [DISTINCT] <cols> FROM <table>
+// [WHERE <expr>] [GROUP BY <exprs>] [HAVING <expr>]
+// [ORDER BY <items>] [OFFSET n ROWS] [FETCH NEXT n ROWS ONLY | LIMIT n].
+func (p *parser) parseSelect() (Statement, error) {
+	p.advance() // consume SELECT
+
+	stmt := &SelectStmt{}
+
+	if p.curKeyword("DISTINCT") {
+		p.advance()
+		stmt.Distinct = true
+	}
+
+	cols, err := p.parseSelectList()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Columns = cols
+
+	if err := p.expectKeyword("FROM"); err != nil {
+		return nil, err
+	}
+
+	from, err := p.parseFromSource()
+	if err != nil {
+		return nil, err
+	}
+	stmt.From = from
+
+	if p.curKeyword("WHERE") {
+		p.advance()
+		where, err := p.parseExprRaw(func() bool {
+			return p.curKeyword("GROUP") || p.curKeyword("HAVING") ||
+				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
+				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+				p.curIs(lexer.Semicolon)
+		})
+		if err != nil {
+			return nil, err
+		}
+		stmt.Where = where
+	}
+
+	if p.curKeyword("GROUP") && p.peekKeyword("BY") {
+		p.advance() // consume GROUP
+		p.advance() // consume BY
+		groupBy, err := p.parseGroupByList()
+		if err != nil {
+			return nil, err
+		}
+		stmt.GroupBy = groupBy
+	}
+
+	if p.curKeyword("HAVING") {
+		p.advance()
+		having, err := p.parseExprRaw(func() bool {
+			return p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
+				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+				p.curIs(lexer.Semicolon)
+		})
+		if err != nil {
+			return nil, err
+		}
+		stmt.Having = having
+	}
+
+	if p.curKeyword("ORDER") && p.peekKeyword("BY") {
+		p.advance() // consume ORDER
+		p.advance() // consume BY
+		orderBy, err := p.parseOrderByList()
+		if err != nil {
+			return nil, err
+		}
+		stmt.OrderBy = orderBy
+	}
+
+	if p.curKeyword("OFFSET") {
+		p.advance()
+		tok, err := p.expect(lexer.IntLit)
+		if err != nil {
+			return nil, err
+		}
+		stmt.Offset = tok.Value
+		if p.curKeyword("ROWS") || p.curKeyword("ROW") {
+			p.advance()
+		}
+	}
+
+	if p.curKeyword("FETCH") {
+		p.advance()
+		if !p.curKeyword("NEXT") && !p.curKeyword("FIRST") {
+			return nil, fmt.Errorf(
+				"expected NEXT or FIRST after FETCH at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance() // consume NEXT or FIRST
+		tok, err := p.expect(lexer.IntLit)
+		if err != nil {
+			return nil, err
+		}
+		stmt.Fetch = tok.Value
+		if p.curKeyword("ROWS") || p.curKeyword("ROW") {
+			p.advance()
+		}
+		if p.curKeyword("ONLY") {
+			p.advance()
+		}
+	}
+
+	if p.curKeyword("LIMIT") {
+		p.advance()
+		tok, err := p.expect(lexer.IntLit)
+		if err != nil {
+			return nil, err
+		}
+		stmt.Limit = tok.Value
+	}
+
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+
+	return stmt, nil
+}
+
+// parseSelectList parses a comma-separated list of SELECT items.
+func (p *parser) parseSelectList() ([]SelectItem, error) {
+	var items []SelectItem
+	for {
+		item, err := p.parseSelectItem()
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+	return items, nil
+}
+
+// parseSelectItem parses one SELECT list entry: <expr> [AS <alias>].
+func (p *parser) parseSelectItem() (SelectItem, error) {
+	expr, err := p.parseExprRaw(func() bool {
+		return p.curIs(lexer.Comma) || p.curKeyword("FROM") || p.curKeyword("AS")
+	})
+	if err != nil {
+		return SelectItem{}, err
+	}
+
+	var alias string
+	if p.curKeyword("AS") {
+		p.advance()
+		tok, err := p.expectIdent()
+		if err != nil {
+			return SelectItem{}, err
+		}
+		alias = tok.Value
+	}
+
+	item := SelectItem{Expr: expr, Alias: alias}
+	return item, nil
+}
+
+// parseFromSource parses the target of a FROM clause.
+// For now (#39) only named tables are supported; subquery support is added in #42.
+// Bare aliases (without AS) are parsed so the lint rule for #34 can fire.
+func (p *parser) parseFromSource() (SelectFromSource, error) {
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return SelectFromSource{}, err
+	}
+	source := SelectFromSource{Name: nameTok.Value}
+
+	if p.curKeyword("AS") {
+		p.advance()
+		aliasTok, err := p.expectIdent()
+		if err != nil {
+			return SelectFromSource{}, err
+		}
+		source.Alias = aliasTok.Value
+	} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+		// bare alias without AS
+		source.Alias = p.cur.Value
+		p.advance()
+	}
+
+	return source, nil
+}
+
+// parseGroupByList parses a comma-separated list of GROUP BY expressions.
+func (p *parser) parseGroupByList() ([]string, error) {
+	var exprs []string
+	for {
+		expr, err := p.parseExprRaw(func() bool {
+			return p.curIs(lexer.Comma) || p.curKeyword("HAVING") ||
+				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
+				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+				p.curIs(lexer.Semicolon)
+		})
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, expr)
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+	return exprs, nil
+}
+
+// parseOrderByList parses a comma-separated list of ORDER BY items.
+// Each item is an expression with an optional ASC or DESC direction keyword.
+func (p *parser) parseOrderByList() ([]OrderItem, error) {
+	var items []OrderItem
+	for {
+		expr, err := p.parseExprRaw(func() bool {
+			return p.curKeyword("ASC") || p.curKeyword("DESC") ||
+				p.curIs(lexer.Comma) ||
+				p.curKeyword("OFFSET") || p.curKeyword("FETCH") ||
+				p.curKeyword("LIMIT") || p.curIs(lexer.Semicolon)
+		})
+		if err != nil {
+			return nil, err
+		}
+		item := OrderItem{Expr: expr}
+		if p.curKeyword("DESC") {
+			p.advance()
+			item.Direction = DirectionDesc
+		} else if p.curKeyword("ASC") {
+			p.advance()
+			item.Direction = DirectionAsc
+		}
+		items = append(items, item)
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+	return items, nil
 }
