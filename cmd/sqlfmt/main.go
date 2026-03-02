@@ -20,6 +20,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("sqlfmt", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	check := fs.Bool("check", false, "exit non-zero if input is not formatted; write nothing")
+	warningsAsErrors := fs.Bool("warnings-as-errors", false, "exit non-zero if any lint warnings are emitted")
 
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -50,10 +51,11 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "sqlfmt: %v\n", err)
 		return 1
 	}
+	wae := cfg.WarningsAsErrors || *warningsAsErrors
 	hasLintError := false
 	for _, w := range warnings {
 		fmt.Fprintf(stderr, "sqlfmt: lint [%s]: %s\n", w.Rule, w.Message)
-		if w.Severity == config.RuleSeverityError {
+		if w.Severity == config.RuleSeverityError || wae {
 			hasLintError = true
 		}
 	}

@@ -74,6 +74,23 @@ func TestLoadPartialFile(t *testing.T) {
 	}
 }
 
+func TestLoadWarningsAsErrors(t *testing.T) {
+	path := writeTemp(t, "warnings_as_errors: true\n")
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatalf("Load() unexpected error: %v", err)
+	}
+	if !cfg.WarningsAsErrors {
+		t.Error("WarningsAsErrors: got false, want true")
+	}
+}
+
+func TestDefaultWarningsAsErrorsIsFalse(t *testing.T) {
+	if config.Default().WarningsAsErrors {
+		t.Error("Default().WarningsAsErrors: got true, want false")
+	}
+}
+
 func TestLoadInvalidKeywordCase(t *testing.T) {
 	path := writeTemp(t, "keyword_case: mixed\n")
 	_, err := config.Load(path)
