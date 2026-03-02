@@ -32,12 +32,12 @@ func TestLint(t *testing.T) {
 			wantRule: "",
 		},
 		{
-			name: "unnamed table-level primary key is clean",
+			name: "unnamed table-level primary key warns",
 			input: `create table orders (
 				id integer not null,
 				primary key (id)
 			);`,
-			wantRule: "",
+			wantRule: "unnamed-primary-key",
 		},
 		{
 			name: "no primary key at all is clean",
