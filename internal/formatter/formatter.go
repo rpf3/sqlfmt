@@ -84,6 +84,26 @@ func (f *formatter) writeCommaList(b *strings.Builder, items []string) {
 	}
 }
 
+// indentSubquery formats s as a SELECT body with each non-empty line
+// prefixed by ind+ind (double indent). The surrounding ( ) delimiters and
+// any alias are the caller's responsibility.
+func (f *formatter) indentSubquery(s *parser.SelectStmt) string {
+	inner := f.formatSelectStmt(s)
+	inner = strings.TrimSuffix(inner, ";")
+	prefix := f.indent() + f.indent()
+	lines := strings.Split(inner, "\n")
+	var b strings.Builder
+	for i, line := range lines {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		if line != "" {
+			b.WriteString(prefix + line)
+		}
+	}
+	return b.String()
+}
+
 func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	ind := f.indent()
 	var b strings.Builder
@@ -108,10 +128,19 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 
 	// FROM
 	b.WriteString("\n" + f.kw("from"))
-	b.WriteString("\n" + ind)
-	b.WriteString(s.From.Name)
-	if s.From.Alias != "" {
-		b.WriteString(" " + f.kw("as") + " " + s.From.Alias)
+	if s.From.Subquery != nil {
+		b.WriteString("\n" + ind + "(")
+		b.WriteString("\n" + f.indentSubquery(s.From.Subquery))
+		b.WriteString("\n" + ind + ")")
+		if s.From.Alias != "" {
+			b.WriteString(" " + f.kw("as") + " " + s.From.Alias)
+		}
+	} else {
+		b.WriteString("\n" + ind)
+		b.WriteString(s.From.Name)
+		if s.From.Alias != "" {
+			b.WriteString(" " + f.kw("as") + " " + s.From.Alias)
+		}
 	}
 
 	// JOINs
@@ -133,6 +162,14 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		b.WriteString("\n" + f.kw("where"))
 		b.WriteString("\n" + ind)
 		b.WriteString(s.Where)
+	} else if s.WhereSubq != nil {
+		b.WriteString("\n" + f.kw("where"))
+		if s.WherePred != "" {
+			b.WriteString("\n" + ind + s.WherePred)
+		}
+		b.WriteString("\n" + ind + "(")
+		b.WriteString("\n" + f.indentSubquery(s.WhereSubq))
+		b.WriteString("\n" + ind + ")")
 	}
 
 	// GROUP BY
