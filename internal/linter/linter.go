@@ -70,6 +70,15 @@ func (l *linter) checkCreateTable(s *parser.CreateTableStmt) {
 				),
 			)
 		}
+		if col.Default != "" && col.DefaultConstraint == "" {
+			l.warn(
+				config.RuleUnnamedDefault,
+				fmt.Sprintf(
+					"table %q: column %q has an unnamed DEFAULT; add CONSTRAINT <name> before DEFAULT",
+					s.Name, col.Name,
+				),
+			)
+		}
 	}
 	for _, tc := range s.Constraints {
 		if tc.Type == parser.ConstraintPrimaryKey && tc.Name == "" {

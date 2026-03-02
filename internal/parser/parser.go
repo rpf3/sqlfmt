@@ -665,6 +665,21 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		col.PrimaryKey = true
 	}
 
+	if p.curKeyword("CONSTRAINT") {
+		p.advance() // consume CONSTRAINT
+		nameTok, err := p.expectIdent()
+		if err != nil {
+			return ColumnDef{}, err
+		}
+		if !p.curKeyword("DEFAULT") {
+			return ColumnDef{}, fmt.Errorf(
+				"expected DEFAULT after column CONSTRAINT name at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		col.DefaultConstraint = nameTok.Value
+	}
+
 	if p.curKeyword("DEFAULT") {
 		p.advance() // consume DEFAULT
 		tok := p.cur
