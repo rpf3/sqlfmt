@@ -9,8 +9,9 @@ import (
 
 // Warning represents a single lint warning emitted by the linter.
 type Warning struct {
-	Rule    string
-	Message string
+	Rule     string
+	Message  string
+	Severity config.RuleSeverity
 }
 
 // Lint parses input SQL and returns any lint warnings found.
@@ -34,8 +35,20 @@ type linter struct {
 	warnings []Warning
 }
 
+// severity returns the configured severity for a rule, defaulting to warn.
+func (l *linter) severity(rule string) config.RuleSeverity {
+	if s, ok := l.cfg.LintRules[rule]; ok {
+		return s
+	}
+	return config.RuleSeverityWarn
+}
+
 func (l *linter) warn(rule, message string) {
-	w := Warning{Rule: rule, Message: message}
+	sev := l.severity(rule)
+	if sev == config.RuleSeverityOff {
+		return
+	}
+	w := Warning{Rule: rule, Message: message, Severity: sev}
 	l.warnings = append(l.warnings, w)
 }
 
@@ -50,7 +63,7 @@ func (l *linter) checkCreateTable(s *parser.CreateTableStmt) {
 	for _, col := range s.Columns {
 		if col.PrimaryKey {
 			l.warn(
-				"inline-primary-key",
+				config.RuleInlinePrimaryKey,
 				fmt.Sprintf(
 					"table %q: column %q uses an inline PRIMARY KEY; use a named table-level constraint instead",
 					s.Name, col.Name,
@@ -61,7 +74,7 @@ func (l *linter) checkCreateTable(s *parser.CreateTableStmt) {
 	for _, tc := range s.Constraints {
 		if tc.Type == parser.ConstraintPrimaryKey && tc.Name == "" {
 			l.warn(
-				"unnamed-primary-key",
+				config.RuleUnnamedPrimaryKey,
 				fmt.Sprintf(
 					"table %q: PRIMARY KEY constraint has no name; add CONSTRAINT <name> before PRIMARY KEY",
 					s.Name,

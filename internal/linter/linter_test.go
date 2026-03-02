@@ -78,3 +78,54 @@ func TestLintParseError(t *testing.T) {
 		t.Error("expected error for invalid SQL, got nil")
 	}
 }
+
+func TestLintSeverity(t *testing.T) {
+	const inlineSQL = `create table orders (
+		id integer primary key,
+		total numeric(10,2) not null
+	);`
+
+	t.Run("default severity is warn", func(t *testing.T) {
+		warnings, err := Lint(inlineSQL, config.Default())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(warnings) != 1 {
+			t.Fatalf("expected 1 warning, got %d", len(warnings))
+		}
+		if warnings[0].Severity != config.RuleSeverityWarn {
+			t.Errorf("Severity = %q, want %q", warnings[0].Severity, config.RuleSeverityWarn)
+		}
+	})
+
+	t.Run("off suppresses warning", func(t *testing.T) {
+		cfg := config.Default()
+		cfg.LintRules = map[string]config.RuleSeverity{
+			config.RuleInlinePrimaryKey: config.RuleSeverityOff,
+		}
+		warnings, err := Lint(inlineSQL, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(warnings) != 0 {
+			t.Errorf("expected no warnings with rule off, got %d: %v", len(warnings), warnings)
+		}
+	})
+
+	t.Run("error severity is recorded", func(t *testing.T) {
+		cfg := config.Default()
+		cfg.LintRules = map[string]config.RuleSeverity{
+			config.RuleInlinePrimaryKey: config.RuleSeverityError,
+		}
+		warnings, err := Lint(inlineSQL, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(warnings) != 1 {
+			t.Fatalf("expected 1 warning, got %d", len(warnings))
+		}
+		if warnings[0].Severity != config.RuleSeverityError {
+			t.Errorf("Severity = %q, want %q", warnings[0].Severity, config.RuleSeverityError)
+		}
+	})
+}
