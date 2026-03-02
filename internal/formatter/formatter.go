@@ -54,8 +54,125 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatAlterTable(s)
 	case *parser.DropStmt:
 		return f.formatDrop(s)
+	case *parser.SelectStmt:
+		return f.formatSelectStmt(s)
 	}
 	return ""
+}
+
+// writeCommaList writes a list of pre-formatted items to b using the configured
+// comma style. Each item is placed on its own line with one level of indentation.
+func (f *formatter) writeCommaList(b *strings.Builder, items []string) {
+	ind := f.indent()
+	for i, item := range items {
+		b.WriteString("\n")
+		if f.cfg.CommaStyle == config.CommaTrailing {
+			b.WriteString(ind)
+			b.WriteString(item)
+			if i < len(items)-1 {
+				b.WriteString(",")
+			}
+		} else {
+			// leading comma
+			if i == 0 {
+				b.WriteString(ind)
+			} else {
+				b.WriteString("," + ind)
+			}
+			b.WriteString(item)
+		}
+	}
+}
+
+func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+
+	// SELECT [DISTINCT]
+	if s.Distinct {
+		b.WriteString(f.kw("select distinct"))
+	} else {
+		b.WriteString(f.kw("select"))
+	}
+
+	// SELECT list
+	cols := make([]string, 0, len(s.Columns))
+	for _, col := range s.Columns {
+		c := col.Expr
+		if col.Alias != "" {
+			c += " " + f.kw("as") + " " + col.Alias
+		}
+		cols = append(cols, c)
+	}
+	f.writeCommaList(&b, cols)
+
+	// FROM
+	b.WriteString("\n" + f.kw("from"))
+	b.WriteString("\n" + ind)
+	b.WriteString(s.From.Name)
+	if s.From.Alias != "" {
+		b.WriteString(" " + f.kw("as") + " " + s.From.Alias)
+	}
+
+	// JOINs — added in #41
+
+	// WHERE
+	if s.Where != "" {
+		b.WriteString("\n" + f.kw("where"))
+		b.WriteString("\n" + ind)
+		b.WriteString(s.Where)
+	}
+
+	// GROUP BY
+	if len(s.GroupBy) > 0 {
+		b.WriteString("\n" + f.kw("group by"))
+		f.writeCommaList(&b, s.GroupBy)
+	}
+
+	// HAVING
+	if s.Having != "" {
+		b.WriteString("\n" + f.kw("having"))
+		b.WriteString("\n" + ind)
+		b.WriteString(s.Having)
+	}
+
+	// ORDER BY
+	if len(s.OrderBy) > 0 {
+		b.WriteString("\n" + f.kw("order by"))
+		orderItems := make([]string, 0, len(s.OrderBy))
+		for _, item := range s.OrderBy {
+			oi := item.Expr
+			switch item.Direction {
+			case parser.DirectionDesc:
+				oi += " " + f.kw("desc")
+			case parser.DirectionAsc:
+				oi += " " + f.kw("asc")
+			}
+			orderItems = append(orderItems, oi)
+		}
+		f.writeCommaList(&b, orderItems)
+	}
+
+	// OFFSET n ROWS
+	if s.Offset != "" {
+		b.WriteString("\n" + f.kw("offset"))
+		b.WriteString("\n" + ind + s.Offset + " " + f.kw("rows"))
+	}
+
+	// FETCH NEXT n ROWS ONLY
+	if s.Fetch != "" {
+		b.WriteString("\n" + f.kw("fetch next"))
+		b.WriteString("\n" + ind + s.Fetch + " " + f.kw("rows only"))
+	}
+
+	// LIMIT n (non-ANSI; lint rule #35 warns about this)
+	if s.Limit != "" {
+		b.WriteString("\n" + f.kw("limit"))
+		b.WriteString("\n" + ind + s.Limit)
+	}
+
+	b.WriteString(";")
+	return b.String()
 }
 
 func (f *formatter) formatDrop(s *parser.DropStmt) string {
