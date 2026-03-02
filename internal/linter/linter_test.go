@@ -1,0 +1,80 @@
+package linter
+
+import (
+	"testing"
+
+	"github.com/rpf3/sqlfmt/internal/config"
+)
+
+func TestLint(t *testing.T) {
+	cfg := config.Default()
+
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string // empty means no warnings expected
+	}{
+		{
+			name: "inline primary key warns",
+			input: `create table orders (
+				id integer primary key,
+				total numeric(10,2) not null
+			);`,
+			wantRule: "inline-primary-key",
+		},
+		{
+			name: "named table-level primary key is clean",
+			input: `create table orders (
+				id integer not null,
+				total numeric(10,2) not null,
+				constraint pk_orders primary key (id)
+			);`,
+			wantRule: "",
+		},
+		{
+			name: "unnamed table-level primary key is clean",
+			input: `create table orders (
+				id integer not null,
+				primary key (id)
+			);`,
+			wantRule: "",
+		},
+		{
+			name: "no primary key at all is clean",
+			input: `create table tags (
+				name varchar(100) not null
+			);`,
+			wantRule: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			warnings, err := Lint(tt.input, cfg)
+			if err != nil {
+				t.Fatalf("Lint returned unexpected error: %v", err)
+			}
+
+			if tt.wantRule == "" {
+				if len(warnings) != 0 {
+					t.Errorf("expected no warnings, got %d: %v", len(warnings), warnings)
+				}
+				return
+			}
+
+			if len(warnings) != 1 {
+				t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
+			}
+			if warnings[0].Rule != tt.wantRule {
+				t.Errorf("warning rule = %q, want %q", warnings[0].Rule, tt.wantRule)
+			}
+		})
+	}
+}
+
+func TestLintParseError(t *testing.T) {
+	_, err := Lint("not valid sql", config.Default())
+	if err == nil {
+		t.Error("expected error for invalid SQL, got nil")
+	}
+}
