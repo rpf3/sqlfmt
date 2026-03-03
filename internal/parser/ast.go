@@ -129,6 +129,14 @@ type TruncateStmt struct {
 
 func (*TruncateStmt) statementNode() {}
 
+// CreateViewStmt represents: CREATE VIEW <name> AS <select>
+type CreateViewStmt struct {
+	Name   string
+	Select *SelectStmt
+}
+
+func (*CreateViewStmt) statementNode() {}
+
 // ─── SELECT statement ─────────────────────────────────────────────────────────
 
 // SelectItem is one entry in a SELECT list.
