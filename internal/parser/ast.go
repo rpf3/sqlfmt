@@ -137,6 +137,16 @@ type CreateViewStmt struct {
 
 func (*CreateViewStmt) statementNode() {}
 
+// DeleteStmt represents: DELETE [<alias>] FROM <table> [AS <alias>] [WHERE <predicate>]
+type DeleteStmt struct {
+	Table         string // table name
+	Alias         string // table alias; empty if none
+	AliasExplicit bool   // true when the AS keyword preceded the alias
+	Where         string // raw WHERE predicate; empty if absent
+}
+
+func (*DeleteStmt) statementNode() {}
+
 // ─── SELECT statement ─────────────────────────────────────────────────────────
 
 // SelectItem is one entry in a SELECT list.

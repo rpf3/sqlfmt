@@ -7,6 +7,44 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+	if s.Alias != "" {
+		// Multi-line form: DELETE <alias> FROM <table> AS <alias>
+		b.WriteString(f.kw("delete"))
+		b.WriteString("\n")
+		b.WriteString(ind)
+		b.WriteString(s.Alias)
+		b.WriteString("\n")
+		b.WriteString(f.kw("from"))
+		b.WriteString("\n")
+		b.WriteString(ind)
+		b.WriteString(s.Table)
+		b.WriteString(f.kw(" as "))
+		b.WriteString(s.Alias)
+	} else if s.Where != "" {
+		// No alias but WHERE present: table on its own line for readability
+		b.WriteString(f.kw("delete from"))
+		b.WriteString("\n")
+		b.WriteString(ind)
+		b.WriteString(s.Table)
+	} else {
+		// No alias, no WHERE: compact single line
+		b.WriteString(f.kw("delete from "))
+		b.WriteString(s.Table)
+	}
+	if s.Where != "" {
+		b.WriteString("\n")
+		b.WriteString(f.kw("where"))
+		b.WriteString("\n")
+		b.WriteString(ind)
+		b.WriteString(s.Where)
+	}
+	b.WriteString(";")
+	return b.String()
+}
+
 func (f *formatter) formatCreateView(s *parser.CreateViewStmt) string {
 	return f.kw("create view ") + s.Name + f.kw(" as") + "\n" + f.formatSelectStmt(s.Select)
 }

@@ -60,6 +60,8 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkCreateIndex(s)
 	case *parser.SelectStmt:
 		l.checkSelectStmt(s)
+	case *parser.DeleteStmt:
+		l.checkDeleteStmt(s)
 	}
 }
 
