@@ -565,6 +565,37 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		col.Nullability = NullabilityNull
 	}
 
+	// CONSTRAINT <name> DEFAULT may also follow nullability (canonical formatter output).
+	if p.curKeyword("CONSTRAINT") {
+		p.advance() // consume CONSTRAINT
+		constrTok, err := p.expectIdent()
+		if err != nil {
+			return ColumnDef{}, err
+		}
+		if !p.curKeyword("DEFAULT") {
+			return ColumnDef{}, fmt.Errorf(
+				"expected DEFAULT after column CONSTRAINT name at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		col.DefaultConstraint = constrTok.Value
+	}
+
+	if p.curKeyword("DEFAULT") {
+		p.advance() // consume DEFAULT
+		tok := p.cur
+		switch tok.Type {
+		case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
+			col.Default = tok.Value
+			p.advance()
+		default:
+			return ColumnDef{}, fmt.Errorf(
+				"expected default value at %d:%d, got %s %q",
+				tok.Line, tok.Column, tok.Type, tok.Value,
+			)
+		}
+	}
+
 	if p.curKeyword("UNIQUE") {
 		p.advance() // consume UNIQUE
 		col.Unique = true
