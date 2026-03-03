@@ -122,3 +122,36 @@ func TestLintAliasWithoutAs(t *testing.T) {
 		checkRuleOff(t, `select o.id from orders o;`, config.RuleAliasWithoutAs)
 	})
 }
+
+func TestLintNoLimit(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "LIMIT warns",
+			input:    `select id from orders limit 10;`,
+			wantRule: "no-limit",
+		},
+		{
+			name:     "FETCH NEXT is clean",
+			input:    `select id from orders fetch next 10 rows only;`,
+			wantRule: "",
+		},
+		{
+			name:     "no pagination is clean",
+			input:    `select id from orders;`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+
+	t.Run("off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t, `select id from orders limit 10;`, config.RuleNoLimit)
+	})
+}

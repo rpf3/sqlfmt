@@ -39,6 +39,12 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 		}
 	}
 
+	// #35 no-limit
+	if s.Limit != "" {
+		l.warn(config.RuleNoLimit,
+			"LIMIT is non-ANSI; use FETCH NEXT n ROWS ONLY instead")
+	}
+
 	// Recurse into subqueries.
 	if s.From.Subquery != nil {
 		l.checkSelectStmt(s.From.Subquery)
