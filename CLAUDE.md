@@ -35,6 +35,7 @@ task fmt && task test && task vet && task lint
 - No parenthetical scopes in conventional commit types (`feat:` not `feat(pkg):`)
 - Reference issues with `Closes #N` after a blank line in the commit body
 - Commit message bodies should explain interesting technical decisions — why a particular approach was chosen, what alternatives were considered, or any non-obvious constraints that shaped the implementation
+- PR descriptions must enumerate every issue closed by any commit in the PR — list them explicitly in the summary (e.g. `Closes #N, #M`) even if they are already referenced in individual commit bodies
 - Always end PR bodies with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
 
 ## Go style
