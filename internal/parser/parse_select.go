@@ -113,6 +113,7 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 		stmt.Offset = tok.Value
 		if p.curKeyword("ROWS") || p.curKeyword("ROW") {
 			p.advance()
+			stmt.OffsetHasRows = true
 		}
 	}
 

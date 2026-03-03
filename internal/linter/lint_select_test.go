@@ -155,3 +155,38 @@ func TestLintNoLimit(t *testing.T) {
 		checkRuleOff(t, `select id from orders limit 10;`, config.RuleNoLimit)
 	})
 }
+
+func TestLintOffsetRows(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "OFFSET without ROWS warns",
+			input:    `select id from orders order by id asc offset 5 fetch next 10 rows only;`,
+			wantRule: "offset-rows",
+		},
+		{
+			name:     "OFFSET ROWS is clean",
+			input:    `select id from orders order by id asc offset 5 rows fetch next 10 rows only;`,
+			wantRule: "",
+		},
+		{
+			name:     "no OFFSET is clean",
+			input:    `select id from orders;`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+
+	t.Run("off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t,
+			`select id from orders order by id asc offset 5 fetch next 10 rows only;`,
+			config.RuleOffsetRows)
+	})
+}

@@ -45,6 +45,12 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 			"LIMIT is non-ANSI; use FETCH NEXT n ROWS ONLY instead")
 	}
 
+	// #36 offset-rows
+	if s.Offset != "" && !s.OffsetHasRows {
+		l.warn(config.RuleOffsetRows,
+			fmt.Sprintf("OFFSET %s should be followed by ROWS; write OFFSET %s ROWS", s.Offset, s.Offset))
+	}
+
 	// Recurse into subqueries.
 	if s.From.Subquery != nil {
 		l.checkSelectStmt(s.From.Subquery)

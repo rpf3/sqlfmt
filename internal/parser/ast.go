@@ -179,20 +179,21 @@ type SelectFromSource struct {
 // WhereSubq holds a structured subquery; WherePred holds the optional
 // prefix before the subquery (e.g. "t.id in" or "exists").
 type SelectStmt struct {
-	CTEs      []CTEDef // WITH clause; nil if no CTEs
-	Distinct  bool
-	Columns   []SelectItem
-	From      SelectFromSource
-	Joins     []JoinClause // nil if no JOINs
-	Where     string       // raw WHERE predicate; empty if WhereSubq is set
-	WherePred string       // expression before a WHERE subquery (e.g. "t.id in", "exists")
-	WhereSubq *SelectStmt  // structured WHERE subquery; nil if Where is set
-	GroupBy   []string     // GROUP BY expressions; nil if absent
-	Having    string       // raw HAVING predicate; empty if absent
-	OrderBy   []OrderItem  // ORDER BY items; nil if absent
-	Offset    string       // n from OFFSET n ROWS; empty if absent
-	Fetch     string       // n from FETCH NEXT n ROWS ONLY; empty if absent
-	Limit     string       // n from LIMIT n (non-ANSI); empty if absent
+	CTEs          []CTEDef // WITH clause; nil if no CTEs
+	Distinct      bool
+	Columns       []SelectItem
+	From          SelectFromSource
+	Joins         []JoinClause // nil if no JOINs
+	Where         string       // raw WHERE predicate; empty if WhereSubq is set
+	WherePred     string       // expression before a WHERE subquery (e.g. "t.id in", "exists")
+	WhereSubq     *SelectStmt  // structured WHERE subquery; nil if Where is set
+	GroupBy       []string     // GROUP BY expressions; nil if absent
+	Having        string       // raw HAVING predicate; empty if absent
+	OrderBy       []OrderItem  // ORDER BY items; nil if absent
+	Offset        string       // n from OFFSET n ROWS; empty if absent
+	OffsetHasRows bool         // true when ROWS or ROW keyword followed the offset value
+	Fetch         string       // n from FETCH NEXT n ROWS ONLY; empty if absent
+	Limit         string       // n from LIMIT n (non-ANSI); empty if absent
 }
 
 func (*SelectStmt) statementNode() {}

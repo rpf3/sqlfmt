@@ -50,6 +50,7 @@ const (
 	RuleOrderByDirection  = "order-by-direction"
 	RuleAliasWithoutAs    = "alias-without-as"
 	RuleNoLimit           = "no-limit"
+	RuleOffsetRows        = "offset-rows"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -61,6 +62,7 @@ var knownRules = map[string]bool{
 	RuleOrderByDirection:  true,
 	RuleAliasWithoutAs:    true,
 	RuleNoLimit:           true,
+	RuleOffsetRows:        true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.
