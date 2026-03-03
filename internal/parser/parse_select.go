@@ -225,6 +225,7 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 				return SelectFromSource{}, err
 			}
 			source.Alias = aliasTok.Value
+			source.AliasExplicit = true
 		} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
 			source.Alias = p.cur.Value
 			p.advance()
@@ -246,6 +247,7 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 			return SelectFromSource{}, err
 		}
 		source.Alias = aliasTok.Value
+		source.AliasExplicit = true
 	} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
 		// bare alias without AS
 		source.Alias = p.cur.Value
@@ -382,6 +384,7 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 				return nil, err
 			}
 			jc.Alias = aliasTok.Value
+			jc.AliasExplicit = true
 		} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
 			jc.Alias = p.cur.Value
 			p.advance()

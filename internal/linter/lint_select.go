@@ -21,6 +21,24 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 		}
 	}
 
+	// #34 alias-without-as (FROM source)
+	if s.From.Alias != "" && !s.From.AliasExplicit {
+		name := s.From.Name
+		if name == "" {
+			name = "(subquery)"
+		}
+		l.warn(config.RuleAliasWithoutAs,
+			fmt.Sprintf("table %q has a bare alias %q; use AS", name, s.From.Alias))
+	}
+
+	// #34 alias-without-as (JOINs)
+	for _, jc := range s.Joins {
+		if jc.Alias != "" && !jc.AliasExplicit {
+			l.warn(config.RuleAliasWithoutAs,
+				fmt.Sprintf("joined table %q has a bare alias %q; use AS", jc.Name, jc.Alias))
+		}
+	}
+
 	// Recurse into subqueries.
 	if s.From.Subquery != nil {
 		l.checkSelectStmt(s.From.Subquery)

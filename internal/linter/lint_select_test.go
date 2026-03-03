@@ -79,3 +79,46 @@ func TestLintOrderByDirection(t *testing.T) {
 		checkRuleOff(t, `select id from orders order by created_at;`, config.RuleOrderByDirection)
 	})
 }
+
+func TestLintAliasWithoutAs(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "bare FROM alias warns",
+			input:    `select o.id from orders o;`,
+			wantRule: "alias-without-as",
+		},
+		{
+			name:     "AS FROM alias is clean",
+			input:    `select o.id from orders as o;`,
+			wantRule: "",
+		},
+		{
+			name:     "no alias is clean",
+			input:    `select id from orders;`,
+			wantRule: "",
+		},
+		{
+			name:     "bare JOIN alias warns",
+			input:    `select o.id from orders as o join customers c on o.customer_id = c.id;`,
+			wantRule: "alias-without-as",
+		},
+		{
+			name:     "AS JOIN alias is clean",
+			input:    `select o.id from orders as o join customers as c on o.customer_id = c.id;`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+
+	t.Run("off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t, `select o.id from orders o;`, config.RuleAliasWithoutAs)
+	})
+}
