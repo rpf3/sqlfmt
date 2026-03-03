@@ -225,6 +225,9 @@ func (p *parser) parseCreate() (Statement, error) {
 	if p.curKeyword("INDEX") {
 		return p.parseCreateIndex(false)
 	}
+	if p.curKeyword("VIEW") {
+		return p.parseCreateView()
+	}
 	return p.parseCreateTable()
 }
 
@@ -641,5 +644,38 @@ func (p *parser) parseTruncate() (Statement, error) {
 		p.advance()
 	}
 	stmt := &TruncateStmt{Name: nameTok.Value}
+	return stmt, nil
+}
+
+// parseCreateView handles: CREATE VIEW <name> AS <select> [;]
+func (p *parser) parseCreateView() (Statement, error) {
+	p.advance() // consume VIEW
+
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.expectKeyword("AS"); err != nil {
+		return nil, err
+	}
+
+	if !p.curKeyword("SELECT") {
+		return nil, fmt.Errorf(
+			"expected SELECT after CREATE VIEW ... AS at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+
+	sel, err := p.parseSelectCore()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+
+	stmt := &CreateViewStmt{Name: nameTok.Value, Select: sel}
 	return stmt, nil
 }

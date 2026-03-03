@@ -7,6 +7,10 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+func (f *formatter) formatCreateView(s *parser.CreateViewStmt) string {
+	return f.kw("create view ") + s.Name + f.kw(" as") + "\n" + f.formatSelectStmt(s.Select)
+}
+
 func (f *formatter) formatTruncate(s *parser.TruncateStmt) string {
 	return f.kw("truncate table ") + s.Name + ";"
 }
