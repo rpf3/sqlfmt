@@ -2,6 +2,7 @@ package linter
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/rpf3/sqlfmt/internal/config"
 	"github.com/rpf3/sqlfmt/internal/parser"
@@ -49,6 +50,15 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 	if s.Offset != "" && !s.OffsetHasRows {
 		l.warn(config.RuleOffsetRows,
 			fmt.Sprintf("OFFSET %s should be followed by ROWS; write OFFSET %s ROWS", s.Offset, s.Offset))
+	}
+
+	// #37 exists-select-one
+	if s.WhereSubq != nil && strings.TrimSpace(s.WherePred) == "exists" {
+		cols := s.WhereSubq.Columns
+		if len(cols) != 1 || strings.TrimSpace(cols[0].Expr) != "1" {
+			l.warn(config.RuleExistsSelectOne,
+				"EXISTS subquery should use SELECT 1 rather than selecting columns")
+		}
 	}
 
 	// Recurse into subqueries.

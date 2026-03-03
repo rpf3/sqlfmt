@@ -190,3 +190,43 @@ func TestLintOffsetRows(t *testing.T) {
 			config.RuleOffsetRows)
 	})
 }
+
+func TestLintExistsSelectOne(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "EXISTS with column selection warns",
+			input:    `select id from orders where exists (select id from customers where customers.id = orders.customer_id);`,
+			wantRule: "exists-select-one",
+		},
+		{
+			name:     "EXISTS SELECT 1 is clean",
+			input:    `select id from orders where exists (select 1 from customers where customers.id = orders.customer_id);`,
+			wantRule: "",
+		},
+		{
+			name:     "IN subquery is not checked",
+			input:    `select id from orders where customer_id in (select id from customers);`,
+			wantRule: "",
+		},
+		{
+			name:     "no subquery is clean",
+			input:    `select id from orders where status = 'active';`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+
+	t.Run("off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t,
+			`select id from orders where exists (select id from customers where customers.id = orders.customer_id);`,
+			config.RuleExistsSelectOne)
+	})
+}
