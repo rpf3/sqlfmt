@@ -48,6 +48,7 @@ const (
 	RuleUnnamedDefault    = "unnamed-default"
 	RuleIndexDirection    = "index-direction"
 	RuleOrderByDirection  = "order-by-direction"
+	RuleAliasWithoutAs    = "alias-without-as"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -57,6 +58,7 @@ var knownRules = map[string]bool{
 	RuleUnnamedDefault:    true,
 	RuleIndexDirection:    true,
 	RuleOrderByDirection:  true,
+	RuleAliasWithoutAs:    true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

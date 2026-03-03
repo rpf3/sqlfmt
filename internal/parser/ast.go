@@ -143,11 +143,12 @@ const (
 
 // JoinClause is one JOIN clause attached to a SELECT's FROM source.
 type JoinClause struct {
-	Type  JoinType
-	Name  string   // joined table name
-	Alias string   // table alias; empty if none
-	On    string   // ON condition (raw expression); empty for CROSS or USING
-	Using []string // USING column list; empty if ON or CROSS
+	Type          JoinType
+	Name          string   // joined table name
+	Alias         string   // table alias; empty if none
+	AliasExplicit bool     // true when the AS keyword preceded the alias
+	On            string   // ON condition (raw expression); empty for CROSS or USING
+	Using         []string // USING column list; empty if ON or CROSS
 }
 
 // OrderItem is one term in an ORDER BY list.
@@ -165,9 +166,10 @@ type CTEDef struct {
 // SelectFromSource is the target of a FROM clause.
 // Exactly one of Name (a table name) or Subquery is non-zero.
 type SelectFromSource struct {
-	Name     string      // table name; empty for a subquery
-	Subquery *SelectStmt // derived table; nil for a named table
-	Alias    string      // alias for either kind; empty if no alias
+	Name          string      // table name; empty for a subquery
+	Subquery      *SelectStmt // derived table; nil for a named table
+	Alias         string      // alias for either kind; empty if no alias
+	AliasExplicit bool        // true when the AS keyword preceded the alias
 }
 
 // SelectStmt represents a [WITH ...] SELECT statement.
