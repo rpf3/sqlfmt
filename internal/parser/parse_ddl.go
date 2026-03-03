@@ -626,3 +626,20 @@ func (p *parser) parseDataType() (string, error) {
 	}
 	return name + "(" + strings.Join(params, ", ") + ")", nil
 }
+
+// parseTruncate handles: TRUNCATE [TABLE] <name> [;]
+func (p *parser) parseTruncate() (Statement, error) {
+	p.advance() // consume TRUNCATE
+	if p.curKeyword("TABLE") {
+		p.advance() // consume optional TABLE
+	}
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+	stmt := &TruncateStmt{Name: nameTok.Value}
+	return stmt, nil
+}

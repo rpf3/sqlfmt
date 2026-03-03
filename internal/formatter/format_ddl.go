@@ -7,6 +7,10 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+func (f *formatter) formatTruncate(s *parser.TruncateStmt) string {
+	return f.kw("truncate table ") + s.Name + ";"
+}
+
 func (f *formatter) formatDrop(s *parser.DropStmt) string {
 	var b strings.Builder
 	b.WriteString(f.kw("drop "))

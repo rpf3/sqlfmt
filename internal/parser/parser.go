@@ -154,6 +154,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("WITH") {
 		return p.parseWithSelect()
 	}
+	if p.curKeyword("TRUNCATE") {
+		return p.parseTruncate()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,
