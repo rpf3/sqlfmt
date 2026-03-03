@@ -114,19 +114,12 @@ func (f *formatter) normalizeDefaultExpr(v string) string {
 // writeColumnDef writes the canonical form of a column definition to b.
 // It does not include any leading indentation or comma — the caller handles that.
 func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
+	ind := f.indent()
 	b.WriteString(col.Name)
 	b.WriteString(" ")
 	b.WriteString(f.kw(strings.ToLower(col.DataType)))
 	if col.PrimaryKey {
 		b.WriteString(" " + f.kw("primary key"))
-	}
-	if col.Default != "" {
-		if col.DefaultConstraint != "" {
-			b.WriteString(" " + f.kw("constraint") + " ")
-			b.WriteString(col.DefaultConstraint)
-		}
-		b.WriteString(" " + f.kw("default") + " ")
-		b.WriteString(f.normalizeDefaultExpr(col.Default))
 	}
 	switch col.Nullability {
 	case parser.NullabilityNotNull:
@@ -150,6 +143,17 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 			b.WriteString(strings.Join(col.References.Columns, ", "))
 			b.WriteString(")")
 		}
+	}
+	if col.Default != "" {
+		b.WriteString("\n")
+		b.WriteString(ind + ind)
+		if col.DefaultConstraint != "" {
+			b.WriteString(f.kw("constraint") + " ")
+			b.WriteString(col.DefaultConstraint)
+			b.WriteString(" ")
+		}
+		b.WriteString(f.kw("default") + " ")
+		b.WriteString(f.normalizeDefaultExpr(col.Default))
 	}
 }
 
