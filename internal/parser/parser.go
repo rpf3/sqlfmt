@@ -157,6 +157,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("TRUNCATE") {
 		return p.parseTruncate()
 	}
+	if p.curKeyword("DELETE") {
+		return p.parseDelete()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,

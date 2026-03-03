@@ -679,3 +679,62 @@ func (p *parser) parseCreateView() (Statement, error) {
 	stmt := &CreateViewStmt{Name: nameTok.Value, Select: sel}
 	return stmt, nil
 }
+
+// parseDelete handles:
+//
+//	DELETE FROM <table> [AS <alias>] [WHERE <predicate>] [;]
+//	DELETE <alias> FROM <table> AS <alias> [WHERE <predicate>] [;]
+//
+// The second form is the SQL Server style where the target alias appears
+// before FROM as well as in the AS clause after the table name.
+func (p *parser) parseDelete() (Statement, error) {
+	p.advance() // consume DELETE
+
+	// Optional pre-FROM alias (SQL Server style: DELETE alias FROM ...).
+	// We detect it by checking whether the current token is an identifier
+	// immediately followed by the FROM keyword.
+	if (p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent)) && p.peekKeyword("FROM") {
+		p.advance() // consume alias — the AS clause after the table is authoritative
+	}
+
+	if err := p.expectKeyword("FROM"); err != nil {
+		return nil, err
+	}
+
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := &DeleteStmt{Table: nameTok.Value}
+
+	if p.curKeyword("AS") {
+		p.advance()
+		aliasTok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Alias = aliasTok.Value
+		stmt.AliasExplicit = true
+	} else if (p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent)) && !p.curKeyword("WHERE") {
+		stmt.Alias = p.cur.Value
+		p.advance()
+	}
+
+	if p.curKeyword("WHERE") {
+		p.advance()
+		where, err := p.parseExprRaw(func() bool {
+			return p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
+		})
+		if err != nil {
+			return nil, err
+		}
+		stmt.Where = where
+	}
+
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+
+	return stmt, nil
+}
