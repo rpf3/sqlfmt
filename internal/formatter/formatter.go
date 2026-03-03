@@ -54,6 +54,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatAlterTable(s)
 	case *parser.DropStmt:
 		return f.formatDrop(s)
+	case *parser.TruncateStmt:
+		return f.formatTruncate(s)
 	case *parser.SelectStmt:
 		return f.formatSelectStmt(s)
 	}

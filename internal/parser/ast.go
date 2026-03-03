@@ -122,6 +122,13 @@ type DropStmt struct {
 
 func (*DropStmt) statementNode() {}
 
+// TruncateStmt represents: TRUNCATE [TABLE] <name>
+type TruncateStmt struct {
+	Name string // table name
+}
+
+func (*TruncateStmt) statementNode() {}
+
 // ─── SELECT statement ─────────────────────────────────────────────────────────
 
 // SelectItem is one entry in a SELECT list.
