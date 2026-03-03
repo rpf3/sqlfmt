@@ -58,6 +58,8 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkCreateTable(s)
 	case *parser.CreateIndexStmt:
 		l.checkCreateIndex(s)
+	case *parser.SelectStmt:
+		l.checkSelectStmt(s)
 	}
 }
 
