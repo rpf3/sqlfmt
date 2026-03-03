@@ -1,0 +1,207 @@
+package formatter
+
+import (
+	"strings"
+
+	"github.com/rpf3/sqlfmt/internal/config"
+	"github.com/rpf3/sqlfmt/internal/parser"
+)
+
+// indentCTE formats s as a SELECT body with each non-empty line prefixed by
+// ind (single indent). Used for CTE bodies where the surrounding ( ) are at
+// column zero.
+func (f *formatter) indentCTE(s *parser.SelectStmt) string {
+	inner := f.formatSelectStmt(s)
+	inner = strings.TrimSuffix(inner, ";")
+	prefix := f.indent()
+	lines := strings.Split(inner, "\n")
+	var b strings.Builder
+	for i, line := range lines {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		if line != "" {
+			b.WriteString(prefix + line)
+		}
+	}
+	return b.String()
+}
+
+// indentSubquery formats s as a SELECT body with each non-empty line
+// prefixed by ind+ind (double indent). The surrounding ( ) delimiters and
+// any alias are the caller's responsibility.
+func (f *formatter) indentSubquery(s *parser.SelectStmt) string {
+	inner := f.formatSelectStmt(s)
+	inner = strings.TrimSuffix(inner, ";")
+	prefix := f.indent() + f.indent()
+	lines := strings.Split(inner, "\n")
+	var b strings.Builder
+	for i, line := range lines {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		if line != "" {
+			b.WriteString(prefix + line)
+		}
+	}
+	return b.String()
+}
+
+func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+
+	// WITH clause (CTEs)
+	for i, cte := range s.CTEs {
+		if i == 0 {
+			b.WriteString(f.kw("with") + " " + cte.Name + " " + f.kw("as"))
+		} else if f.cfg.CommaStyle == config.CommaTrailing {
+			b.WriteString(cte.Name + " " + f.kw("as"))
+		} else {
+			// leading comma: ", name as"
+			b.WriteString(", " + cte.Name + " " + f.kw("as"))
+		}
+		b.WriteString("\n(\n")
+		b.WriteString(f.indentCTE(cte.Select))
+		// close paren with comma separator between CTEs
+		if i < len(s.CTEs)-1 && f.cfg.CommaStyle == config.CommaTrailing {
+			b.WriteString("\n),\n")
+		} else {
+			b.WriteString("\n)\n")
+		}
+	}
+
+	// SELECT [DISTINCT]
+	if s.Distinct {
+		b.WriteString(f.kw("select distinct"))
+	} else {
+		b.WriteString(f.kw("select"))
+	}
+
+	// SELECT list
+	cols := make([]string, 0, len(s.Columns))
+	for _, col := range s.Columns {
+		c := col.Expr
+		if col.Alias != "" {
+			c += " " + f.kw("as") + " " + col.Alias
+		}
+		cols = append(cols, c)
+	}
+	f.writeCommaList(&b, cols)
+
+	// FROM
+	b.WriteString("\n" + f.kw("from"))
+	if s.From.Subquery != nil {
+		b.WriteString("\n" + ind + "(")
+		b.WriteString("\n" + f.indentSubquery(s.From.Subquery))
+		b.WriteString("\n" + ind + ")")
+		if s.From.Alias != "" {
+			b.WriteString(" " + f.kw("as") + " " + s.From.Alias)
+		}
+	} else {
+		b.WriteString("\n" + ind)
+		b.WriteString(s.From.Name)
+		if s.From.Alias != "" {
+			b.WriteString(" " + f.kw("as") + " " + s.From.Alias)
+		}
+	}
+
+	// JOINs
+	for _, jc := range s.Joins {
+		b.WriteString("\n" + f.kw(joinKeyword(jc.Type)))
+		b.WriteString("\n" + ind + jc.Name)
+		if jc.Alias != "" {
+			b.WriteString(" " + f.kw("as") + " " + jc.Alias)
+		}
+		if jc.On != "" {
+			b.WriteString("\n" + ind + ind + f.kw("on") + " " + jc.On)
+		} else if len(jc.Using) > 0 {
+			b.WriteString("\n" + ind + ind + f.kw("using") + " (" + strings.Join(jc.Using, ", ") + ")")
+		}
+	}
+
+	// WHERE
+	if s.Where != "" {
+		b.WriteString("\n" + f.kw("where"))
+		b.WriteString("\n" + ind)
+		b.WriteString(s.Where)
+	} else if s.WhereSubq != nil {
+		b.WriteString("\n" + f.kw("where"))
+		if s.WherePred != "" {
+			b.WriteString("\n" + ind + s.WherePred)
+		}
+		b.WriteString("\n" + ind + "(")
+		b.WriteString("\n" + f.indentSubquery(s.WhereSubq))
+		b.WriteString("\n" + ind + ")")
+	}
+
+	// GROUP BY
+	if len(s.GroupBy) > 0 {
+		b.WriteString("\n" + f.kw("group by"))
+		f.writeCommaList(&b, s.GroupBy)
+	}
+
+	// HAVING
+	if s.Having != "" {
+		b.WriteString("\n" + f.kw("having"))
+		b.WriteString("\n" + ind)
+		b.WriteString(s.Having)
+	}
+
+	// ORDER BY
+	if len(s.OrderBy) > 0 {
+		b.WriteString("\n" + f.kw("order by"))
+		orderItems := make([]string, 0, len(s.OrderBy))
+		for _, item := range s.OrderBy {
+			oi := item.Expr
+			switch item.Direction {
+			case parser.DirectionDesc:
+				oi += " " + f.kw("desc")
+			case parser.DirectionAsc:
+				oi += " " + f.kw("asc")
+			}
+			orderItems = append(orderItems, oi)
+		}
+		f.writeCommaList(&b, orderItems)
+	}
+
+	// OFFSET n ROWS
+	if s.Offset != "" {
+		b.WriteString("\n" + f.kw("offset"))
+		b.WriteString("\n" + ind + s.Offset + " " + f.kw("rows"))
+	}
+
+	// FETCH NEXT n ROWS ONLY
+	if s.Fetch != "" {
+		b.WriteString("\n" + f.kw("fetch next"))
+		b.WriteString("\n" + ind + s.Fetch + " " + f.kw("rows only"))
+	}
+
+	// LIMIT n (non-ANSI; lint rule #35 warns about this)
+	if s.Limit != "" {
+		b.WriteString("\n" + f.kw("limit"))
+		b.WriteString("\n" + ind + s.Limit)
+	}
+
+	b.WriteString(";")
+	return b.String()
+}
+
+// joinKeyword returns the canonical lowercase keyword phrase for a JoinType.
+// Bare JOIN and INNER JOIN both normalise to "inner join".
+// LEFT/RIGHT OUTER JOIN normalises to "left join"/"right join" (OUTER omitted).
+func joinKeyword(jt parser.JoinType) string {
+	switch jt {
+	case parser.JoinInner:
+		return "inner join"
+	case parser.JoinLeft:
+		return "left join"
+	case parser.JoinRight:
+		return "right join"
+	case parser.JoinFullOuter:
+		return "full outer join"
+	case parser.JoinCross:
+		return "cross join"
+	}
+	return "join"
+}
