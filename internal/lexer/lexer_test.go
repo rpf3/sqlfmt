@@ -525,3 +525,43 @@ func TestTokenizeDotVsFloat(t *testing.T) {
 		t.Errorf(".5: got %v, want FloatLit", tokens2[0].Type)
 	}
 }
+
+// ─── Temp table names ─────────────────────────────────────────────────────────
+
+func TestTokenizeTempTableNames(t *testing.T) {
+	tests := []struct {
+		input     string
+		wantType  TokenType
+		wantValue string
+	}{
+		{"#staging", Ident, "#staging"},
+		{"##global_temp", Ident, "##global_temp"},
+		{"#t1", Ident, "#t1"},
+		{"##x", Ident, "##x"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			tokens := tokenize(t, tt.input)
+			if tokens[0].Type != tt.wantType {
+				t.Errorf("type: got %v, want %v", tokens[0].Type, tt.wantType)
+			}
+			if tokens[0].Value != tt.wantValue {
+				t.Errorf("value: got %q, want %q", tokens[0].Value, tt.wantValue)
+			}
+		})
+	}
+
+	t.Run("bare hash is illegal", func(t *testing.T) {
+		tok := New("#").Next()
+		if tok.Type != Illegal {
+			t.Errorf("bare #: got %v, want Illegal", tok.Type)
+		}
+	})
+
+	t.Run("hash before digit is illegal", func(t *testing.T) {
+		tok := New("#1bad").Next()
+		if tok.Type != Illegal {
+			t.Errorf("#1bad first token: got %v, want Illegal", tok.Type)
+		}
+	})
+}

@@ -38,6 +38,18 @@ func (l *Lexer) Next() Token {
 		return l.readIdent()
 	}
 
+	// T-SQL temp table names: #local or ##global followed by identifier chars.
+	// A bare '#' with no following identifier is left to fall through to Illegal.
+	if ch == '#' {
+		next := l.peekAt(1)
+		if next == '#' && isIdentStart(l.peekAt(2)) {
+			return l.readTempTableIdent()
+		}
+		if isIdentStart(next) {
+			return l.readTempTableIdent()
+		}
+	}
+
 	// Numbers: digit or leading-dot float (.5)
 	if isDigit(ch) {
 		return l.readNumber()
@@ -240,6 +252,22 @@ func (l *Lexer) readIdent() Token {
 		tokenType = Keyword
 	}
 	return l.makeTokenAt(tokenType, word, line, col)
+}
+
+// readTempTableIdent scans a T-SQL temporary table name: #name or ##name.
+// The leading # or ## is included in the token value.
+// Called only when the '#' is followed by a valid identifier start character.
+func (l *Lexer) readTempTableIdent() Token {
+	line, col := l.line, l.column
+	start := l.pos
+	l.advance() // consume first '#'
+	if l.peek() == '#' {
+		l.advance() // consume second '#' for ##global
+	}
+	for l.pos < len(l.input) && isIdentContinue(l.input[l.pos]) {
+		l.advance()
+	}
+	return l.makeTokenAt(Ident, l.input[start:l.pos], line, col)
 }
 
 // readQuotedIdent scans a double-quoted identifier.
