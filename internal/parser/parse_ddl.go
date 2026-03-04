@@ -34,9 +34,7 @@ func (p *parser) parseAlterTable() (Statement, error) {
 		return nil, err
 	}
 
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 
 	stmt := &AlterTableStmt{
 		Name:   nameTok.Value,
@@ -207,9 +205,7 @@ func (p *parser) parseDrop() (Statement, error) {
 	}
 	stmt.Name = nameTok.Value
 
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 
 	return stmt, nil
 }
@@ -255,9 +251,7 @@ func (p *parser) parseCreateTable() (Statement, error) {
 		return nil, err
 	}
 
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 
 	stmt := &CreateTableStmt{
 		Name:        nameTok.Value,
@@ -308,9 +302,7 @@ func (p *parser) parseCreateIndex(unique bool) (Statement, error) {
 	}
 	stmt.Columns = cols
 
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 
 	return stmt, nil
 }
@@ -671,9 +663,7 @@ func (p *parser) parseTruncate() (Statement, error) {
 	if err != nil {
 		return nil, err
 	}
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 	stmt := &TruncateStmt{Name: nameTok.Value}
 	return stmt, nil
 }
@@ -703,9 +693,7 @@ func (p *parser) parseCreateView() (Statement, error) {
 		return nil, err
 	}
 
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 
 	stmt := &CreateViewStmt{Name: nameTok.Value, Select: sel}
 	return stmt, nil
@@ -761,9 +749,7 @@ func (p *parser) parseInsert() (Statement, error) {
 		)
 	}
 
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 	return stmt, nil
 }
 
@@ -830,9 +816,7 @@ func (p *parser) parseUpdate() (Statement, error) {
 		stmt.Where = where
 	}
 
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 	return stmt, nil
 }
 
@@ -970,9 +954,7 @@ func (p *parser) parseDelete() (Statement, error) {
 		stmt.Where = where
 	}
 
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 
 	return stmt, nil
 }

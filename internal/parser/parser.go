@@ -9,8 +9,9 @@ import (
 
 // ParseResult holds the output of a parse run.
 type ParseResult struct {
-	Statements []Statement
-	Errors     []error
+	Statements       []Statement
+	SemicolonPresent []bool // one entry per Statement; true when the statement had a trailing semicolon
+	Errors           []error
 }
 
 // Parse parses input and returns a ParseResult.
@@ -26,9 +27,10 @@ func Parse(input string) ParseResult {
 // ─── parser internals ────────────────────────────────────────────────────────
 
 type parser struct {
-	lex  *lexer.Lexer
-	cur  lexer.Token
-	peek lexer.Token
+	lex              *lexer.Lexer
+	cur              lexer.Token
+	peek             lexer.Token
+	lastHadSemicolon bool // set by consumeSemicolon; read by parseAll
 }
 
 // advance shifts the lookahead window forward by one token, skipping comments.
@@ -40,6 +42,15 @@ func (p *parser) advance() {
 			p.peek = tok
 			return
 		}
+	}
+}
+
+// consumeSemicolon records whether the current token is a semicolon and, if so,
+// advances past it. Call this at the end of each top-level statement parser.
+func (p *parser) consumeSemicolon() {
+	p.lastHadSemicolon = p.curIs(lexer.Semicolon)
+	if p.lastHadSemicolon {
+		p.advance()
 	}
 }
 
@@ -133,6 +144,7 @@ func (p *parser) parseAll() ParseResult {
 			return res
 		}
 		res.Statements = append(res.Statements, stmt)
+		res.SemicolonPresent = append(res.SemicolonPresent, p.lastHadSemicolon)
 	}
 	return res
 }

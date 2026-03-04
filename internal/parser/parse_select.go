@@ -158,9 +158,7 @@ func (p *parser) parseSelect() (Statement, error) {
 	if err != nil {
 		return nil, err
 	}
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 	return stmt, nil
 }
 
@@ -462,8 +460,6 @@ func (p *parser) parseWithSelect() (Statement, error) {
 	}
 	stmt.CTEs = ctes
 
-	if p.curIs(lexer.Semicolon) {
-		p.advance()
-	}
+	p.consumeSemicolon()
 	return stmt, nil
 }
