@@ -23,8 +23,11 @@ func Lint(input string, cfg config.Config) ([]Warning, error) {
 	}
 
 	l := &linter{cfg: cfg}
-	for _, stmt := range result.Statements {
+	for i, stmt := range result.Statements {
 		l.checkStatement(stmt)
+		if !result.SemicolonPresent[i] {
+			l.warn(config.RuleMissingTrailingSemicolon, "statement is missing a trailing semicolon")
+		}
 	}
 	return l.warnings, nil
 }
