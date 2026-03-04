@@ -147,6 +147,18 @@ type DeleteStmt struct {
 
 func (*DeleteStmt) statementNode() {}
 
+// InsertStmt represents INSERT INTO <table> [(cols)] VALUES (...) [, (...)]
+// or INSERT INTO <table> [(cols)] <select>.
+// Exactly one of Values or Select is non-nil.
+type InsertStmt struct {
+	Table   string
+	Columns []string    // target column list; nil if no explicit column list
+	Values  [][]string  // rows of raw value expressions; nil if Select is set
+	Select  *SelectStmt // INSERT … SELECT form; nil if Values is set
+}
+
+func (*InsertStmt) statementNode() {}
+
 // ─── SELECT statement ─────────────────────────────────────────────────────────
 
 // SelectItem is one entry in a SELECT list.

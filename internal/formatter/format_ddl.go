@@ -7,6 +7,39 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+func (f *formatter) formatInsert(s *parser.InsertStmt) string {
+	var b strings.Builder
+	b.WriteString(f.kw("insert into "))
+	b.WriteString(s.Table)
+
+	// Optional column list: vertical block, same comma style as SELECT columns.
+	if len(s.Columns) > 0 {
+		b.WriteString("\n(")
+		f.writeCommaList(&b, s.Columns)
+		b.WriteString("\n)")
+	}
+
+	if s.Select != nil {
+		b.WriteString("\n")
+		b.WriteString(f.formatSelectStmt(s.Select))
+		return b.String() // formatSelectStmt supplies the trailing ";"
+	}
+
+	// VALUES form — each row is a vertical block; rows separated by trailing ","
+	b.WriteString("\n")
+	b.WriteString(f.kw("values"))
+	for i, row := range s.Values {
+		b.WriteString("\n(")
+		f.writeCommaList(&b, row)
+		b.WriteString("\n)")
+		if i < len(s.Values)-1 {
+			b.WriteString(",") // structural row separator, not a list comma
+		}
+	}
+	b.WriteString(";")
+	return b.String()
+}
+
 func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 	ind := f.indent()
 	var b strings.Builder

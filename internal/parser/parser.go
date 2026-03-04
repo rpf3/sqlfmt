@@ -160,6 +160,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("DELETE") {
 		return p.parseDelete()
 	}
+	if p.curKeyword("INSERT") {
+		return p.parseInsert()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,
