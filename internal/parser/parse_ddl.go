@@ -711,6 +711,87 @@ func (p *parser) parseCreateView() (Statement, error) {
 	return stmt, nil
 }
 
+// parseInsert handles:
+//
+//	INSERT INTO <table> [(cols)] VALUES (...) [, (...)] [;]
+//	INSERT INTO <table> [(cols)] SELECT ... [;]
+func (p *parser) parseInsert() (Statement, error) {
+	p.advance() // consume INSERT
+	if err := p.expectKeyword("INTO"); err != nil {
+		return nil, err
+	}
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	stmt := &InsertStmt{Table: nameTok.Value}
+
+	// Optional column list: (col1, col2, ...)
+	if p.curIs(lexer.LParen) {
+		cols, err := p.parseIdentList()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Columns = cols
+	}
+
+	if p.curKeyword("VALUES") {
+		p.advance() // consume VALUES
+		for {
+			row, err := p.parseValueRow()
+			if err != nil {
+				return nil, err
+			}
+			stmt.Values = append(stmt.Values, row)
+			if !p.curIs(lexer.Comma) {
+				break
+			}
+			p.advance() // consume ',' between rows
+		}
+	} else if p.curKeyword("SELECT") {
+		sel, err := p.parseSelectCore()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Select = sel
+	} else {
+		return nil, fmt.Errorf(
+			"expected VALUES or SELECT after INSERT INTO %s at %d:%d",
+			stmt.Table, p.cur.Line, p.cur.Column,
+		)
+	}
+
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+	return stmt, nil
+}
+
+// parseValueRow parses one parenthesised list of value expressions: (expr, expr, ...)
+func (p *parser) parseValueRow() ([]string, error) {
+	if _, err := p.expect(lexer.LParen); err != nil {
+		return nil, err
+	}
+	var exprs []string
+	for {
+		expr, err := p.parseExprRaw(func() bool {
+			return p.curIs(lexer.Comma) || p.curIs(lexer.RParen)
+		})
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, expr)
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ',' between expressions
+	}
+	if _, err := p.expect(lexer.RParen); err != nil {
+		return nil, err
+	}
+	return exprs, nil
+}
+
 // parseDelete handles:
 //
 //	DELETE FROM <table> [AS <alias>] [WHERE <predicate>] [;]
