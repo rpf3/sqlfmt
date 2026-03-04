@@ -14,6 +14,15 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 		l.checkSelectStmt(cte.Select)
 	}
 
+	// #12 select-star
+	for _, col := range s.Columns {
+		if col.Expr == "*" {
+			l.warn(config.RuleSelectStar,
+				"SELECT * retrieves all columns; list the columns explicitly")
+			break
+		}
+	}
+
 	// #31 order-by-direction
 	for _, item := range s.OrderBy {
 		if item.Direction == parser.DirectionNone {
