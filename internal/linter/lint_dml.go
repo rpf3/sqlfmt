@@ -14,6 +14,13 @@ func (l *linter) checkInsertStmt(s *parser.InsertStmt) {
 	}
 }
 
+func (l *linter) checkUpdateStmt(s *parser.UpdateStmt) {
+	if s.Where == "" {
+		l.warn(config.RuleUpdateWithoutWhere,
+			fmt.Sprintf("UPDATE on table %q has no WHERE clause", s.Target))
+	}
+}
+
 func (l *linter) checkDeleteStmt(s *parser.DeleteStmt) {
 	// #34 alias-without-as
 	if s.Alias != "" && !s.AliasExplicit {
