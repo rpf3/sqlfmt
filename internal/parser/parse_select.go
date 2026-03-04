@@ -418,9 +418,14 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 }
 
 // parseWithSelect handles: WITH <name> AS (<select>) [, <name> AS (<select>)] ... SELECT ...
-func (p *parser) parseWithSelect() (Statement, error) {
+// parseCTEDefs parses the CTE list following a WITH keyword:
+//
+//	WITH name AS ( <select> ) [, name AS ( <select> ) ...]
+//
+// WITH is consumed on entry. The caller is responsible for parsing the main
+// SELECT body that follows.
+func (p *parser) parseCTEDefs() ([]CTEDef, error) {
 	p.advance() // consume WITH
-
 	var ctes []CTEDef
 	for {
 		nameTok, err := p.expectIdent()
@@ -446,6 +451,14 @@ func (p *parser) parseWithSelect() (Statement, error) {
 			break
 		}
 		p.advance() // consume ','
+	}
+	return ctes, nil
+}
+
+func (p *parser) parseWithSelect() (Statement, error) {
+	ctes, err := p.parseCTEDefs()
+	if err != nil {
+		return nil, err
 	}
 
 	if !p.curKeyword("SELECT") {
