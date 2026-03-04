@@ -53,6 +53,7 @@ const (
 	RuleOffsetRows        = "offset-rows"
 	RuleExistsSelectOne   = "exists-select-one"
 	RuleDeleteWithoutWhere = "delete-without-where"
+	RuleInsertColumnList   = "insert-column-list"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -67,6 +68,7 @@ var knownRules = map[string]bool{
 	RuleOffsetRows:        true,
 	RuleExistsSelectOne:    true,
 	RuleDeleteWithoutWhere: true,
+	RuleInsertColumnList:   true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

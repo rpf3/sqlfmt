@@ -7,6 +7,13 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+func (l *linter) checkInsertStmt(s *parser.InsertStmt) {
+	if len(s.Columns) == 0 {
+		l.warn(config.RuleInsertColumnList,
+			fmt.Sprintf("INSERT into table %q has no explicit column list", s.Table))
+	}
+}
+
 func (l *linter) checkDeleteStmt(s *parser.DeleteStmt) {
 	// #34 alias-without-as
 	if s.Alias != "" && !s.AliasExplicit {
