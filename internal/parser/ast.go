@@ -203,6 +203,45 @@ type UpdateStmt struct {
 
 func (*UpdateStmt) statementNode() {}
 
+// MergeMatchType identifies what a WHEN clause matches.
+type MergeMatchType int
+
+const (
+	MergeMatched            MergeMatchType = iota // WHEN MATCHED
+	MergeNotMatchedByTarget                       // WHEN NOT MATCHED [BY TARGET]
+	MergeNotMatchedBySource                       // WHEN NOT MATCHED BY SOURCE
+)
+
+// MergeActionType identifies the action in a WHEN clause.
+type MergeActionType int
+
+const (
+	MergeActionUpdate MergeActionType = iota
+	MergeActionDelete
+	MergeActionInsert
+)
+
+// MergeWhenClause is one WHEN … THEN … clause in a MERGE statement.
+type MergeWhenClause struct {
+	MatchType MergeMatchType
+	Condition string // optional AND <condition>; empty if absent
+	Action    MergeActionType
+	Sets      []UpdateSet // for MergeActionUpdate
+	Columns   []string    // for MergeActionInsert: column list; nil if absent
+	Values    []string    // for MergeActionInsert: single row of value expressions
+}
+
+// MergeStmt represents a MERGE statement.
+type MergeStmt struct {
+	Target      string            // target table name
+	TargetAlias string            // target alias; empty if none
+	Source      SelectFromSource  // USING source: named table or derived table
+	On          string            // raw ON condition
+	Clauses     []MergeWhenClause // WHEN clauses; always non-empty
+}
+
+func (*MergeStmt) statementNode() {}
+
 // ─── SELECT statement ─────────────────────────────────────────────────────────
 
 // SelectItem is one entry in a SELECT list.

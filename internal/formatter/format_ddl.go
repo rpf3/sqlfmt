@@ -364,6 +364,107 @@ func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
 	return b.String()
 }
 
+func (f *formatter) formatMerge(s *parser.MergeStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+
+	// merge into <target> [as <alias>]
+	b.WriteString(f.kw("merge into ") + s.Target)
+	if s.TargetAlias != "" {
+		b.WriteString(f.kw(" as ") + s.TargetAlias)
+	}
+
+	// using <source> [as <alias>]
+	if s.Source.Subquery != nil {
+		// Subquery: "using" appended to target line; paren block at root level
+		// with single-indented body (same depth as a CTE body).
+		b.WriteString(" " + f.kw("using"))
+		b.WriteString("\n(")
+		b.WriteString("\n" + f.indentCTE(s.Source.Subquery))
+		b.WriteString("\n)")
+		if s.Source.Alias != "" {
+			b.WriteString(f.kw(" as ") + s.Source.Alias)
+		}
+	} else {
+		b.WriteString("\n" + f.kw("using ") + s.Source.Name)
+		if s.Source.Alias != "" {
+			b.WriteString(f.kw(" as ") + s.Source.Alias)
+		}
+	}
+
+	// on condition — always wrapped in a paren block for readability
+	b.WriteString("\n" + f.kw("on"))
+	b.WriteString("\n(")
+	b.WriteString("\n" + ind + s.On)
+	b.WriteString("\n)")
+
+	for _, clause := range s.Clauses {
+		b.WriteString("\n")
+		switch clause.MatchType {
+		case parser.MergeMatched:
+			b.WriteString(f.kw("when matched"))
+		case parser.MergeNotMatchedByTarget:
+			b.WriteString(f.kw("when not matched"))
+		case parser.MergeNotMatchedBySource:
+			b.WriteString(f.kw("when not matched by source"))
+		}
+
+		if clause.Condition != "" {
+			// AND condition in a paren block; "then" on its own line.
+			b.WriteString(f.kw(" and"))
+			b.WriteString("\n(")
+			b.WriteString("\n" + ind + clause.Condition)
+			b.WriteString("\n)")
+			b.WriteString("\n" + f.kw("then"))
+		} else {
+			b.WriteString(f.kw(" then"))
+		}
+
+		switch clause.Action {
+		case parser.MergeActionDelete:
+			b.WriteString(f.kw(" delete"))
+
+		case parser.MergeActionUpdate:
+			b.WriteString(f.kw(" update set"))
+			for i, set := range clause.Sets {
+				item := set.Column + " = " + set.Expr
+				if i == 0 {
+					b.WriteString("\n" + ind + item)
+				} else {
+					b.WriteString("\n,\t" + item)
+				}
+			}
+
+		case parser.MergeActionInsert:
+			b.WriteString(f.kw(" insert"))
+			if len(clause.Columns) > 0 {
+				b.WriteString("\n(")
+				for i, col := range clause.Columns {
+					if i == 0 {
+						b.WriteString("\n" + ind + col)
+					} else {
+						b.WriteString("\n,\t" + col)
+					}
+				}
+				b.WriteString("\n)")
+			}
+			b.WriteString("\n" + f.kw("values"))
+			b.WriteString("\n(")
+			for i, val := range clause.Values {
+				if i == 0 {
+					b.WriteString("\n" + ind + val)
+				} else {
+					b.WriteString("\n,\t" + val)
+				}
+			}
+			b.WriteString("\n)")
+		}
+	}
+
+	b.WriteString(";")
+	return b.String()
+}
+
 // formatSet formats a SET statement as a single line: set <option> <value>;
 func (f *formatter) formatSet(s *parser.SetStmt) string {
 	var b strings.Builder
