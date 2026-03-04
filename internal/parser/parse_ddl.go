@@ -969,6 +969,250 @@ func (p *parser) parseDelete() (Statement, error) {
 	return stmt, nil
 }
 
+// parseMerge handles:
+//
+//	MERGE [INTO] <target> [AS <alias>]
+//	USING <source> [AS <alias>]
+//	ON <condition>
+//	WHEN MATCHED [AND <cond>] THEN UPDATE SET ... | DELETE
+//	WHEN NOT MATCHED [BY TARGET|SOURCE] [AND <cond>] THEN INSERT ... | UPDATE SET ... | DELETE
+//	[;]
+func (p *parser) parseMerge() (Statement, error) {
+	p.advance() // consume MERGE
+	if p.curKeyword("INTO") {
+		p.advance() // consume optional INTO
+	}
+
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	stmt := &MergeStmt{Target: nameTok.Value}
+
+	if p.curKeyword("AS") {
+		p.advance()
+		aliasTok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		stmt.TargetAlias = aliasTok.Value
+	} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+		stmt.TargetAlias = p.cur.Value
+		p.advance()
+	}
+
+	if err := p.expectKeyword("USING"); err != nil {
+		return nil, err
+	}
+
+	source, err := p.parseFromSource()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Source = source
+
+	if err := p.expectKeyword("ON"); err != nil {
+		return nil, err
+	}
+
+	// The ON condition may be paren-wrapped in canonical output (for round-trip
+	// idempotency). Consume the outer parens so the stored expression is bare.
+	var on string
+	if p.curIs(lexer.LParen) {
+		p.advance()
+		expr, err := p.parseExprRaw(func() bool {
+			return p.curIs(lexer.RParen) || p.curIs(lexer.EOF)
+		})
+		if err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return nil, err
+		}
+		on = expr
+	} else {
+		expr, err := p.parseExprRaw(func() bool {
+			return p.curKeyword("WHEN") || p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
+		})
+		if err != nil {
+			return nil, err
+		}
+		on = expr
+	}
+	stmt.On = on
+
+	for p.curKeyword("WHEN") {
+		clause, err := p.parseMergeWhenClause()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Clauses = append(stmt.Clauses, clause)
+	}
+
+	p.consumeSemicolon()
+	return stmt, nil
+}
+
+// parseMergeWhenClause parses one WHEN … THEN … clause.
+func (p *parser) parseMergeWhenClause() (MergeWhenClause, error) {
+	p.advance() // consume WHEN
+
+	var clause MergeWhenClause
+
+	// MATCHED, SOURCE, TARGET are non-reserved SQL words — they may appear as
+	// identifiers elsewhere, so they are not in the keywords list. Use curValue
+	// for case-insensitive value matching that works on both Ident and Keyword.
+	if p.curValue("MATCHED") {
+		p.advance()
+		clause.MatchType = MergeMatched
+	} else if p.curKeyword("NOT") {
+		p.advance()
+		if !p.curValue("MATCHED") {
+			return MergeWhenClause{}, fmt.Errorf(
+				"expected MATCHED after WHEN NOT at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance()
+		if p.curKeyword("BY") {
+			p.advance()
+			if p.curValue("SOURCE") {
+				p.advance()
+				clause.MatchType = MergeNotMatchedBySource
+			} else if p.curValue("TARGET") {
+				p.advance()
+				clause.MatchType = MergeNotMatchedByTarget
+			} else {
+				return MergeWhenClause{}, fmt.Errorf(
+					"expected SOURCE or TARGET after WHEN NOT MATCHED BY at %d:%d, got %s %q",
+					p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+				)
+			}
+		} else {
+			clause.MatchType = MergeNotMatchedByTarget
+		}
+	} else {
+		return MergeWhenClause{}, fmt.Errorf(
+			"expected MATCHED or NOT after WHEN at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+
+	if p.curKeyword("AND") {
+		p.advance()
+		// AND conditions may also be paren-wrapped in canonical output.
+		var cond string
+		if p.curIs(lexer.LParen) {
+			p.advance()
+			expr, err := p.parseExprRaw(func() bool {
+				return p.curIs(lexer.RParen) || p.curIs(lexer.EOF)
+			})
+			if err != nil {
+				return MergeWhenClause{}, err
+			}
+			if _, err := p.expect(lexer.RParen); err != nil {
+				return MergeWhenClause{}, err
+			}
+			cond = expr
+		} else {
+			expr, err := p.parseExprRaw(func() bool {
+				return p.curKeyword("THEN")
+			})
+			if err != nil {
+				return MergeWhenClause{}, err
+			}
+			cond = expr
+		}
+		clause.Condition = cond
+	}
+
+	if err := p.expectKeyword("THEN"); err != nil {
+		return MergeWhenClause{}, err
+	}
+
+	switch {
+	case p.curKeyword("UPDATE"):
+		p.advance()
+		sets, err := p.parseMergeSetClause()
+		if err != nil {
+			return MergeWhenClause{}, err
+		}
+		clause.Action = MergeActionUpdate
+		clause.Sets = sets
+	case p.curKeyword("DELETE"):
+		p.advance()
+		clause.Action = MergeActionDelete
+	case p.curKeyword("INSERT"):
+		p.advance()
+		if p.curIs(lexer.LParen) {
+			cols, err := p.parseIdentList()
+			if err != nil {
+				return MergeWhenClause{}, err
+			}
+			clause.Columns = cols
+		}
+		if err := p.expectKeyword("VALUES"); err != nil {
+			return MergeWhenClause{}, err
+		}
+		row, err := p.parseValueRow()
+		if err != nil {
+			return MergeWhenClause{}, err
+		}
+		clause.Action = MergeActionInsert
+		clause.Values = row
+	default:
+		return MergeWhenClause{}, fmt.Errorf(
+			"expected UPDATE, DELETE, or INSERT after THEN at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+
+	return clause, nil
+}
+
+// parseMergeSetClause parses: SET col = expr [, col = expr ...]
+// Like parseSetClause but stops at WHEN (next clause boundary) in addition
+// to the standard terminators.
+func (p *parser) parseMergeSetClause() ([]UpdateSet, error) {
+	if err := p.expectKeyword("SET"); err != nil {
+		return nil, err
+	}
+	var sets []UpdateSet
+	for {
+		colTok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		colName := colTok.Value
+		if p.curIs(lexer.Dot) {
+			p.advance()
+			fieldTok, err := p.expectIdent()
+			if err != nil {
+				return nil, err
+			}
+			colName = colName + "." + fieldTok.Value
+		}
+		if _, err := p.expect(lexer.Eq); err != nil {
+			return nil, err
+		}
+		expr, err := p.parseExprRaw(func() bool {
+			return p.curIs(lexer.Comma) ||
+				p.curKeyword("WHEN") ||
+				p.curIs(lexer.Semicolon) ||
+				p.curIs(lexer.EOF)
+		})
+		if err != nil {
+			return nil, err
+		}
+		sets = append(sets, UpdateSet{Column: colName, Expr: expr})
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance()
+	}
+	return sets, nil
+}
+
 // parseSet handles: SET <option> <value> [;]
 // Covers the common single-option, single-value form used in T-SQL session
 // configuration (e.g. SET NOCOUNT ON, SET XACT_ABORT ON, SET ROWCOUNT 100).

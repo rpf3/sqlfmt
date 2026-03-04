@@ -62,6 +62,13 @@ func (p *parser) curKeyword(kw string) bool {
 	return p.cur.Type == lexer.Keyword && strings.EqualFold(p.cur.Value, kw)
 }
 
+// curValue reports whether the current token's value equals v (case-insensitive),
+// regardless of token type. Used for non-reserved SQL words (MATCHED, SOURCE,
+// TARGET) that should remain usable as unquoted identifiers.
+func (p *parser) curValue(v string) bool {
+	return strings.EqualFold(p.cur.Value, v)
+}
+
 // peekKeyword reports whether peek is the keyword kw (case-insensitive).
 func (p *parser) peekKeyword(kw string) bool {
 	return p.peek.Type == lexer.Keyword && strings.EqualFold(p.peek.Value, kw)
@@ -180,6 +187,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	}
 	if p.curKeyword("SET") {
 		return p.parseSet()
+	}
+	if p.curKeyword("MERGE") {
+		return p.parseMerge()
 	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
