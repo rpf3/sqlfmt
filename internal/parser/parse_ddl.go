@@ -681,6 +681,15 @@ func (p *parser) parseCreateView() (Statement, error) {
 		return nil, err
 	}
 
+	var ctes []CTEDef
+	if p.curKeyword("WITH") {
+		var err error
+		ctes, err = p.parseCTEDefs()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if !p.curKeyword("SELECT") {
 		return nil, fmt.Errorf(
 			"expected SELECT after CREATE VIEW ... AS at %d:%d, got %s %q",
@@ -692,6 +701,7 @@ func (p *parser) parseCreateView() (Statement, error) {
 	if err != nil {
 		return nil, err
 	}
+	sel.CTEs = ctes
 
 	p.consumeSemicolon()
 
