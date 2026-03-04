@@ -363,3 +363,14 @@ func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
 	b.WriteString(";")
 	return b.String()
 }
+
+// formatSet formats a SET statement as a single line: set <option> <value>;
+func (f *formatter) formatSet(s *parser.SetStmt) string {
+	var b strings.Builder
+	b.WriteString(f.kw("set "))
+	b.WriteString(strings.ToLower(s.Option))
+	b.WriteString(" ")
+	b.WriteString(strings.ToLower(s.Value))
+	b.WriteString(";")
+	return b.String()
+}

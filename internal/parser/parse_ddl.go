@@ -968,3 +968,34 @@ func (p *parser) parseDelete() (Statement, error) {
 
 	return stmt, nil
 }
+
+// parseSet handles: SET <option> <value> [;]
+// Covers the common single-option, single-value form used in T-SQL session
+// configuration (e.g. SET NOCOUNT ON, SET XACT_ABORT ON, SET ROWCOUNT 100).
+func (p *parser) parseSet() (Statement, error) {
+	p.advance() // consume SET
+
+	if p.cur.Type != lexer.Ident && p.cur.Type != lexer.Keyword {
+		return nil, fmt.Errorf(
+			"expected option name after SET at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+	option := strings.ToUpper(p.cur.Value)
+	p.advance()
+
+	if p.cur.Type != lexer.Ident && p.cur.Type != lexer.Keyword &&
+		p.cur.Type != lexer.IntLit && p.cur.Type != lexer.FloatLit {
+		return nil, fmt.Errorf(
+			"expected value after SET %s at %d:%d, got %s %q",
+			option, p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+	value := p.cur.Value
+	p.advance()
+
+	p.consumeSemicolon()
+
+	stmt := &SetStmt{Option: option, Value: value}
+	return stmt, nil
+}

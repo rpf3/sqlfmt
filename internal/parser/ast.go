@@ -159,6 +159,18 @@ type InsertStmt struct {
 
 func (*InsertStmt) statementNode() {}
 
+// SetStmt represents: SET <option> <value>
+// Covers the common single-option, single-value form used in T-SQL session
+// configuration (e.g. SET NOCOUNT ON, SET XACT_ABORT ON, SET ROWCOUNT 100).
+// Multi-word variants (SET TRANSACTION ISOLATION LEVEL, SET IDENTITY_INSERT)
+// are handled separately in #92.
+type SetStmt struct {
+	Option string // option name, uppercased (e.g. "NOCOUNT", "XACT_ABORT")
+	Value  string // option value verbatim (e.g. "ON", "OFF", "100")
+}
+
+func (*SetStmt) statementNode() {}
+
 // UpdateSet is one col = expr assignment in an UPDATE SET clause.
 type UpdateSet struct {
 	Column string // column name, possibly qualified (e.g. "o.status")

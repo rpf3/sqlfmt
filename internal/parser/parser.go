@@ -178,6 +178,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("UPDATE") {
 		return p.parseUpdate()
 	}
+	if p.curKeyword("SET") {
+		return p.parseSet()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,
