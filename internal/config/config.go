@@ -55,6 +55,7 @@ const (
 	RuleDeleteWithoutWhere = "delete-without-where"
 	RuleInsertColumnList   = "insert-column-list"
 	RuleUpdateWithoutWhere = "update-without-where"
+	RuleSelectStar         = "select-star"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -71,6 +72,7 @@ var knownRules = map[string]bool{
 	RuleDeleteWithoutWhere: true,
 	RuleInsertColumnList:   true,
 	RuleUpdateWithoutWhere: true,
+	RuleSelectStar:         true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

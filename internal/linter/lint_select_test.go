@@ -230,3 +230,45 @@ func TestLintExistsSelectOne(t *testing.T) {
 			config.RuleExistsSelectOne)
 	})
 }
+
+func TestLintSelectStar(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "select star warns",
+			input:    `select * from orders;`,
+			wantRule: config.RuleSelectStar,
+		},
+		{
+			name:     "explicit column list is clean",
+			input:    `select id, status from orders;`,
+			wantRule: "",
+		},
+		{
+			name:     "count star is clean",
+			input:    `select count(*) from orders;`,
+			wantRule: "",
+		},
+		{
+			name:     "select star in subquery warns",
+			input:    `select id from (select * from orders) as o;`,
+			wantRule: config.RuleSelectStar,
+		},
+		{
+			name:     "select star in cte warns",
+			input:    `with o as (select * from orders) select id from o;`,
+			wantRule: config.RuleSelectStar,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+	t.Run("rule off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t, `select * from orders;`, config.RuleSelectStar)
+	})
+}
