@@ -52,6 +52,7 @@ const (
 	RuleNoLimit           = "no-limit"
 	RuleOffsetRows        = "offset-rows"
 	RuleExistsSelectOne   = "exists-select-one"
+	RuleDeleteWithoutWhere = "delete-without-where"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -64,7 +65,8 @@ var knownRules = map[string]bool{
 	RuleAliasWithoutAs:    true,
 	RuleNoLimit:           true,
 	RuleOffsetRows:        true,
-	RuleExistsSelectOne:   true,
+	RuleExistsSelectOne:    true,
+	RuleDeleteWithoutWhere: true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

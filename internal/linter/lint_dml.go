@@ -13,4 +13,8 @@ func (l *linter) checkDeleteStmt(s *parser.DeleteStmt) {
 		l.warn(config.RuleAliasWithoutAs,
 			fmt.Sprintf("table %q has a bare alias %q; use AS", s.Table, s.Alias))
 	}
+	if s.Where == "" {
+		l.warn(config.RuleDeleteWithoutWhere,
+			fmt.Sprintf("DELETE on table %q has no WHERE clause", s.Table))
+	}
 }
