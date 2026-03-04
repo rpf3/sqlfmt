@@ -159,6 +159,38 @@ type InsertStmt struct {
 
 func (*InsertStmt) statementNode() {}
 
+// UpdateSet is one col = expr assignment in an UPDATE SET clause.
+type UpdateSet struct {
+	Column string // column name, possibly qualified (e.g. "o.status")
+	Expr   string // raw value expression (keywords normalised)
+}
+
+// UpdateFromSource is the FROM clause in a SQL Server style UPDATE.
+// It names the table (and optional alias) that the UPDATE alias refers to,
+// plus any JOINs needed for the WHERE predicate.
+type UpdateFromSource struct {
+	Name  string       // table name
+	Alias string       // AS alias; empty if none
+	Joins []JoinClause // additional JOINs after the main FROM table
+}
+
+// UpdateStmt represents an UPDATE statement.
+//
+// ANSI:       UPDATE <table> SET <col=expr> [WHERE <pred>]
+// SQL Server: UPDATE <alias> SET <col=expr> FROM <table> AS <alias> [JOINs] [WHERE <pred>]
+//
+// When From is nil the statement is ANSI style and Target is the table name.
+// When From is non-nil the statement is SQL Server style: Target is the alias
+// that appears after UPDATE, and From holds the FROM clause details.
+type UpdateStmt struct {
+	Target string            // table name (ANSI) or alias (SQL Server)
+	Sets   []UpdateSet       // SET assignments; always non-empty
+	From   *UpdateFromSource // non-nil for SQL Server FROM style
+	Where  string            // raw WHERE predicate; empty if absent
+}
+
+func (*UpdateStmt) statementNode() {}
+
 // ─── SELECT statement ─────────────────────────────────────────────────────────
 
 // SelectItem is one entry in a SELECT list.

@@ -40,6 +40,56 @@ func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 	return b.String()
 }
 
+func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+	b.WriteString(f.kw("update"))
+	b.WriteString("\n")
+	b.WriteString(ind)
+	b.WriteString(s.Target)
+
+	b.WriteString("\n")
+	b.WriteString(f.kw("set"))
+
+	setStrs := make([]string, len(s.Sets))
+	for i, set := range s.Sets {
+		setStrs[i] = set.Column + " = " + set.Expr
+	}
+	f.writeCommaList(&b, setStrs)
+
+	if s.From != nil {
+		b.WriteString("\n")
+		b.WriteString(f.kw("from"))
+		b.WriteString("\n")
+		b.WriteString(ind)
+		b.WriteString(s.From.Name)
+		if s.From.Alias != "" {
+			b.WriteString(f.kw(" as "))
+			b.WriteString(s.From.Alias)
+		}
+		for _, jc := range s.From.Joins {
+			b.WriteString("\n" + f.kw(joinKeyword(jc.Type)))
+			b.WriteString("\n" + ind + jc.Name)
+			if jc.Alias != "" {
+				b.WriteString(" " + f.kw("as") + " " + jc.Alias)
+			}
+			if jc.On != "" {
+				b.WriteString("\n" + ind + ind + f.kw("on") + " " + jc.On)
+			}
+		}
+	}
+
+	if s.Where != "" {
+		b.WriteString("\n")
+		b.WriteString(f.kw("where"))
+		b.WriteString("\n")
+		b.WriteString(ind)
+		b.WriteString(s.Where)
+	}
+	b.WriteString(";")
+	return b.String()
+}
+
 func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 	ind := f.indent()
 	var b strings.Builder

@@ -62,6 +62,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatDelete(s)
 	case *parser.InsertStmt:
 		return f.formatInsert(s)
+	case *parser.UpdateStmt:
+		return f.formatUpdate(s)
 	case *parser.SelectStmt:
 		return f.formatSelectStmt(s)
 	}

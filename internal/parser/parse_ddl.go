@@ -792,6 +792,132 @@ func (p *parser) parseValueRow() ([]string, error) {
 	return exprs, nil
 }
 
+// parseUpdate handles:
+//
+//	ANSI:       UPDATE <table> SET <col=expr> [, ...] [WHERE <predicate>] [;]
+//	SQL Server: UPDATE <alias> SET <col=expr> [, ...] FROM <table> [AS <alias>] [JOINs] [WHERE <predicate>] [;]
+func (p *parser) parseUpdate() (Statement, error) {
+	p.advance() // consume UPDATE
+
+	targetTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	stmt := &UpdateStmt{Target: targetTok.Value}
+
+	sets, err := p.parseSetClause()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Sets = sets
+
+	if p.curKeyword("FROM") {
+		from, err := p.parseUpdateFrom()
+		if err != nil {
+			return nil, err
+		}
+		stmt.From = from
+	}
+
+	if p.curKeyword("WHERE") {
+		p.advance()
+		where, err := p.parseExprRaw(func() bool {
+			return p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
+		})
+		if err != nil {
+			return nil, err
+		}
+		stmt.Where = where
+	}
+
+	if p.curIs(lexer.Semicolon) {
+		p.advance()
+	}
+	return stmt, nil
+}
+
+// parseUpdateFrom parses: FROM <table> [AS <alias>] [JOINs]
+func (p *parser) parseUpdateFrom() (*UpdateFromSource, error) {
+	p.advance() // consume FROM
+
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	from := &UpdateFromSource{Name: nameTok.Value}
+
+	if p.curKeyword("AS") {
+		p.advance()
+		aliasTok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		from.Alias = aliasTok.Value
+	} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+		// implicit alias — Keyword tokens (WHERE, JOIN, etc.) are excluded by type
+		from.Alias = p.cur.Value
+		p.advance()
+	}
+
+	if p.isNextJoin() {
+		joins, err := p.parseJoinClauses()
+		if err != nil {
+			return nil, err
+		}
+		from.Joins = joins
+	}
+
+	return from, nil
+}
+
+// parseSetClause parses: SET col = expr [, col = expr ...]
+// Column names may be qualified (e.g. t.col); the LHS is parsed with explicit
+// dot-checking rather than parseExprRaw because UPDATE SET always assigns to a
+// simple or qualified column name, never a computed expression.
+func (p *parser) parseSetClause() ([]UpdateSet, error) {
+	if err := p.expectKeyword("SET"); err != nil {
+		return nil, err
+	}
+	var sets []UpdateSet
+	for {
+		colTok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		colName := colTok.Value
+		if p.curIs(lexer.Dot) {
+			p.advance() // consume '.'
+			fieldTok, err := p.expectIdent()
+			if err != nil {
+				return nil, err
+			}
+			colName = colName + "." + fieldTok.Value
+		}
+
+		if _, err := p.expect(lexer.Eq); err != nil {
+			return nil, err
+		}
+
+		expr, err := p.parseExprRaw(func() bool {
+			return p.curIs(lexer.Comma) ||
+				p.curKeyword("WHERE") ||
+				p.curKeyword("FROM") ||
+				p.curIs(lexer.Semicolon) ||
+				p.curIs(lexer.EOF)
+		})
+		if err != nil {
+			return nil, err
+		}
+		sets = append(sets, UpdateSet{Column: colName, Expr: expr})
+
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ',' between assignments
+	}
+	return sets, nil
+}
+
 // parseDelete handles:
 //
 //	DELETE FROM <table> [AS <alias>] [WHERE <predicate>] [;]
