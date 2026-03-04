@@ -43,6 +43,43 @@ func TestLintInsertColumnList(t *testing.T) {
 	})
 }
 
+func TestLintUpdateWithoutWhere(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "update without where warns",
+			input:    `update orders set status = 'shipped';`,
+			wantRule: config.RuleUpdateWithoutWhere,
+		},
+		{
+			name:     "update with where is clean",
+			input:    `update orders set status = 'shipped' where id = 42;`,
+			wantRule: "",
+		},
+		{
+			name:     "sql server update without where warns",
+			input:    `update o set o.status = 'shipped' from orders as o;`,
+			wantRule: config.RuleUpdateWithoutWhere,
+		},
+		{
+			name:     "sql server update with where is clean",
+			input:    `update o set o.status = 'shipped' from orders as o where o.id = 42;`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+	t.Run("rule off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t, `update orders set status = 'shipped';`, config.RuleUpdateWithoutWhere)
+	})
+}
+
 func TestLintDeleteWithoutWhere(t *testing.T) {
 	tests := []struct {
 		name     string
