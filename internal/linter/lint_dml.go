@@ -21,6 +21,16 @@ func (l *linter) checkUpdateStmt(s *parser.UpdateStmt) {
 	}
 }
 
+func (l *linter) checkMergeStmt(s *parser.MergeStmt) {
+	for _, clause := range s.Clauses {
+		// #110 merge-insert-column-list
+		if clause.Action == parser.MergeActionInsert && len(clause.Columns) == 0 {
+			l.warn(config.RuleMergeInsertColumnList,
+				fmt.Sprintf("MERGE into %q: INSERT clause has no column list; list the target columns explicitly", s.Target))
+		}
+	}
+}
+
 func (l *linter) checkDeleteStmt(s *parser.DeleteStmt) {
 	// #34 alias-without-as
 	if s.Alias != "" && !s.AliasExplicit {

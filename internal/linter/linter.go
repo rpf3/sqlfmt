@@ -69,6 +69,8 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkUpdateStmt(s)
 	case *parser.DeleteStmt:
 		l.checkDeleteStmt(s)
+	case *parser.MergeStmt:
+		l.checkMergeStmt(s)
 	}
 }
 
