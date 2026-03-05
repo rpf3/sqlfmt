@@ -19,7 +19,7 @@ func TestLintMissingTrailingSemicolon(t *testing.T) {
 		},
 		{
 			name:     "select with semicolon is clean",
-			input:    `select id from orders;`,
+			input:    `select id from orders as o;`,
 			wantRule: "",
 		},
 		{
@@ -63,7 +63,7 @@ func TestLintMissingTrailingSemicolon(t *testing.T) {
 		})
 	}
 	t.Run("rule off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select id from orders`, config.RuleMissingTrailingSemicolon)
+		checkRuleOff(t, `select id from orders as o`, config.RuleMissingTrailingSemicolon)
 	})
 }
 
