@@ -13,7 +13,54 @@ import (
 )
 
 func main() {
-	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+	os.Exit(run(os.Args[1:], os.Stderr))
+}
+
+// processFile lints and formats a single SQL file in place.
+// In --check mode it reports whether the file is unformatted without writing.
+// Returns non-zero on any problem.
+func processFile(path string, cfg config.Config, check, wae bool, stderr io.Writer) int {
+	input, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(stderr, "sqlfmt: %s: %v\n", path, err)
+		return 1
+	}
+
+	warnings, err := linter.Lint(string(input), cfg)
+	if err != nil {
+		fmt.Fprintf(stderr, "sqlfmt: %s: %v\n", path, err)
+		return 1
+	}
+	hasLintError := false
+	for _, w := range warnings {
+		fmt.Fprintf(stderr, "sqlfmt: %s: lint [%s]: %s\n", path, w.Rule, w.Message)
+		if w.Severity == config.RuleSeverityError || wae {
+			hasLintError = true
+		}
+	}
+	if hasLintError {
+		return 1
+	}
+
+	output, err := formatter.Format(string(input), cfg)
+	if err != nil {
+		fmt.Fprintf(stderr, "sqlfmt: %s: %v\n", path, err)
+		return 1
+	}
+
+	if check {
+		if string(input) != output {
+			fmt.Fprintf(stderr, "sqlfmt: %s: not formatted\n", path)
+			return 1
+		}
+		return 0
+	}
+
+	if err := os.WriteFile(path, []byte(output), 0o644); err != nil {
+		fmt.Fprintf(stderr, "sqlfmt: %s: %v\n", path, err)
+		return 1
+	}
+	return 0
 }
 
 // defaultConfig is written by "sqlfmt init" to .sqlfmt.yml.
@@ -56,7 +103,7 @@ func runInit(dir string, stderr io.Writer) int {
 }
 
 // run is the testable entry point. It returns the process exit code.
-func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+func run(args []string, stderr io.Writer) int {
 	if len(args) > 0 && args[0] == "init" {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -66,12 +113,12 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runInit(cwd, stderr)
 	}
 
-	fs := flag.NewFlagSet("sqlfmt", flag.ContinueOnError)
-	fs.SetOutput(stderr)
-	check := fs.Bool("check", false, "exit non-zero if input is not formatted; write nothing")
-	warningsAsErrors := fs.Bool("warnings-as-errors", false, "exit non-zero if any lint warnings are emitted")
+	fset := flag.NewFlagSet("sqlfmt", flag.ContinueOnError)
+	fset.SetOutput(stderr)
+	check := fset.Bool("check", false, "exit non-zero if any file is not formatted; write nothing")
+	warningsAsErrors := fset.Bool("warnings-as-errors", false, "exit non-zero if any lint warnings are emitted")
 
-	if err := fs.Parse(args); err != nil {
+	if err := fset.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
@@ -89,43 +136,13 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	input, err := io.ReadAll(stdin)
-	if err != nil {
-		fmt.Fprintf(stderr, "sqlfmt: failed to read input: %v\n", err)
-		return 1
-	}
-
-	warnings, err := linter.Lint(string(input), cfg)
-	if err != nil {
-		fmt.Fprintf(stderr, "sqlfmt: %v\n", err)
-		return 1
-	}
 	wae := cfg.WarningsAsErrors || *warningsAsErrors
-	hasLintError := false
-	for _, w := range warnings {
-		fmt.Fprintf(stderr, "sqlfmt: lint [%s]: %s\n", w.Rule, w.Message)
-		if w.Severity == config.RuleSeverityError || wae {
-			hasLintError = true
+
+	exitCode := 0
+	for _, path := range fset.Args() {
+		if code := processFile(path, cfg, *check, wae, stderr); code != 0 {
+			exitCode = code
 		}
 	}
-	if hasLintError {
-		return 1
-	}
-
-	output, err := formatter.Format(string(input), cfg)
-	if err != nil {
-		fmt.Fprintf(stderr, "sqlfmt: %v\n", err)
-		return 1
-	}
-
-	if *check {
-		if string(input) != output {
-			fmt.Fprintln(stderr, "sqlfmt: input is not formatted")
-			return 1
-		}
-		return 0
-	}
-
-	fmt.Fprint(stdout, output)
-	return 0
+	return exitCode
 }
