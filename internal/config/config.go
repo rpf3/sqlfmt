@@ -43,40 +43,42 @@ const (
 
 // Lint rule name constants — used in .sqlfmt.yml and referenced by the linter.
 const (
-	RuleInlinePrimaryKey         = "inline-primary-key"
-	RuleUnnamedPrimaryKey        = "unnamed-primary-key"
-	RuleUnnamedDefault           = "unnamed-default"
-	RuleIndexDirection           = "index-direction"
-	RuleOrderByDirection         = "order-by-direction"
-	RuleAliasWithoutAs           = "alias-without-as"
-	RuleNoLimit                  = "no-limit"
-	RuleOffsetRows               = "offset-rows"
-	RuleExistsSelectOne          = "exists-select-one"
-	RuleDeleteWithoutWhere       = "delete-without-where"
-	RuleInsertColumnList         = "insert-column-list"
-	RuleUpdateWithoutWhere       = "update-without-where"
-	RuleSelectStar               = "select-star"
-	RuleMissingTrailingSemicolon = "missing-trailing-semicolon"
-	RuleUnaliasedTable           = "unaliased-table"
+	RuleInlinePrimaryKey            = "inline-primary-key"
+	RuleUnnamedPrimaryKey           = "unnamed-primary-key"
+	RuleUnnamedDefault              = "unnamed-default"
+	RuleIndexDirection              = "index-direction"
+	RuleOrderByDirection            = "order-by-direction"
+	RuleAliasWithoutAs              = "alias-without-as"
+	RuleNoLimit                     = "no-limit"
+	RuleOffsetRows                  = "offset-rows"
+	RuleExistsSelectOne             = "exists-select-one"
+	RuleDeleteWithoutWhere          = "delete-without-where"
+	RuleInsertColumnList            = "insert-column-list"
+	RuleUpdateWithoutWhere          = "update-without-where"
+	RuleSelectStar                  = "select-star"
+	RuleMissingTrailingSemicolon    = "missing-trailing-semicolon"
+	RuleUnaliasedTable              = "unaliased-table"
+	RuleMergeInsertColumnList = "merge-insert-column-list"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
 var knownRules = map[string]bool{
-	RuleInlinePrimaryKey:         true,
-	RuleUnnamedPrimaryKey:        true,
-	RuleUnnamedDefault:           true,
-	RuleIndexDirection:           true,
-	RuleOrderByDirection:         true,
-	RuleAliasWithoutAs:           true,
-	RuleNoLimit:                  true,
-	RuleOffsetRows:               true,
-	RuleExistsSelectOne:          true,
-	RuleDeleteWithoutWhere:       true,
-	RuleInsertColumnList:         true,
-	RuleUpdateWithoutWhere:       true,
-	RuleSelectStar:               true,
-	RuleMissingTrailingSemicolon: true,
-	RuleUnaliasedTable:           true,
+	RuleInlinePrimaryKey:            true,
+	RuleUnnamedPrimaryKey:           true,
+	RuleUnnamedDefault:              true,
+	RuleIndexDirection:              true,
+	RuleOrderByDirection:            true,
+	RuleAliasWithoutAs:              true,
+	RuleNoLimit:                     true,
+	RuleOffsetRows:                  true,
+	RuleExistsSelectOne:             true,
+	RuleDeleteWithoutWhere:          true,
+	RuleInsertColumnList:            true,
+	RuleUpdateWithoutWhere:          true,
+	RuleSelectStar:                  true,
+	RuleMissingTrailingSemicolon:    true,
+	RuleUnaliasedTable:              true,
+	RuleMergeInsertColumnList: true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

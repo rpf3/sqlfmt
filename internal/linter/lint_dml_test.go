@@ -141,6 +141,35 @@ func TestLintUpdateWithoutWhere(t *testing.T) {
 	})
 }
 
+func TestLintMergeInsertColumnList(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "INSERT without column list warns",
+			input:    `merge into orders as t using staging as s on t.id = s.id when not matched then insert values (s.id, s.status);`,
+			wantRule: config.RuleMergeInsertColumnList,
+		},
+		{
+			name:     "INSERT with column list is clean",
+			input:    `merge into orders as t using staging as s on t.id = s.id when not matched then insert (id, status) values (s.id, s.status);`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+	t.Run("rule off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t,
+			`merge into orders as t using staging as s on t.id = s.id when not matched then insert values (s.id, s.status);`,
+			config.RuleMergeInsertColumnList)
+	})
+}
+
 func TestLintDeleteWithoutWhere(t *testing.T) {
 	tests := []struct {
 		name     string
