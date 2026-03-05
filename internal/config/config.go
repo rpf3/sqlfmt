@@ -98,7 +98,7 @@ func Default() Config {
 	return Config{
 		KeywordCase: KeywordLower,
 		IndentStyle: IndentTab,
-		IndentWidth: 4,
+		IndentWidth: 2,
 		CommaStyle:  CommaLeading,
 	}
 }

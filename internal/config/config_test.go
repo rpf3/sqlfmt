@@ -17,8 +17,8 @@ func TestDefault(t *testing.T) {
 	if cfg.IndentStyle != config.IndentTab {
 		t.Errorf("IndentStyle: got %q, want %q", cfg.IndentStyle, config.IndentTab)
 	}
-	if cfg.IndentWidth != 4 {
-		t.Errorf("IndentWidth: got %d, want 4", cfg.IndentWidth)
+	if cfg.IndentWidth != 2 {
+		t.Errorf("IndentWidth: got %d, want 2", cfg.IndentWidth)
 	}
 	if cfg.CommaStyle != config.CommaLeading {
 		t.Errorf("CommaStyle: got %q, want %q", cfg.CommaStyle, config.CommaLeading)
@@ -66,8 +66,8 @@ func TestLoadPartialFile(t *testing.T) {
 	if cfg.IndentStyle != config.IndentTab {
 		t.Errorf("IndentStyle: got %q, want %q (default)", cfg.IndentStyle, config.IndentTab)
 	}
-	if cfg.IndentWidth != 4 {
-		t.Errorf("IndentWidth: got %d, want 4 (default)", cfg.IndentWidth)
+	if cfg.IndentWidth != 2 {
+		t.Errorf("IndentWidth: got %d, want 2 (default)", cfg.IndentWidth)
 	}
 	if cfg.CommaStyle != config.CommaLeading {
 		t.Errorf("CommaStyle: got %q, want %q (default)", cfg.CommaStyle, config.CommaLeading)
