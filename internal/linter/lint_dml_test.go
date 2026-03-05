@@ -170,6 +170,40 @@ func TestLintMergeInsertColumnList(t *testing.T) {
 	})
 }
 
+func TestLintMergeUpdateWithoutCondition(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "WHEN MATCHED UPDATE without condition warns",
+			input:    `merge into orders as t using staging as s on t.id = s.id when matched then update set t.status = s.status when not matched then insert (id, status) values (s.id, s.status);`,
+			wantRule: config.RuleMergeUpdateWithoutCondition,
+		},
+		{
+			name:     "WHEN MATCHED UPDATE with AND condition is clean",
+			input:    `merge into orders as t using staging as s on t.id = s.id when matched and t.status != s.status then update set t.status = s.status when not matched then insert (id, status) values (s.id, s.status);`,
+			wantRule: "",
+		},
+		{
+			name:     "WHEN NOT MATCHED BY SOURCE UPDATE without condition warns",
+			input:    `merge into orders as t using staging as s on t.id = s.id when not matched by source then update set t.status = 'removed' when not matched then insert (id, status) values (s.id, s.status);`,
+			wantRule: config.RuleMergeUpdateWithoutCondition,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+	t.Run("rule off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t,
+			`merge into orders as t using staging as s on t.id = s.id when matched then update set t.status = s.status when not matched then insert (id, status) values (s.id, s.status);`,
+			config.RuleMergeUpdateWithoutCondition)
+	})
+}
+
 func TestLintDeleteWithoutWhere(t *testing.T) {
 	tests := []struct {
 		name     string
