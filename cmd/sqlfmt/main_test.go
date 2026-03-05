@@ -16,42 +16,73 @@ const formatted = "create table t\n(\n\tid integer not null\n);\n"
 // messy is the same statement in a form that needs formatting.
 const messy = "CREATE TABLE t(id INTEGER NOT NULL);"
 
+// writeTempSQL writes content to a temp file named test.sql and returns its path.
+func writeTempSQL(t *testing.T, content string) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.sql")
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
 func TestRunFormat(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	code := run(nil, strings.NewReader(messy), &stdout, &stderr)
+	path := writeTempSQL(t, messy)
+	var stderr bytes.Buffer
+	code := run([]string{path}, &stderr)
 	if code != 0 {
 		t.Fatalf("expected exit 0, got %d; stderr: %s", code, stderr.String())
-	}
-	if stdout.String() != formatted {
-		t.Errorf("stdout:\ngot:  %q\nwant: %q", stdout.String(), formatted)
 	}
 	if stderr.String() != "" {
 		t.Errorf("expected no stderr, got %q", stderr.String())
 	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != formatted {
+		t.Errorf("file content:\ngot:  %q\nwant: %q", string(data), formatted)
+	}
 }
 
 func TestRunCheckPasses(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	code := run([]string{"--check"}, strings.NewReader(formatted), &stdout, &stderr)
+	path := writeTempSQL(t, formatted)
+	var stderr bytes.Buffer
+	code := run([]string{"--check", path}, &stderr)
 	if code != 0 {
-		t.Fatalf("expected exit 0 for already-formatted input, got %d; stderr: %s", code, stderr.String())
-	}
-	if stdout.String() != "" {
-		t.Errorf("expected no stdout in --check mode, got %q", stdout.String())
+		t.Fatalf("expected exit 0 for already-formatted file, got %d; stderr: %s", code, stderr.String())
 	}
 }
 
 func TestRunCheckFails(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	code := run([]string{"--check"}, strings.NewReader(messy), &stdout, &stderr)
+	path := writeTempSQL(t, messy)
+	var stderr bytes.Buffer
+	code := run([]string{"--check", path}, &stderr)
 	if code == 0 {
-		t.Fatal("expected non-zero exit for unformatted input")
+		t.Fatal("expected non-zero exit for unformatted file")
 	}
 	if !strings.Contains(stderr.String(), "not formatted") {
 		t.Errorf("expected 'not formatted' in stderr, got %q", stderr.String())
 	}
-	if stdout.String() != "" {
-		t.Errorf("expected no stdout in --check mode, got %q", stdout.String())
+}
+
+func TestRunMultipleFiles(t *testing.T) {
+	path1 := writeTempSQL(t, messy)
+	path2 := writeTempSQL(t, messy)
+	var stderr bytes.Buffer
+	code := run([]string{path1, path2}, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d; stderr: %s", code, stderr.String())
+	}
+	for _, path := range []string{path1, path2} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != formatted {
+			t.Errorf("%s: got %q, want %q", path, string(data), formatted)
+		}
 	}
 }
 
@@ -118,15 +149,13 @@ func TestRunInitAlreadyExists(t *testing.T) {
 }
 
 func TestRunParseError(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	code := run(nil, strings.NewReader("this is not valid sql"), &stdout, &stderr)
+	path := writeTempSQL(t, "this is not valid sql")
+	var stderr bytes.Buffer
+	code := run([]string{path}, &stderr)
 	if code == 0 {
 		t.Fatal("expected non-zero exit for invalid SQL")
 	}
 	if stderr.String() == "" {
 		t.Error("expected error message on stderr")
-	}
-	if stdout.String() != "" {
-		t.Errorf("expected no stdout on parse error, got %q", stdout.String())
 	}
 }
