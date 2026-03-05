@@ -50,22 +50,22 @@ func TestLintOrderByDirection(t *testing.T) {
 	}{
 		{
 			name:     "no direction warns",
-			input:    `select id from orders order by created_at;`,
+			input:    `select id from orders as o order by created_at;`,
 			wantRule: "order-by-direction",
 		},
 		{
 			name:     "explicit asc is clean",
-			input:    `select id from orders order by created_at asc;`,
+			input:    `select id from orders as o order by created_at asc;`,
 			wantRule: "",
 		},
 		{
 			name:     "explicit desc is clean",
-			input:    `select id from orders order by created_at desc;`,
+			input:    `select id from orders as o order by created_at desc;`,
 			wantRule: "",
 		},
 		{
 			name:     "mixed: one unspecified warns",
-			input:    `select id from orders order by customer_id asc, created_at;`,
+			input:    `select id from orders as o order by customer_id asc, created_at;`,
 			wantRule: "order-by-direction",
 		},
 	}
@@ -76,7 +76,7 @@ func TestLintOrderByDirection(t *testing.T) {
 	}
 
 	t.Run("off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select id from orders order by created_at;`, config.RuleOrderByDirection)
+		checkRuleOff(t, `select id from orders as o order by created_at;`, config.RuleOrderByDirection)
 	})
 }
 
@@ -97,8 +97,8 @@ func TestLintAliasWithoutAs(t *testing.T) {
 			wantRule: "",
 		},
 		{
-			name:     "no alias is clean",
-			input:    `select id from orders;`,
+			name:     "no alias does not trigger alias-without-as",
+			input:    `select id from orders as o;`,
 			wantRule: "",
 		},
 		{
@@ -131,17 +131,17 @@ func TestLintNoLimit(t *testing.T) {
 	}{
 		{
 			name:     "LIMIT warns",
-			input:    `select id from orders limit 10;`,
+			input:    `select id from orders as o limit 10;`,
 			wantRule: "no-limit",
 		},
 		{
 			name:     "FETCH NEXT is clean",
-			input:    `select id from orders fetch next 10 rows only;`,
+			input:    `select id from orders as o fetch next 10 rows only;`,
 			wantRule: "",
 		},
 		{
 			name:     "no pagination is clean",
-			input:    `select id from orders;`,
+			input:    `select id from orders as o;`,
 			wantRule: "",
 		},
 	}
@@ -152,7 +152,7 @@ func TestLintNoLimit(t *testing.T) {
 	}
 
 	t.Run("off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select id from orders limit 10;`, config.RuleNoLimit)
+		checkRuleOff(t, `select id from orders as o limit 10;`, config.RuleNoLimit)
 	})
 }
 
@@ -164,17 +164,17 @@ func TestLintOffsetRows(t *testing.T) {
 	}{
 		{
 			name:     "OFFSET without ROWS warns",
-			input:    `select id from orders order by id asc offset 5 fetch next 10 rows only;`,
+			input:    `select id from orders as o order by id asc offset 5 fetch next 10 rows only;`,
 			wantRule: "offset-rows",
 		},
 		{
 			name:     "OFFSET ROWS is clean",
-			input:    `select id from orders order by id asc offset 5 rows fetch next 10 rows only;`,
+			input:    `select id from orders as o order by id asc offset 5 rows fetch next 10 rows only;`,
 			wantRule: "",
 		},
 		{
 			name:     "no OFFSET is clean",
-			input:    `select id from orders;`,
+			input:    `select id from orders as o;`,
 			wantRule: "",
 		},
 	}
@@ -186,7 +186,7 @@ func TestLintOffsetRows(t *testing.T) {
 
 	t.Run("off suppresses warning", func(t *testing.T) {
 		checkRuleOff(t,
-			`select id from orders order by id asc offset 5 fetch next 10 rows only;`,
+			`select id from orders as o order by id asc offset 5 fetch next 10 rows only;`,
 			config.RuleOffsetRows)
 	})
 }
@@ -199,22 +199,22 @@ func TestLintExistsSelectOne(t *testing.T) {
 	}{
 		{
 			name:     "EXISTS with column selection warns",
-			input:    `select id from orders where exists (select id from customers where customers.id = orders.customer_id);`,
+			input:    `select id from orders as o where exists (select id from customers as c where c.id = o.customer_id);`,
 			wantRule: "exists-select-one",
 		},
 		{
 			name:     "EXISTS SELECT 1 is clean",
-			input:    `select id from orders where exists (select 1 from customers where customers.id = orders.customer_id);`,
+			input:    `select id from orders as o where exists (select 1 from customers as c where c.id = o.customer_id);`,
 			wantRule: "",
 		},
 		{
 			name:     "IN subquery is not checked",
-			input:    `select id from orders where customer_id in (select id from customers);`,
+			input:    `select id from orders as o where o.customer_id in (select id from customers as c);`,
 			wantRule: "",
 		},
 		{
 			name:     "no subquery is clean",
-			input:    `select id from orders where status = 'active';`,
+			input:    `select id from orders as o where o.status = 'active';`,
 			wantRule: "",
 		},
 	}
@@ -226,8 +226,46 @@ func TestLintExistsSelectOne(t *testing.T) {
 
 	t.Run("off suppresses warning", func(t *testing.T) {
 		checkRuleOff(t,
-			`select id from orders where exists (select id from customers where customers.id = orders.customer_id);`,
+			`select id from orders as o where exists (select id from customers as c where c.id = o.customer_id);`,
 			config.RuleExistsSelectOne)
+	})
+}
+
+func TestLintUnaliasedTable(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "FROM table with no alias warns",
+			input:    `select id from orders;`,
+			wantRule: config.RuleUnaliasedTable,
+		},
+		{
+			name:     "FROM table with alias is clean",
+			input:    `select o.id from orders as o;`,
+			wantRule: "",
+		},
+		{
+			name:     "JOIN table with no alias warns",
+			input:    `select o.id from orders as o join customers on o.customer_id = customers.id;`,
+			wantRule: config.RuleUnaliasedTable,
+		},
+		{
+			name:     "JOIN table with alias is clean",
+			input:    `select o.id from orders as o join customers as c on o.customer_id = c.id;`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+
+	t.Run("rule off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t, `select id from orders;`, config.RuleUnaliasedTable)
 	})
 }
 
@@ -239,27 +277,27 @@ func TestLintSelectStar(t *testing.T) {
 	}{
 		{
 			name:     "select star warns",
-			input:    `select * from orders;`,
+			input:    `select * from orders as o;`,
 			wantRule: config.RuleSelectStar,
 		},
 		{
 			name:     "explicit column list is clean",
-			input:    `select id, status from orders;`,
+			input:    `select id, status from orders as o;`,
 			wantRule: "",
 		},
 		{
 			name:     "count star is clean",
-			input:    `select count(*) from orders;`,
+			input:    `select count(*) from orders as o;`,
 			wantRule: "",
 		},
 		{
 			name:     "select star in subquery warns",
-			input:    `select id from (select * from orders) as o;`,
+			input:    `select id from (select * from orders as o) as sq;`,
 			wantRule: config.RuleSelectStar,
 		},
 		{
 			name:     "select star in cte warns",
-			input:    `with o as (select * from orders) select id from o;`,
+			input:    `with o as (select * from orders as ord) select id from o;`,
 			wantRule: config.RuleSelectStar,
 		},
 	}
@@ -269,6 +307,6 @@ func TestLintSelectStar(t *testing.T) {
 		})
 	}
 	t.Run("rule off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select * from orders;`, config.RuleSelectStar)
+		checkRuleOff(t, `select * from orders as o;`, config.RuleSelectStar)
 	})
 }

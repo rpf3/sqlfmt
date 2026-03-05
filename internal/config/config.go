@@ -57,6 +57,7 @@ const (
 	RuleUpdateWithoutWhere       = "update-without-where"
 	RuleSelectStar               = "select-star"
 	RuleMissingTrailingSemicolon = "missing-trailing-semicolon"
+	RuleUnaliasedTable           = "unaliased-table"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -75,6 +76,7 @@ var knownRules = map[string]bool{
 	RuleUpdateWithoutWhere:       true,
 	RuleSelectStar:               true,
 	RuleMissingTrailingSemicolon: true,
+	RuleUnaliasedTable:           true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

@@ -49,6 +49,20 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 		}
 	}
 
+	// #13 unaliased-table (FROM source)
+	if s.From.Name != "" && s.From.Alias == "" {
+		l.warn(config.RuleUnaliasedTable,
+			fmt.Sprintf("table %q has no alias; give it one with AS", s.From.Name))
+	}
+
+	// #13 unaliased-table (JOINs)
+	for _, jc := range s.Joins {
+		if jc.Alias == "" {
+			l.warn(config.RuleUnaliasedTable,
+				fmt.Sprintf("joined table %q has no alias; give it one with AS", jc.Name))
+		}
+	}
+
 	// #35 no-limit
 	if s.Limit != "" {
 		l.warn(config.RuleNoLimit,
