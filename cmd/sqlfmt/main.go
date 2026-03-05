@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/rpf3/sqlfmt/internal/config"
 	"github.com/rpf3/sqlfmt/internal/formatter"
@@ -102,6 +103,23 @@ func runInit(dir string, stderr io.Writer) int {
 	return 0
 }
 
+// collectFiles returns paths of all .sql files found directly inside root.
+// The extension check is case-insensitive so that Schema.SQL is found on Linux
+// the same way it would be on case-insensitive file systems.
+func collectFiles(root string) ([]string, error) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.EqualFold(filepath.Ext(e.Name()), ".sql") {
+			files = append(files, filepath.Join(root, e.Name()))
+		}
+	}
+	return files, nil
+}
+
 // run is the testable entry point. It returns the process exit code.
 func run(args []string, stderr io.Writer) int {
 	if len(args) > 0 && args[0] == "init" {
@@ -138,8 +156,32 @@ func run(args []string, stderr io.Writer) int {
 
 	wae := cfg.WarningsAsErrors || *warningsAsErrors
 
+	positional := fset.Args()
+	if len(positional) == 0 {
+		positional = []string{"."}
+	}
+
+	var filePaths []string
+	for _, arg := range positional {
+		info, err := os.Stat(arg)
+		if err != nil {
+			fmt.Fprintf(stderr, "sqlfmt: %s: %v\n", arg, err)
+			return 1
+		}
+		if info.IsDir() {
+			found, err := collectFiles(arg)
+			if err != nil {
+				fmt.Fprintf(stderr, "sqlfmt: %v\n", err)
+				return 1
+			}
+			filePaths = append(filePaths, found...)
+		} else {
+			filePaths = append(filePaths, arg)
+		}
+	}
+
 	exitCode := 0
-	for _, path := range fset.Args() {
+	for _, path := range filePaths {
 		if code := processFile(path, cfg, *check, wae, stderr); code != 0 {
 			exitCode = code
 		}

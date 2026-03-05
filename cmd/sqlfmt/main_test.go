@@ -148,6 +148,77 @@ func TestRunInitAlreadyExists(t *testing.T) {
 	}
 }
 
+func TestRunDirectory(t *testing.T) {
+	dir := t.TempDir()
+	path1 := filepath.Join(dir, "a.sql")
+	path2 := filepath.Join(dir, "b.sql")
+	for _, p := range []string{path1, path2} {
+		if err := os.WriteFile(p, []byte(messy), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var stderr bytes.Buffer
+	code := run([]string{dir}, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d; stderr: %s", code, stderr.String())
+	}
+	for _, p := range []string{path1, path2} {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != formatted {
+			t.Errorf("%s: got %q, want %q", p, string(data), formatted)
+		}
+	}
+}
+
+func TestRunDirectoryIgnoresNonSQL(t *testing.T) {
+	dir := t.TempDir()
+	sqlPath := filepath.Join(dir, "a.sql")
+	txtPath := filepath.Join(dir, "notes.txt")
+	if err := os.WriteFile(sqlPath, []byte(messy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(txtPath, []byte("not sql"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var stderr bytes.Buffer
+	code := run([]string{dir}, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d; stderr: %s", code, stderr.String())
+	}
+	// .txt file must be untouched
+	data, _ := os.ReadFile(txtPath)
+	if string(data) != "not sql" {
+		t.Errorf("non-SQL file was modified")
+	}
+}
+
+func TestRunDirectoryEmpty(t *testing.T) {
+	dir := t.TempDir()
+	var stderr bytes.Buffer
+	code := run([]string{dir}, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit 0 for directory with no SQL files, got %d", code)
+	}
+}
+
+func TestRunDirectoryCheckFails(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.sql"), []byte(messy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var stderr bytes.Buffer
+	code := run([]string{"--check", dir}, &stderr)
+	if code == 0 {
+		t.Fatal("expected non-zero exit for unformatted file in directory")
+	}
+	if !strings.Contains(stderr.String(), "not formatted") {
+		t.Errorf("expected 'not formatted' in stderr, got %q", stderr.String())
+	}
+}
+
 func TestRunParseError(t *testing.T) {
 	path := writeTempSQL(t, "this is not valid sql")
 	var stderr bytes.Buffer
