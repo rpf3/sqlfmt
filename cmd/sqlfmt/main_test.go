@@ -219,6 +219,43 @@ func TestRunDirectoryCheckFails(t *testing.T) {
 	}
 }
 
+func TestRunRecursive(t *testing.T) {
+	dir := t.TempDir()
+	sub := filepath.Join(dir, "sub")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	topPath := filepath.Join(dir, "top.sql")
+	subPath := filepath.Join(sub, "nested.sql")
+	for _, p := range []string{topPath, subPath} {
+		if err := os.WriteFile(p, []byte(messy), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Without --recursive the nested file is not touched.
+	var stderr bytes.Buffer
+	code := run([]string{dir}, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d; stderr: %s", code, stderr.String())
+	}
+	data, _ := os.ReadFile(subPath)
+	if string(data) != messy {
+		t.Error("expected nested file to be untouched without --recursive")
+	}
+
+	// With --recursive both files are formatted.
+	stderr.Reset()
+	code = run([]string{"--recursive", dir}, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit 0 with --recursive, got %d; stderr: %s", code, stderr.String())
+	}
+	data, _ = os.ReadFile(subPath)
+	if string(data) != formatted {
+		t.Errorf("nested file not formatted with --recursive: got %q", string(data))
+	}
+}
+
 func TestRunParseError(t *testing.T) {
 	path := writeTempSQL(t, "this is not valid sql")
 	var stderr bytes.Buffer

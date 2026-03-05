@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -103,10 +104,26 @@ func runInit(dir string, stderr io.Writer) int {
 	return 0
 }
 
-// collectFiles returns paths of all .sql files found directly inside root.
+// collectFiles returns paths of all .sql files under root.
+// When recursive is false only the immediate children of root are scanned;
+// when true the entire subtree is walked via filepath.WalkDir.
 // The extension check is case-insensitive so that Schema.SQL is found on Linux
 // the same way it would be on case-insensitive file systems.
-func collectFiles(root string) ([]string, error) {
+func collectFiles(root string, recursive bool) ([]string, error) {
+	if recursive {
+		var files []string
+		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if !d.IsDir() && strings.EqualFold(filepath.Ext(d.Name()), ".sql") {
+				files = append(files, path)
+			}
+			return nil
+		})
+		return files, err
+	}
+
 	entries, err := os.ReadDir(root)
 	if err != nil {
 		return nil, err
@@ -135,6 +152,7 @@ func run(args []string, stderr io.Writer) int {
 	fset.SetOutput(stderr)
 	check := fset.Bool("check", false, "exit non-zero if any file is not formatted; write nothing")
 	warningsAsErrors := fset.Bool("warnings-as-errors", false, "exit non-zero if any lint warnings are emitted")
+	recursive := fset.Bool("recursive", false, "recurse into subdirectories when a directory argument is given")
 
 	if err := fset.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -169,7 +187,7 @@ func run(args []string, stderr io.Writer) int {
 			return 1
 		}
 		if info.IsDir() {
-			found, err := collectFiles(arg)
+			found, err := collectFiles(arg, *recursive)
 			if err != nil {
 				fmt.Fprintf(stderr, "sqlfmt: %v\n", err)
 				return 1
