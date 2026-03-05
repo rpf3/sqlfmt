@@ -28,6 +28,21 @@ func (l *linter) checkMergeStmt(s *parser.MergeStmt) {
 			l.warn(config.RuleMergeInsertColumnList,
 				fmt.Sprintf("MERGE into %q: INSERT clause has no column list; list the target columns explicitly", s.Target))
 		}
+
+		// #111 merge-update-without-condition
+		if clause.Action == parser.MergeActionUpdate && clause.Condition == "" {
+			var when string
+			switch clause.MatchType {
+			case parser.MergeMatched:
+				when = "WHEN MATCHED"
+			case parser.MergeNotMatchedByTarget:
+				when = "WHEN NOT MATCHED"
+			case parser.MergeNotMatchedBySource:
+				when = "WHEN NOT MATCHED BY SOURCE"
+			}
+			l.warn(config.RuleMergeUpdateWithoutCondition,
+				fmt.Sprintf("MERGE into %q: %s THEN UPDATE has no AND condition; every qualifying row will be updated", s.Target, when))
+		}
 	}
 }
 

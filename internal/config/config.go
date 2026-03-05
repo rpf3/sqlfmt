@@ -58,7 +58,8 @@ const (
 	RuleSelectStar                  = "select-star"
 	RuleMissingTrailingSemicolon    = "missing-trailing-semicolon"
 	RuleUnaliasedTable              = "unaliased-table"
-	RuleMergeInsertColumnList = "merge-insert-column-list"
+	RuleMergeInsertColumnList       = "merge-insert-column-list"
+	RuleMergeUpdateWithoutCondition = "merge-update-without-condition"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -78,7 +79,8 @@ var knownRules = map[string]bool{
 	RuleSelectStar:                  true,
 	RuleMissingTrailingSemicolon:    true,
 	RuleUnaliasedTable:              true,
-	RuleMergeInsertColumnList: true,
+	RuleMergeInsertColumnList:       true,
+	RuleMergeUpdateWithoutCondition: true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.
