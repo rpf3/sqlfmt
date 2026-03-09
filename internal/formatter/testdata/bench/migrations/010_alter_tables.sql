@@ -1,0 +1,10 @@
+ALTER TABLE users ADD COLUMN phone VARCHAR(20);
+ALTER TABLE users ADD COLUMN preferred_language VARCHAR(10) NOT NULL DEFAULT 'en';
+ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(50);
+ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00;
+ALTER TABLE products ADD COLUMN meta_title VARCHAR(255);
+ALTER TABLE products ADD COLUMN meta_description TEXT;
+UPDATE users SET preferred_language = 'en' WHERE preferred_language IS NULL;
+UPDATE orders SET discount_amount = 0.00 WHERE discount_amount IS NULL;
+CREATE INDEX idx_users_phone ON users (phone ASC);
+CREATE INDEX idx_orders_coupon ON orders (coupon_code ASC);
