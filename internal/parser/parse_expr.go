@@ -6,10 +6,44 @@ import (
 	"github.com/rpf3/sqlfmt/internal/lexer"
 )
 
+// builtinFunctions is the set of SQL built-in function names that sqlfmt
+// normalises to lowercase regardless of how they appear in the source.
+var builtinFunctions = map[string]bool{
+	// Aggregate
+	"COUNT": true, "SUM": true, "AVG": true, "MAX": true, "MIN": true,
+	"STRING_AGG": true, "LISTAGG": true, "GROUP_CONCAT": true,
+	// Window
+	"ROW_NUMBER": true, "RANK": true, "DENSE_RANK": true, "NTILE": true,
+	"LAG": true, "LEAD": true, "FIRST_VALUE": true, "LAST_VALUE": true,
+	"CUME_DIST": true, "PERCENT_RANK": true,
+	// Null / conditional
+	"COALESCE": true, "NULLIF": true, "ISNULL": true, "NVL": true,
+	"IFNULL": true, "IIF": true,
+	// String
+	"UPPER": true, "LOWER": true, "TRIM": true, "LTRIM": true, "RTRIM": true,
+	"LEN": true, "LENGTH": true, "SUBSTRING": true, "SUBSTR": true,
+	"REPLACE": true, "CHARINDEX": true, "PATINDEX": true, "STUFF": true,
+	"CONCAT": true,
+	// Date / time
+	"GETDATE": true, "NOW": true, "DATEADD": true, "DATEDIFF": true,
+	"DATEPART": true, "DATENAME": true, "YEAR": true, "MONTH": true, "DAY": true,
+	"EOMONTH": true, "SYSDATETIME": true, "FORMAT": true,
+	// Type conversion (CAST is already a keyword)
+	"CONVERT": true, "TRY_CAST": true, "TRY_CONVERT": true,
+	"PARSE": true, "TRY_PARSE": true,
+	// Numeric
+	"ROUND": true, "FLOOR": true, "CEILING": true,
+	"ABS": true, "POWER": true, "SQRT": true, "SIGN": true,
+}
+
 // exprToken returns the normalised string for a single expression token:
-// keywords are lowercased; everything else is preserved verbatim.
+// keywords are lowercased; known built-in function names are lowercased;
+// everything else is preserved verbatim.
 func exprToken(tok lexer.Token) string {
 	if tok.Type == lexer.Keyword {
+		return strings.ToLower(tok.Value)
+	}
+	if tok.Type == lexer.Ident && builtinFunctions[strings.ToUpper(tok.Value)] {
 		return strings.ToLower(tok.Value)
 	}
 	return tok.Value

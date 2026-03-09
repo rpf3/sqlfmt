@@ -4,7 +4,7 @@ with ranked as
 	select
 		customer_id
 	,	total
-	,	ROW_NUMBER() over (partition by customer_id order by created_at desc) as rn
+	,	row_number() over (partition by customer_id order by created_at desc) as rn
 	from
 		orders
 )
