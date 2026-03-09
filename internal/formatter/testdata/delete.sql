@@ -4,7 +4,7 @@ from
 	orders as o
 where
 	o.status = 'cancelled'
-and	o.created_at < '2024-01-01';
+	and o.created_at < '2024-01-01';
 
 delete
 	s
