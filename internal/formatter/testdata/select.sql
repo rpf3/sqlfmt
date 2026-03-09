@@ -305,3 +305,10 @@ inner join
 where
 	o.status = 'active'
 	and o.total_amount > 0;
+
+select
+	count(*) as total
+,	sum(t.amount) as revenue
+,	avg(t.amount) as avg_amount
+from
+	orders as t;
