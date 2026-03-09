@@ -19,6 +19,16 @@ jobs:
         with:
           go-version: "1.24"
 
+      - name: Ensure gh-pages branch exists
+        run: |
+          git fetch origin gh-pages 2>/dev/null || (
+            git checkout --orphan gh-pages &&
+            git rm -rf . &&
+            git commit --allow-empty -m "init: create gh-pages branch for benchmark results" &&
+            git push origin gh-pages &&
+            git checkout -
+          )
+
       - name: Run benchmarks
         run: go test -bench=. -benchmem -count=3 ./... | tee bench.txt
 
