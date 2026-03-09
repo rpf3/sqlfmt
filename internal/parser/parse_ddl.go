@@ -817,13 +817,9 @@ func (p *parser) parseUpdate() (Statement, error) {
 
 	if p.curKeyword("WHERE") {
 		p.advance()
-		where, err := p.parseExprRaw(func() bool {
+		stmt.Where = p.parseExpr(func() bool {
 			return p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
 		})
-		if err != nil {
-			return nil, err
-		}
-		stmt.Where = where
 	}
 
 	p.consumeSemicolon()
@@ -955,13 +951,9 @@ func (p *parser) parseDelete() (Statement, error) {
 
 	if p.curKeyword("WHERE") {
 		p.advance()
-		where, err := p.parseExprRaw(func() bool {
+		stmt.Where = p.parseExpr(func() bool {
 			return p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
 		})
-		if err != nil {
-			return nil, err
-		}
-		stmt.Where = where
 	}
 
 	p.consumeSemicolon()
@@ -1017,27 +1009,19 @@ func (p *parser) parseMerge() (Statement, error) {
 
 	// The ON condition may be paren-wrapped in canonical output (for round-trip
 	// idempotency). Consume the outer parens so the stored expression is bare.
-	var on string
+	var on Expr
 	if p.curIs(lexer.LParen) {
 		p.advance()
-		expr, err := p.parseExprRaw(func() bool {
+		on = p.parseExpr(func() bool {
 			return p.curIs(lexer.RParen) || p.curIs(lexer.EOF)
 		})
-		if err != nil {
-			return nil, err
-		}
 		if _, err := p.expect(lexer.RParen); err != nil {
 			return nil, err
 		}
-		on = expr
 	} else {
-		expr, err := p.parseExprRaw(func() bool {
+		on = p.parseExpr(func() bool {
 			return p.curKeyword("WHEN") || p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
 		})
-		if err != nil {
-			return nil, err
-		}
-		on = expr
 	}
 	stmt.On = on
 
@@ -1101,27 +1085,19 @@ func (p *parser) parseMergeWhenClause() (MergeWhenClause, error) {
 	if p.curKeyword("AND") {
 		p.advance()
 		// AND conditions may also be paren-wrapped in canonical output.
-		var cond string
+		var cond Expr
 		if p.curIs(lexer.LParen) {
 			p.advance()
-			expr, err := p.parseExprRaw(func() bool {
+			cond = p.parseExpr(func() bool {
 				return p.curIs(lexer.RParen) || p.curIs(lexer.EOF)
 			})
-			if err != nil {
-				return MergeWhenClause{}, err
-			}
 			if _, err := p.expect(lexer.RParen); err != nil {
 				return MergeWhenClause{}, err
 			}
-			cond = expr
 		} else {
-			expr, err := p.parseExprRaw(func() bool {
+			cond = p.parseExpr(func() bool {
 				return p.curKeyword("THEN")
 			})
-			if err != nil {
-				return MergeWhenClause{}, err
-			}
-			cond = expr
 		}
 		clause.Condition = cond
 	}

@@ -35,6 +35,41 @@ func needsSelectSpace(prev, cur lexer.TokenType) bool {
 	return true
 }
 
+// parseExpr wraps parseExprRaw into a RawExpr, providing a zero-behaviour-change
+// bridge from string-based parsing to the Expr interface. Callers that do not
+// need AND-splitting should use this instead of parseExprRaw directly.
+func (p *parser) parseExpr(stopFn func() bool) Expr {
+	text, _ := p.parseExprRaw(stopFn)
+	return &RawExpr{Text: text}
+}
+
+// parseAndChain splits an expression on top-level AND tokens, returning an
+// AndChain when more than one term is found, or a single RawExpr otherwise.
+// This enables the formatter to emit multi-line WHERE/HAVING/ON predicates
+// (#101) while keeping Render(result) == parseExprRaw(same stopFn) for all
+// inputs — golden tests remain byte-identical.
+func (p *parser) parseAndChain(stopFn func() bool) Expr {
+	var terms []Expr
+	for {
+		// Read one AND-term: stop at AND (at depth 0) or at the caller's stop.
+		text, _ := p.parseExprRaw(func() bool {
+			return p.curKeyword("AND") || stopFn()
+		})
+		terms = append(terms, &RawExpr{Text: text})
+
+		// If the caller's stop condition fired (not AND), we're done.
+		if !p.curKeyword("AND") {
+			break
+		}
+		p.advance() // consume AND
+	}
+
+	if len(terms) == 1 {
+		return terms[0]
+	}
+	return &AndChain{Terms: terms}
+}
+
 // parseExprRaw reads tokens into a normalised expression string, tracking
 // parenthesis depth. At depth > 0 all tokens are consumed unconditionally.
 // At depth 0, reading stops when stopFn returns true, when an unmatched

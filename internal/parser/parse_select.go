@@ -45,16 +45,14 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 	if p.curKeyword("WHERE") {
 		p.advance()
 		// Stop before a subquery opening so we can parse it structurally.
-		pred, err := p.parseExprRaw(func() bool {
+		stopFn := func() bool {
 			return (p.curIs(lexer.LParen) && p.peekKeyword("SELECT")) ||
 				p.curKeyword("GROUP") || p.curKeyword("HAVING") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
 				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
-		})
-		if err != nil {
-			return nil, err
 		}
+		whereExpr := p.parseAndChain(stopFn)
 		if p.curIs(lexer.LParen) && p.peekKeyword("SELECT") {
 			p.advance() // consume (
 			subq, err := p.parseSelectCore()
@@ -64,10 +62,10 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 			if _, err := p.expect(lexer.RParen); err != nil {
 				return nil, err
 			}
-			stmt.WherePred = pred
+			stmt.WherePred = Render(whereExpr)
 			stmt.WhereSubq = subq
 		} else {
-			stmt.Where = pred
+			stmt.Where = whereExpr
 		}
 	}
 
@@ -83,15 +81,11 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 
 	if p.curKeyword("HAVING") {
 		p.advance()
-		having, err := p.parseExprRaw(func() bool {
+		stmt.Having = p.parseAndChain(func() bool {
 			return p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
 				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
 		})
-		if err != nil {
-			return nil, err
-		}
-		stmt.Having = having
 	}
 
 	if p.curKeyword("ORDER") && p.peekKeyword("BY") {
@@ -392,17 +386,13 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 		// ON condition or USING column list
 		if p.curKeyword("ON") {
 			p.advance()
-			expr, err := p.parseExprRaw(func() bool {
+			jc.On = p.parseAndChain(func() bool {
 				return p.isNextJoin() ||
 					p.curKeyword("WHERE") || p.curKeyword("GROUP") ||
 					p.curKeyword("HAVING") || p.curKeyword("ORDER") ||
 					p.curKeyword("OFFSET") || p.curKeyword("FETCH") ||
 					p.curKeyword("LIMIT") || p.curIs(lexer.Semicolon)
 			})
-			if err != nil {
-				return nil, err
-			}
-			jc.On = expr
 		} else if p.curKeyword("USING") {
 			p.advance()
 			cols, err := p.parseIdentList()

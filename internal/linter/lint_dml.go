@@ -15,7 +15,7 @@ func (l *linter) checkInsertStmt(s *parser.InsertStmt) {
 }
 
 func (l *linter) checkUpdateStmt(s *parser.UpdateStmt) {
-	if s.Where == "" {
+	if s.Where == nil {
 		l.warn(config.RuleUpdateWithoutWhere,
 			fmt.Sprintf("UPDATE on table %q has no WHERE clause", s.Target))
 	}
@@ -30,7 +30,7 @@ func (l *linter) checkMergeStmt(s *parser.MergeStmt) {
 		}
 
 		// #111 merge-update-without-condition
-		if clause.Action == parser.MergeActionUpdate && clause.Condition == "" {
+		if clause.Action == parser.MergeActionUpdate && clause.Condition == nil {
 			var when string
 			switch clause.MatchType {
 			case parser.MergeMatched:
@@ -52,7 +52,7 @@ func (l *linter) checkDeleteStmt(s *parser.DeleteStmt) {
 		l.warn(config.RuleAliasWithoutAs,
 			fmt.Sprintf("table %q has a bare alias %q; use AS", s.Table, s.Alias))
 	}
-	if s.Where == "" {
+	if s.Where == nil {
 		l.warn(config.RuleDeleteWithoutWhere,
 			fmt.Sprintf("DELETE on table %q has no WHERE clause", s.Table))
 	}
