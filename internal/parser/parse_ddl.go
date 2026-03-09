@@ -443,19 +443,20 @@ func (p *parser) parseTableConstraint() (TableConstraint, error) {
 }
 
 // parseCheckExpr parses the parenthesised body of a CHECK constraint and
-// returns a normalised expression string (keywords lowercased, tokens
-// space-joined, outer parens stripped). Nested parens are handled via a
-// depth counter so expressions like CHECK (x IN (1, 2)) are captured whole.
-func (p *parser) parseCheckExpr() (string, error) {
+// returns a RawExpr containing the normalised expression text (keywords
+// lowercased, tokens space-joined, outer parens stripped). Nested parens are
+// handled via a depth counter so expressions like CHECK (x IN (1, 2)) are
+// captured whole.
+func (p *parser) parseCheckExpr() (Expr, error) {
 	if _, err := p.expect(lexer.LParen); err != nil {
-		return "", err
+		return nil, err
 	}
 	var parts []string
 	depth := 1
 	for {
 		tok := p.cur
 		if tok.Type == lexer.EOF {
-			return "", fmt.Errorf("unterminated CHECK expression at %d:%d", tok.Line, tok.Column)
+			return nil, fmt.Errorf("unterminated CHECK expression at %d:%d", tok.Line, tok.Column)
 		}
 		if tok.Type == lexer.RParen {
 			depth--
@@ -472,7 +473,7 @@ func (p *parser) parseCheckExpr() (string, error) {
 		}
 		p.advance()
 	}
-	return strings.Join(parts, " "), nil
+	return &RawExpr{Text: strings.Join(parts, " ")}, nil
 }
 
 // parseReferences parses: REFERENCES <table> [( <columns> )]
@@ -537,7 +538,7 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		tok := p.cur
 		switch tok.Type {
 		case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
-			col.Default = tok.Value
+			col.Default = &RawExpr{Text: tok.Value}
 			p.advance()
 		default:
 			return ColumnDef{}, fmt.Errorf(
@@ -578,7 +579,7 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		tok := p.cur
 		switch tok.Type {
 		case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
-			col.Default = tok.Value
+			col.Default = &RawExpr{Text: tok.Value}
 			p.advance()
 		default:
 			return ColumnDef{}, fmt.Errorf(
@@ -764,18 +765,15 @@ func (p *parser) parseInsert() (Statement, error) {
 }
 
 // parseValueRow parses one parenthesised list of value expressions: (expr, expr, ...)
-func (p *parser) parseValueRow() ([]string, error) {
+func (p *parser) parseValueRow() ([]Expr, error) {
 	if _, err := p.expect(lexer.LParen); err != nil {
 		return nil, err
 	}
-	var exprs []string
+	var exprs []Expr
 	for {
-		expr, err := p.parseExprRaw(func() bool {
+		expr := p.parseExpr(func() bool {
 			return p.curIs(lexer.Comma) || p.curIs(lexer.RParen)
 		})
-		if err != nil {
-			return nil, err
-		}
 		exprs = append(exprs, expr)
 		if !p.curIs(lexer.Comma) {
 			break
@@ -888,17 +886,14 @@ func (p *parser) parseSetClause() ([]UpdateSet, error) {
 			return nil, err
 		}
 
-		expr, err := p.parseExprRaw(func() bool {
+		expr := p.parseExpr(func() bool {
 			return p.curIs(lexer.Comma) ||
 				p.curKeyword("WHERE") ||
 				p.curKeyword("FROM") ||
 				p.curIs(lexer.Semicolon) ||
 				p.curIs(lexer.EOF)
 		})
-		if err != nil {
-			return nil, err
-		}
-		sets = append(sets, UpdateSet{Column: colName, Expr: expr})
+		sets = append(sets, UpdateSet{Column: colName, Value: expr})
 
 		if !p.curIs(lexer.Comma) {
 			break
@@ -1171,16 +1166,13 @@ func (p *parser) parseMergeSetClause() ([]UpdateSet, error) {
 		if _, err := p.expect(lexer.Eq); err != nil {
 			return nil, err
 		}
-		expr, err := p.parseExprRaw(func() bool {
+		expr := p.parseExpr(func() bool {
 			return p.curIs(lexer.Comma) ||
 				p.curKeyword("WHEN") ||
 				p.curIs(lexer.Semicolon) ||
 				p.curIs(lexer.EOF)
 		})
-		if err != nil {
-			return nil, err
-		}
-		sets = append(sets, UpdateSet{Column: colName, Expr: expr})
+		sets = append(sets, UpdateSet{Column: colName, Value: expr})
 		if !p.curIs(lexer.Comma) {
 			break
 		}

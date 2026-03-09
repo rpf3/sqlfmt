@@ -99,7 +99,7 @@ func (l *linter) checkCreateTable(s *parser.CreateTableStmt) {
 				),
 			)
 		}
-		if col.Default != "" && col.DefaultConstraint == "" {
+		if col.Default != nil && col.DefaultConstraint == "" {
 			l.warn(
 				config.RuleUnnamedDefault,
 				fmt.Sprintf(
