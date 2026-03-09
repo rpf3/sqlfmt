@@ -30,7 +30,11 @@ func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 	b.WriteString(f.kw("values"))
 	for i, row := range s.Values {
 		b.WriteString("\n(")
-		f.writeCommaList(&b, row)
+		rowStrs := make([]string, len(row))
+		for j, v := range row {
+			rowStrs[j] = parser.Render(v)
+		}
+		f.writeCommaList(&b, rowStrs)
 		b.WriteString("\n)")
 		if i < len(s.Values)-1 {
 			b.WriteString(",") // structural row separator, not a list comma
@@ -53,7 +57,7 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 
 	setStrs := make([]string, len(s.Sets))
 	for i, set := range s.Sets {
-		setStrs[i] = set.Column + " = " + set.Expr
+		setStrs[i] = set.Column + " = " + parser.Render(set.Value)
 	}
 	f.writeCommaList(&b, setStrs)
 
@@ -213,9 +217,9 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 	if col.Unique {
 		b.WriteString(" " + f.kw("unique"))
 	}
-	if col.Check != "" {
+	if col.Check != nil {
 		b.WriteString(" " + f.kw("check") + " (")
-		b.WriteString(col.Check)
+		b.WriteString(parser.Render(col.Check))
 		b.WriteString(")")
 	}
 	if col.References != nil {
@@ -227,7 +231,7 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 			b.WriteString(")")
 		}
 	}
-	if col.Default != "" {
+	if col.Default != nil {
 		b.WriteString("\n")
 		b.WriteString(ind + ind)
 		if col.DefaultConstraint != "" {
@@ -236,7 +240,7 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 			b.WriteString(" ")
 		}
 		b.WriteString(f.kw("default") + " ")
-		b.WriteString(f.normalizeDefaultExpr(col.Default))
+		b.WriteString(f.normalizeDefaultExpr(parser.Render(col.Default)))
 	}
 }
 
@@ -271,7 +275,7 @@ func (f *formatter) writeTableConstraint(b *strings.Builder, tc parser.TableCons
 		b.WriteString(")")
 	case parser.ConstraintCheck:
 		b.WriteString(f.kw("check") + " (")
-		b.WriteString(tc.Check)
+		b.WriteString(parser.Render(tc.Check))
 		b.WriteString(")")
 	}
 }
@@ -427,7 +431,7 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 		case parser.MergeActionUpdate:
 			b.WriteString(f.kw(" update set"))
 			for i, set := range clause.Sets {
-				item := set.Column + " = " + set.Expr
+				item := set.Column + " = " + parser.Render(set.Value)
 				if i == 0 {
 					b.WriteString("\n" + ind + item)
 				} else {
@@ -452,9 +456,9 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 			b.WriteString("\n(")
 			for i, val := range clause.Values {
 				if i == 0 {
-					b.WriteString("\n" + ind + val)
+					b.WriteString("\n" + ind + parser.Render(val))
 				} else {
-					b.WriteString("\n,\t" + val)
+					b.WriteString("\n,\t" + parser.Render(val))
 				}
 			}
 			b.WriteString("\n)")

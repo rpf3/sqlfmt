@@ -55,7 +55,7 @@ type TableConstraint struct {
 	Columns    []string // local column names (PK, FK)
 	RefTable   string   // for FK: referenced table name
 	RefColumns []string // for FK: referenced column names; empty means implicit PK reference
-	Check      string   // for CHECK: normalised expression text (without outer parens)
+	Check      Expr     // for CHECK: expression (without outer parens); nil for non-CHECK constraints
 }
 
 // Nullability represents an optional nullability constraint on a column.
@@ -153,7 +153,7 @@ func (*DeleteStmt) statementNode() {}
 type InsertStmt struct {
 	Table   string
 	Columns []string    // target column list; nil if no explicit column list
-	Values  [][]string  // rows of raw value expressions; nil if Select is set
+	Values  [][]Expr    // rows of value expressions; nil if Select is set
 	Select  *SelectStmt // INSERT … SELECT form; nil if Values is set
 }
 
@@ -174,7 +174,7 @@ func (*SetStmt) statementNode() {}
 // UpdateSet is one col = expr assignment in an UPDATE SET clause.
 type UpdateSet struct {
 	Column string // column name, possibly qualified (e.g. "o.status")
-	Expr   string // raw value expression (keywords normalised)
+	Value  Expr   // right-hand side expression
 }
 
 // UpdateFromSource is the FROM clause in a SQL Server style UPDATE.
@@ -228,7 +228,7 @@ type MergeWhenClause struct {
 	Action    MergeActionType
 	Sets      []UpdateSet // for MergeActionUpdate
 	Columns   []string    // for MergeActionInsert: column list; nil if absent
-	Values    []string    // for MergeActionInsert: single row of value expressions
+	Values    []Expr      // for MergeActionInsert: single row of value expressions
 }
 
 // MergeStmt represents a MERGE statement.
@@ -326,9 +326,9 @@ type ColumnDef struct {
 	DataType          string           // e.g. "INTEGER", "TEXT", "VARCHAR(255)", "NUMERIC(10, 2)"
 	PrimaryKey        bool             // PRIMARY KEY inline constraint
 	DefaultConstraint string           // optional CONSTRAINT name preceding DEFAULT; empty if unnamed
-	Default           string           // DEFAULT expression verbatim; empty means no DEFAULT clause
+	Default           Expr             // DEFAULT expression; nil means no DEFAULT clause
 	Nullability       Nullability      // optional nullability constraint
 	Unique            bool             // UNIQUE inline constraint
-	Check             string           // optional inline CHECK expression (without outer parens); empty if absent
+	Check             Expr             // optional inline CHECK expression (without outer parens); nil if absent
 	References        *ColumnReference // optional inline REFERENCES clause
 }
