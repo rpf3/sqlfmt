@@ -84,11 +84,8 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 	}
 
 	if s.Where != nil {
-		b.WriteString("\n")
-		b.WriteString(f.kw("where"))
-		b.WriteString("\n")
-		b.WriteString(ind)
-		b.WriteString(parser.Render(s.Where))
+		b.WriteString("\n" + f.kw("where"))
+		f.writeExprPred(&b, s.Where)
 	}
 	b.WriteString(";")
 	return b.String()
@@ -122,11 +119,8 @@ func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 		b.WriteString(s.Table)
 	}
 	if s.Where != nil {
-		b.WriteString("\n")
-		b.WriteString(f.kw("where"))
-		b.WriteString("\n")
-		b.WriteString(ind)
-		b.WriteString(parser.Render(s.Where))
+		b.WriteString("\n" + f.kw("where"))
+		f.writeExprPred(&b, s.Where)
 	}
 	b.WriteString(";")
 	return b.String()

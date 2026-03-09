@@ -815,7 +815,7 @@ func (p *parser) parseUpdate() (Statement, error) {
 
 	if p.curKeyword("WHERE") {
 		p.advance()
-		stmt.Where = p.parseExpr(func() bool {
+		stmt.Where = p.parseAndChain(func() bool {
 			return p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
 		})
 	}
@@ -946,7 +946,7 @@ func (p *parser) parseDelete() (Statement, error) {
 
 	if p.curKeyword("WHERE") {
 		p.advance()
-		stmt.Where = p.parseExpr(func() bool {
+		stmt.Where = p.parseAndChain(func() bool {
 			return p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
 		})
 	}

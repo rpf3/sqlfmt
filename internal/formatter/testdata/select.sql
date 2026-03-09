@@ -271,3 +271,37 @@ order by
 	lifetime_value desc
 fetch next
 	100 rows only;
+
+select
+	t.id
+,	t.name
+from
+	orders as t
+where
+	t.status = 'active'
+and	t.region = 'us'
+and	t.amount > 100;
+
+select
+	t.status
+,	count(*) as order_count
+from
+	orders as t
+group by
+	t.status
+having
+	count(*) > 10
+and	sum(t.amount) > 1000;
+
+select
+	o.id
+,	o.status
+from
+	orders as o
+inner join
+	customers as c
+		on c.id = o.customer_id
+		and c.active = 1
+where
+	o.status = 'active'
+and	o.total_amount > 0;

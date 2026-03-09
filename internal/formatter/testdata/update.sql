@@ -40,4 +40,5 @@ set
 from
 	orders as o
 where
-	o.id = 1 and o.active = 1;
+	o.id = 1
+and	o.active = 1;

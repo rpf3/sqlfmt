@@ -20,3 +20,6 @@ WITH active_orders AS (SELECT t.id,t.customer_id FROM orders AS t WHERE t.status
 SELECT t.id,t.customer_id,t.total_amount,row_number() OVER (PARTITION BY t.customer_id ORDER BY t.created_at DESC) AS rn FROM orders AS t;
 SELECT t.id,t.total_amount,rank() OVER (ORDER BY t.total_amount DESC) AS amount_rank FROM orders AS t;
 SELECT DISTINCT c.id,c.name AS customer_name,sum(o.total_amount) AS lifetime_value,count(o.id) AS order_count,row_number() OVER (ORDER BY sum(o.total_amount) DESC) AS value_rank FROM customers AS c INNER JOIN orders AS o ON o.customer_id = c.id WHERE c.created_at >= '2024-01-01' GROUP BY c.id,c.name HAVING sum(o.total_amount) > 1000 ORDER BY lifetime_value DESC FETCH NEXT 100 ROWS ONLY;
+SELECT t.id,t.name FROM orders AS t WHERE t.status = 'active' AND t.region = 'us' AND t.amount > 100;
+SELECT t.status,count(*) AS order_count FROM orders AS t GROUP BY t.status HAVING count(*) > 10 AND sum(t.amount) > 1000;
+SELECT o.id,o.status FROM orders AS o INNER JOIN customers AS c ON c.id = o.customer_id AND c.active = 1 WHERE o.status = 'active' AND o.total_amount > 0;

@@ -3,7 +3,8 @@ delete
 from
 	orders as o
 where
-	o.status = 'cancelled' and o.created_at < '2024-01-01';
+	o.status = 'cancelled'
+and	o.created_at < '2024-01-01';
 
 delete
 	s
