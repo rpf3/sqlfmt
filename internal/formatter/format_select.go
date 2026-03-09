@@ -81,7 +81,7 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	// SELECT list
 	cols := make([]string, 0, len(s.Columns))
 	for _, col := range s.Columns {
-		c := col.Expr
+		c := parser.Render(col.Value)
 		if col.Alias != "" {
 			c += " " + f.kw("as") + " " + col.Alias
 		}
@@ -138,7 +138,11 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	// GROUP BY
 	if len(s.GroupBy) > 0 {
 		b.WriteString("\n" + f.kw("group by"))
-		f.writeCommaList(&b, s.GroupBy)
+		groupByStrs := make([]string, len(s.GroupBy))
+		for i, g := range s.GroupBy {
+			groupByStrs[i] = parser.Render(g)
+		}
+		f.writeCommaList(&b, groupByStrs)
 	}
 
 	// HAVING
@@ -153,7 +157,7 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		b.WriteString("\n" + f.kw("order by"))
 		orderItems := make([]string, 0, len(s.OrderBy))
 		for _, item := range s.OrderBy {
-			oi := item.Expr
+			oi := parser.Render(item.Value)
 			switch item.Direction {
 			case parser.DirectionDesc:
 				oi += " " + f.kw("desc")

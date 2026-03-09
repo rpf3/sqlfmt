@@ -36,8 +36,8 @@ func TestParseSelectStar(t *testing.T) {
 	if len(stmt.Columns) != 1 {
 		t.Fatalf("Columns: got %d, want 1", len(stmt.Columns))
 	}
-	if stmt.Columns[0].Expr != "*" {
-		t.Errorf("Columns[0].Expr: got %q, want %q", stmt.Columns[0].Expr, "*")
+	if Render(stmt.Columns[0].Value) != "*" {
+		t.Errorf("Columns[0].Value: got %q, want %q", Render(stmt.Columns[0].Value), "*")
 	}
 	if stmt.Columns[0].Alias != "" {
 		t.Errorf("Columns[0].Alias: got %q, want empty", stmt.Columns[0].Alias)
@@ -58,14 +58,14 @@ func TestParseSelectColumns(t *testing.T) {
 	if len(stmt.Columns) != 3 {
 		t.Fatalf("Columns: got %d, want 3", len(stmt.Columns))
 	}
-	if stmt.Columns[0].Expr != "t.id" {
-		t.Errorf("Columns[0].Expr: got %q, want %q", stmt.Columns[0].Expr, "t.id")
+	if Render(stmt.Columns[0].Value) != "t.id" {
+		t.Errorf("Columns[0].Value: got %q, want %q", Render(stmt.Columns[0].Value), "t.id")
 	}
-	if stmt.Columns[1].Expr != "t.name" || stmt.Columns[1].Alias != "customer_name" {
-		t.Errorf("Columns[1]: got {Expr:%q Alias:%q}", stmt.Columns[1].Expr, stmt.Columns[1].Alias)
+	if Render(stmt.Columns[1].Value) != "t.name" || stmt.Columns[1].Alias != "customer_name" {
+		t.Errorf("Columns[1]: got {Value:%q Alias:%q}", Render(stmt.Columns[1].Value), stmt.Columns[1].Alias)
 	}
-	if stmt.Columns[2].Expr != "t.created_at" {
-		t.Errorf("Columns[2].Expr: got %q, want %q", stmt.Columns[2].Expr, "t.created_at")
+	if Render(stmt.Columns[2].Value) != "t.created_at" {
+		t.Errorf("Columns[2].Value: got %q, want %q", Render(stmt.Columns[2].Value), "t.created_at")
 	}
 	if stmt.From.Name != "orders" || stmt.From.Alias != "t" {
 		t.Errorf("From: got {Name:%q Alias:%q}", stmt.From.Name, stmt.From.Alias)
@@ -92,13 +92,13 @@ func TestParseSelectGroupByHaving(t *testing.T) {
 			"from orders as t group by t.status having count(*) > 10;",
 	)
 
-	if stmt.Columns[1].Expr != "count(*)" || stmt.Columns[1].Alias != "order_count" {
-		t.Errorf("Columns[1]: got {Expr:%q Alias:%q}", stmt.Columns[1].Expr, stmt.Columns[1].Alias)
+	if Render(stmt.Columns[1].Value) != "count(*)" || stmt.Columns[1].Alias != "order_count" {
+		t.Errorf("Columns[1]: got {Value:%q Alias:%q}", Render(stmt.Columns[1].Value), stmt.Columns[1].Alias)
 	}
-	if stmt.Columns[2].Expr != "sum(t.total_amount)" {
-		t.Errorf("Columns[2].Expr: got %q, want %q", stmt.Columns[2].Expr, "sum(t.total_amount)")
+	if Render(stmt.Columns[2].Value) != "sum(t.total_amount)" {
+		t.Errorf("Columns[2].Value: got %q, want %q", Render(stmt.Columns[2].Value), "sum(t.total_amount)")
 	}
-	if len(stmt.GroupBy) != 1 || stmt.GroupBy[0] != "t.status" {
+	if len(stmt.GroupBy) != 1 || Render(stmt.GroupBy[0]) != "t.status" {
 		t.Errorf("GroupBy: got %v", stmt.GroupBy)
 	}
 	if Render(stmt.Having) != "count(*) > 10" {
@@ -114,11 +114,11 @@ func TestParseSelectOrderBy(t *testing.T) {
 	if len(stmt.OrderBy) != 2 {
 		t.Fatalf("OrderBy: got %d items, want 2", len(stmt.OrderBy))
 	}
-	if stmt.OrderBy[0].Expr != "t.created_at" || stmt.OrderBy[0].Direction != DirectionDesc {
-		t.Errorf("OrderBy[0]: got {Expr:%q Dir:%v}", stmt.OrderBy[0].Expr, stmt.OrderBy[0].Direction)
+	if Render(stmt.OrderBy[0].Value) != "t.created_at" || stmt.OrderBy[0].Direction != DirectionDesc {
+		t.Errorf("OrderBy[0]: got {Value:%q Dir:%v}", Render(stmt.OrderBy[0].Value), stmt.OrderBy[0].Direction)
 	}
-	if stmt.OrderBy[1].Expr != "t.id" || stmt.OrderBy[1].Direction != DirectionAsc {
-		t.Errorf("OrderBy[1]: got {Expr:%q Dir:%v}", stmt.OrderBy[1].Expr, stmt.OrderBy[1].Direction)
+	if Render(stmt.OrderBy[1].Value) != "t.id" || stmt.OrderBy[1].Direction != DirectionAsc {
+		t.Errorf("OrderBy[1]: got {Value:%q Dir:%v}", Render(stmt.OrderBy[1].Value), stmt.OrderBy[1].Direction)
 	}
 }
 
@@ -127,7 +127,7 @@ func TestParseSelectOffsetFetch(t *testing.T) {
 		"select t.id, t.name from products as t order by t.name asc offset 40 rows fetch next 20 rows only;",
 	)
 
-	if len(stmt.OrderBy) != 1 || stmt.OrderBy[0].Expr != "t.name" || stmt.OrderBy[0].Direction != DirectionAsc {
+	if len(stmt.OrderBy) != 1 || Render(stmt.OrderBy[0].Value) != "t.name" || stmt.OrderBy[0].Direction != DirectionAsc {
 		t.Errorf("OrderBy: got %v", stmt.OrderBy)
 	}
 	if stmt.Offset != "40" {
@@ -158,8 +158,8 @@ func TestParseSelectWindowFunction(t *testing.T) {
 		t.Fatalf("Columns: got %d, want 2", len(stmt.Columns))
 	}
 	want := "row_number() over (partition by t.customer_id order by t.created_at desc)"
-	if stmt.Columns[1].Expr != want {
-		t.Errorf("Columns[1].Expr:\ngot  %q\nwant %q", stmt.Columns[1].Expr, want)
+	if Render(stmt.Columns[1].Value) != want {
+		t.Errorf("Columns[1].Value:\ngot  %q\nwant %q", Render(stmt.Columns[1].Value), want)
 	}
 	if stmt.Columns[1].Alias != "rn" {
 		t.Errorf("Columns[1].Alias: got %q, want %q", stmt.Columns[1].Alias, "rn")
@@ -223,8 +223,8 @@ func TestParseSelectWhereInSubquery(t *testing.T) {
 	if stmt.WhereSubq == nil {
 		t.Fatal("WhereSubq: got nil, want non-nil")
 	}
-	if len(stmt.WhereSubq.Columns) != 1 || stmt.WhereSubq.Columns[0].Expr != "o.customer_id" {
-		t.Errorf("WhereSubq.Columns[0].Expr: got %v", stmt.WhereSubq.Columns)
+	if len(stmt.WhereSubq.Columns) != 1 || Render(stmt.WhereSubq.Columns[0].Value) != "o.customer_id" {
+		t.Errorf("WhereSubq.Columns[0].Value: got %v", stmt.WhereSubq.Columns)
 	}
 	if stmt.WhereSubq.From.Name != "orders" || stmt.WhereSubq.From.Alias != "o" {
 		t.Errorf("WhereSubq.From: got {Name:%q Alias:%q}", stmt.WhereSubq.From.Name, stmt.WhereSubq.From.Alias)
@@ -248,8 +248,8 @@ func TestParseSelectWhereExistsSubquery(t *testing.T) {
 	if stmt.WhereSubq == nil {
 		t.Fatal("WhereSubq: got nil, want non-nil")
 	}
-	if len(stmt.WhereSubq.Columns) != 1 || stmt.WhereSubq.Columns[0].Expr != "1" {
-		t.Errorf("WhereSubq.Columns[0].Expr: got %v", stmt.WhereSubq.Columns)
+	if len(stmt.WhereSubq.Columns) != 1 || Render(stmt.WhereSubq.Columns[0].Value) != "1" {
+		t.Errorf("WhereSubq.Columns[0].Value: got %v", stmt.WhereSubq.Columns)
 	}
 	if stmt.WhereSubq.From.Name != "orders" || stmt.WhereSubq.From.Alias != "o" {
 		t.Errorf("WhereSubq.From: got {Name:%q Alias:%q}", stmt.WhereSubq.From.Name, stmt.WhereSubq.From.Alias)
@@ -277,16 +277,16 @@ func TestParseSelectFromSubquery(t *testing.T) {
 	if len(subq.Columns) != 2 {
 		t.Fatalf("Subquery.Columns: got %d, want 2", len(subq.Columns))
 	}
-	if subq.Columns[0].Expr != "t.status" {
-		t.Errorf("Subquery.Columns[0].Expr: got %q, want %q", subq.Columns[0].Expr, "t.status")
+	if Render(subq.Columns[0].Value) != "t.status" {
+		t.Errorf("Subquery.Columns[0].Value: got %q, want %q", Render(subq.Columns[0].Value), "t.status")
 	}
-	if subq.Columns[1].Expr != "count(*)" || subq.Columns[1].Alias != "order_count" {
-		t.Errorf("Subquery.Columns[1]: got {Expr:%q Alias:%q}", subq.Columns[1].Expr, subq.Columns[1].Alias)
+	if Render(subq.Columns[1].Value) != "count(*)" || subq.Columns[1].Alias != "order_count" {
+		t.Errorf("Subquery.Columns[1]: got {Value:%q Alias:%q}", Render(subq.Columns[1].Value), subq.Columns[1].Alias)
 	}
 	if subq.From.Name != "orders" || subq.From.Alias != "t" {
 		t.Errorf("Subquery.From: got {Name:%q Alias:%q}", subq.From.Name, subq.From.Alias)
 	}
-	if len(subq.GroupBy) != 1 || subq.GroupBy[0] != "t.status" {
+	if len(subq.GroupBy) != 1 || Render(subq.GroupBy[0]) != "t.status" {
 		t.Errorf("Subquery.GroupBy: got %v", subq.GroupBy)
 	}
 	if Render(stmt.Where) != "s.order_count > 5" {
@@ -302,11 +302,11 @@ func TestParseSelectGroupByMultiple(t *testing.T) {
 	if len(stmt.GroupBy) != 2 {
 		t.Fatalf("GroupBy: got %d items, want 2", len(stmt.GroupBy))
 	}
-	if stmt.GroupBy[0] != "c.id" {
-		t.Errorf("GroupBy[0]: got %q, want %q", stmt.GroupBy[0], "c.id")
+	if Render(stmt.GroupBy[0]) != "c.id" {
+		t.Errorf("GroupBy[0]: got %q, want %q", Render(stmt.GroupBy[0]), "c.id")
 	}
-	if stmt.GroupBy[1] != "c.name" {
-		t.Errorf("GroupBy[1]: got %q, want %q", stmt.GroupBy[1], "c.name")
+	if Render(stmt.GroupBy[1]) != "c.name" {
+		t.Errorf("GroupBy[1]: got %q, want %q", Render(stmt.GroupBy[1]), "c.name")
 	}
 }
 
@@ -472,10 +472,10 @@ func TestParseCTESingle(t *testing.T) {
 	if len(stmt.Joins) != 1 || stmt.Joins[0].Name != "customers" {
 		t.Errorf("main Joins: got %v", stmt.Joins)
 	}
-	if len(stmt.GroupBy) != 1 || stmt.GroupBy[0] != "c.name" {
+	if len(stmt.GroupBy) != 1 || Render(stmt.GroupBy[0]) != "c.name" {
 		t.Errorf("main GroupBy: got %v", stmt.GroupBy)
 	}
-	if len(stmt.OrderBy) != 1 || stmt.OrderBy[0].Expr != "lifetime_value" || stmt.OrderBy[0].Direction != DirectionDesc {
+	if len(stmt.OrderBy) != 1 || Render(stmt.OrderBy[0].Value) != "lifetime_value" || stmt.OrderBy[0].Direction != DirectionDesc {
 		t.Errorf("main OrderBy: got %v", stmt.OrderBy)
 	}
 }
@@ -496,7 +496,7 @@ func TestParseCTEMultiple(t *testing.T) {
 	if stmt.CTEs[1].Select == nil {
 		t.Fatal("CTEs[1].Select: got nil, want non-nil")
 	}
-	if len(stmt.CTEs[1].Select.GroupBy) != 1 || stmt.CTEs[1].Select.GroupBy[0] != "t.customer_id" {
+	if len(stmt.CTEs[1].Select.GroupBy) != 1 || Render(stmt.CTEs[1].Select.GroupBy[0]) != "t.customer_id" {
 		t.Errorf("CTEs[1].GroupBy: got %v", stmt.CTEs[1].Select.GroupBy)
 	}
 	// main SELECT

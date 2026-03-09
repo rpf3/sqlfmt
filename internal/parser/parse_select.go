@@ -175,12 +175,9 @@ func (p *parser) parseSelectList() ([]SelectItem, error) {
 
 // parseSelectItem parses one SELECT list entry: <expr> [AS <alias>].
 func (p *parser) parseSelectItem() (SelectItem, error) {
-	expr, err := p.parseExprRaw(func() bool {
+	expr := p.parseExpr(func() bool {
 		return p.curIs(lexer.Comma) || p.curKeyword("FROM") || p.curKeyword("AS")
 	})
-	if err != nil {
-		return SelectItem{}, err
-	}
 
 	var alias string
 	if p.curKeyword("AS") {
@@ -192,7 +189,7 @@ func (p *parser) parseSelectItem() (SelectItem, error) {
 		alias = tok.Value
 	}
 
-	item := SelectItem{Expr: expr, Alias: alias}
+	item := SelectItem{Value: expr, Alias: alias}
 	return item, nil
 }
 
@@ -251,18 +248,15 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 }
 
 // parseGroupByList parses a comma-separated list of GROUP BY expressions.
-func (p *parser) parseGroupByList() ([]string, error) {
-	var exprs []string
+func (p *parser) parseGroupByList() ([]Expr, error) {
+	var exprs []Expr
 	for {
-		expr, err := p.parseExprRaw(func() bool {
+		expr := p.parseExpr(func() bool {
 			return p.curIs(lexer.Comma) || p.curKeyword("HAVING") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
 				p.curIs(lexer.Semicolon)
 		})
-		if err != nil {
-			return nil, err
-		}
 		exprs = append(exprs, expr)
 		if !p.curIs(lexer.Comma) {
 			break
@@ -277,16 +271,13 @@ func (p *parser) parseGroupByList() ([]string, error) {
 func (p *parser) parseOrderByList() ([]OrderItem, error) {
 	var items []OrderItem
 	for {
-		expr, err := p.parseExprRaw(func() bool {
+		expr := p.parseExpr(func() bool {
 			return p.curKeyword("ASC") || p.curKeyword("DESC") ||
 				p.curIs(lexer.Comma) ||
 				p.curKeyword("OFFSET") || p.curKeyword("FETCH") ||
 				p.curKeyword("LIMIT") || p.curIs(lexer.Semicolon)
 		})
-		if err != nil {
-			return nil, err
-		}
-		item := OrderItem{Expr: expr}
+		item := OrderItem{Value: expr}
 		if p.curKeyword("DESC") {
 			p.advance()
 			item.Direction = DirectionDesc
