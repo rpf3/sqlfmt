@@ -1,0 +1,34 @@
+name: Benchmarks
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    name: Run benchmarks and store results
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Run benchmarks
+        run: go test -bench=. -benchmem -count=3 ./... | tee bench.txt
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: go
+          output-file-path: bench.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: "120%"
+          comment-on-alert: true
+          fail-on-alert: false
