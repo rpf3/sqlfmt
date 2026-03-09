@@ -4,7 +4,7 @@ tasks:
   build:
     desc: Build the sqlfmt binary to ./bin/sqlfmt
     cmds:
-      - go build -o ./bin/sqlfmt ./cmd/sqlfmt
+      - go build -ldflags "-X main.version=$(git describe --tags --always --dirty 2>/dev/null || echo dev)" -o ./bin/sqlfmt ./cmd/sqlfmt
 
   run:
     desc: Run sqlfmt (reads SQL from stdin, e.g. echo "SELECT 1" | task run)
@@ -33,3 +33,12 @@ tasks:
         msg: golangci-lint not found — install it from https://golangci-lint.run
     cmds:
       - golangci-lint run
+
+  release:
+    desc: Tag and push the next release — triggers the release workflow (requires svu)
+    preconditions:
+      - sh: command -v svu
+        msg: svu not found — install from https://github.com/caarlos0/svu
+    cmds:
+      - git tag $(svu next)
+      - git push origin $(svu next)
