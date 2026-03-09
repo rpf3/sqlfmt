@@ -73,18 +73,18 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 			if jc.Alias != "" {
 				b.WriteString(" " + f.kw("as") + " " + jc.Alias)
 			}
-			if jc.On != "" {
-				b.WriteString("\n" + ind + ind + f.kw("on") + " " + jc.On)
+			if jc.On != nil {
+				b.WriteString("\n" + ind + ind + f.kw("on") + " " + parser.Render(jc.On))
 			}
 		}
 	}
 
-	if s.Where != "" {
+	if s.Where != nil {
 		b.WriteString("\n")
 		b.WriteString(f.kw("where"))
 		b.WriteString("\n")
 		b.WriteString(ind)
-		b.WriteString(s.Where)
+		b.WriteString(parser.Render(s.Where))
 	}
 	b.WriteString(";")
 	return b.String()
@@ -106,7 +106,7 @@ func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 		b.WriteString(s.Table)
 		b.WriteString(f.kw(" as "))
 		b.WriteString(s.Alias)
-	} else if s.Where != "" {
+	} else if s.Where != nil {
 		// No alias but WHERE present: table on its own line for readability
 		b.WriteString(f.kw("delete from"))
 		b.WriteString("\n")
@@ -117,12 +117,12 @@ func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 		b.WriteString(f.kw("delete from "))
 		b.WriteString(s.Table)
 	}
-	if s.Where != "" {
+	if s.Where != nil {
 		b.WriteString("\n")
 		b.WriteString(f.kw("where"))
 		b.WriteString("\n")
 		b.WriteString(ind)
-		b.WriteString(s.Where)
+		b.WriteString(parser.Render(s.Where))
 	}
 	b.WriteString(";")
 	return b.String()
@@ -395,7 +395,7 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 	// on condition — always wrapped in a paren block for readability
 	b.WriteString("\n" + f.kw("on"))
 	b.WriteString("\n(")
-	b.WriteString("\n" + ind + s.On)
+	b.WriteString("\n" + ind + parser.Render(s.On))
 	b.WriteString("\n)")
 
 	for _, clause := range s.Clauses {
@@ -409,11 +409,11 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 			b.WriteString(f.kw("when not matched by source"))
 		}
 
-		if clause.Condition != "" {
+		if clause.Condition != nil {
 			// AND condition in a paren block; "then" on its own line.
 			b.WriteString(f.kw(" and"))
 			b.WriteString("\n(")
-			b.WriteString("\n" + ind + clause.Condition)
+			b.WriteString("\n" + ind + parser.Render(clause.Condition))
 			b.WriteString("\n)")
 			b.WriteString("\n" + f.kw("then"))
 		} else {

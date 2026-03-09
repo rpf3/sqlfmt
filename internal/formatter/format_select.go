@@ -113,18 +113,18 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		if jc.Alias != "" {
 			b.WriteString(" " + f.kw("as") + " " + jc.Alias)
 		}
-		if jc.On != "" {
-			b.WriteString("\n" + ind + ind + f.kw("on") + " " + jc.On)
+		if jc.On != nil {
+			b.WriteString("\n" + ind + ind + f.kw("on") + " " + parser.Render(jc.On))
 		} else if len(jc.Using) > 0 {
 			b.WriteString("\n" + ind + ind + f.kw("using") + " (" + strings.Join(jc.Using, ", ") + ")")
 		}
 	}
 
 	// WHERE
-	if s.Where != "" {
+	if s.Where != nil {
 		b.WriteString("\n" + f.kw("where"))
 		b.WriteString("\n" + ind)
-		b.WriteString(s.Where)
+		b.WriteString(parser.Render(s.Where))
 	} else if s.WhereSubq != nil {
 		b.WriteString("\n" + f.kw("where"))
 		if s.WherePred != "" {
@@ -142,10 +142,10 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	}
 
 	// HAVING
-	if s.Having != "" {
+	if s.Having != nil {
 		b.WriteString("\n" + f.kw("having"))
 		b.WriteString("\n" + ind)
-		b.WriteString(s.Having)
+		b.WriteString(parser.Render(s.Having))
 	}
 
 	// ORDER BY

@@ -142,7 +142,7 @@ type DeleteStmt struct {
 	Table         string // table name
 	Alias         string // table alias; empty if none
 	AliasExplicit bool   // true when the AS keyword preceded the alias
-	Where         string // raw WHERE predicate; empty if absent
+	Where         Expr   // WHERE predicate; nil if absent
 }
 
 func (*DeleteStmt) statementNode() {}
@@ -198,7 +198,7 @@ type UpdateStmt struct {
 	Target string            // table name (ANSI) or alias (SQL Server)
 	Sets   []UpdateSet       // SET assignments; always non-empty
 	From   *UpdateFromSource // non-nil for SQL Server FROM style
-	Where  string            // raw WHERE predicate; empty if absent
+	Where  Expr              // WHERE predicate; nil if absent
 }
 
 func (*UpdateStmt) statementNode() {}
@@ -224,7 +224,7 @@ const (
 // MergeWhenClause is one WHEN … THEN … clause in a MERGE statement.
 type MergeWhenClause struct {
 	MatchType MergeMatchType
-	Condition string // optional AND <condition>; empty if absent
+	Condition Expr // optional AND <condition>; nil if absent
 	Action    MergeActionType
 	Sets      []UpdateSet // for MergeActionUpdate
 	Columns   []string    // for MergeActionInsert: column list; nil if absent
@@ -236,7 +236,7 @@ type MergeStmt struct {
 	Target      string            // target table name
 	TargetAlias string            // target alias; empty if none
 	Source      SelectFromSource  // USING source: named table or derived table
-	On          string            // raw ON condition
+	On          Expr              // ON condition
 	Clauses     []MergeWhenClause // WHEN clauses; always non-empty
 }
 
@@ -267,7 +267,7 @@ type JoinClause struct {
 	Name          string   // joined table name
 	Alias         string   // table alias; empty if none
 	AliasExplicit bool     // true when the AS keyword preceded the alias
-	On            string   // ON condition (raw expression); empty for CROSS or USING
+	On            Expr     // ON condition; nil for CROSS or USING
 	Using         []string // USING column list; empty if ON or CROSS
 }
 
@@ -294,8 +294,8 @@ type SelectFromSource struct {
 
 // SelectStmt represents a [WITH ...] SELECT statement.
 //
-// WHERE representation: exactly one of Where or WhereSubq is non-empty.
-// Where holds a raw predicate expression for simple cases.
+// WHERE representation: exactly one of Where or WhereSubq is non-nil.
+// Where holds a predicate expression for simple cases.
 // WhereSubq holds a structured subquery; WherePred holds the optional
 // prefix before the subquery (e.g. "t.id in" or "exists").
 type SelectStmt struct {
@@ -304,11 +304,11 @@ type SelectStmt struct {
 	Columns       []SelectItem
 	From          SelectFromSource
 	Joins         []JoinClause // nil if no JOINs
-	Where         string       // raw WHERE predicate; empty if WhereSubq is set
+	Where         Expr         // WHERE predicate; nil if WhereSubq is set
 	WherePred     string       // expression before a WHERE subquery (e.g. "t.id in", "exists")
 	WhereSubq     *SelectStmt  // structured WHERE subquery; nil if Where is set
 	GroupBy       []string     // GROUP BY expressions; nil if absent
-	Having        string       // raw HAVING predicate; empty if absent
+	Having        Expr         // HAVING predicate; nil if absent
 	OrderBy       []OrderItem  // ORDER BY items; nil if absent
 	Offset        string       // n from OFFSET n ROWS; empty if absent
 	OffsetHasRows bool         // true when ROWS or ROW keyword followed the offset value

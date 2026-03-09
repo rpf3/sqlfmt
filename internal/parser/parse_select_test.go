@@ -70,8 +70,8 @@ func TestParseSelectColumns(t *testing.T) {
 	if stmt.From.Name != "orders" || stmt.From.Alias != "t" {
 		t.Errorf("From: got {Name:%q Alias:%q}", stmt.From.Name, stmt.From.Alias)
 	}
-	if stmt.Where != "t.status = 'active'" {
-		t.Errorf("Where: got %q, want %q", stmt.Where, "t.status = 'active'")
+	if Render(stmt.Where) != "t.status = 'active'" {
+		t.Errorf("Where: got %q, want %q", Render(stmt.Where), "t.status = 'active'")
 	}
 }
 
@@ -101,8 +101,8 @@ func TestParseSelectGroupByHaving(t *testing.T) {
 	if len(stmt.GroupBy) != 1 || stmt.GroupBy[0] != "t.status" {
 		t.Errorf("GroupBy: got %v", stmt.GroupBy)
 	}
-	if stmt.Having != "count(*) > 10" {
-		t.Errorf("Having: got %q, want %q", stmt.Having, "count(*) > 10")
+	if Render(stmt.Having) != "count(*) > 10" {
+		t.Errorf("Having: got %q, want %q", Render(stmt.Having), "count(*) > 10")
 	}
 }
 
@@ -214,8 +214,8 @@ func TestParseSelectWhereInSubquery(t *testing.T) {
 		"select t.id, t.name from customers as t where t.id in (select o.customer_id from orders as o where o.status = 'active');",
 	)
 
-	if stmt.Where != "" {
-		t.Errorf("Where: got %q, want empty", stmt.Where)
+	if stmt.Where != nil {
+		t.Errorf("Where: got %q, want nil", Render(stmt.Where))
 	}
 	if stmt.WherePred != "t.id in" {
 		t.Errorf("WherePred: got %q, want %q", stmt.WherePred, "t.id in")
@@ -229,8 +229,8 @@ func TestParseSelectWhereInSubquery(t *testing.T) {
 	if stmt.WhereSubq.From.Name != "orders" || stmt.WhereSubq.From.Alias != "o" {
 		t.Errorf("WhereSubq.From: got {Name:%q Alias:%q}", stmt.WhereSubq.From.Name, stmt.WhereSubq.From.Alias)
 	}
-	if stmt.WhereSubq.Where != "o.status = 'active'" {
-		t.Errorf("WhereSubq.Where: got %q, want %q", stmt.WhereSubq.Where, "o.status = 'active'")
+	if Render(stmt.WhereSubq.Where) != "o.status = 'active'" {
+		t.Errorf("WhereSubq.Where: got %q, want %q", Render(stmt.WhereSubq.Where), "o.status = 'active'")
 	}
 }
 
@@ -239,8 +239,8 @@ func TestParseSelectWhereExistsSubquery(t *testing.T) {
 		"select t.id from customers as t where exists (select 1 from orders as o where o.customer_id = t.id);",
 	)
 
-	if stmt.Where != "" {
-		t.Errorf("Where: got %q, want empty", stmt.Where)
+	if stmt.Where != nil {
+		t.Errorf("Where: got %q, want nil", Render(stmt.Where))
 	}
 	if stmt.WherePred != "exists" {
 		t.Errorf("WherePred: got %q, want %q", stmt.WherePred, "exists")
@@ -254,8 +254,8 @@ func TestParseSelectWhereExistsSubquery(t *testing.T) {
 	if stmt.WhereSubq.From.Name != "orders" || stmt.WhereSubq.From.Alias != "o" {
 		t.Errorf("WhereSubq.From: got {Name:%q Alias:%q}", stmt.WhereSubq.From.Name, stmt.WhereSubq.From.Alias)
 	}
-	if stmt.WhereSubq.Where != "o.customer_id = t.id" {
-		t.Errorf("WhereSubq.Where: got %q, want %q", stmt.WhereSubq.Where, "o.customer_id = t.id")
+	if Render(stmt.WhereSubq.Where) != "o.customer_id = t.id" {
+		t.Errorf("WhereSubq.Where: got %q, want %q", Render(stmt.WhereSubq.Where), "o.customer_id = t.id")
 	}
 }
 
@@ -289,8 +289,8 @@ func TestParseSelectFromSubquery(t *testing.T) {
 	if len(subq.GroupBy) != 1 || subq.GroupBy[0] != "t.status" {
 		t.Errorf("Subquery.GroupBy: got %v", subq.GroupBy)
 	}
-	if stmt.Where != "s.order_count > 5" {
-		t.Errorf("Where: got %q, want %q", stmt.Where, "s.order_count > 5")
+	if Render(stmt.Where) != "s.order_count > 5" {
+		t.Errorf("Where: got %q, want %q", Render(stmt.Where), "s.order_count > 5")
 	}
 }
 
@@ -330,11 +330,11 @@ func TestParseSelectInnerJoin(t *testing.T) {
 	if jc.Alias != "c" {
 		t.Errorf("Alias: got %q, want %q", jc.Alias, "c")
 	}
-	if jc.On != "c.id = o.customer_id" {
-		t.Errorf("On: got %q, want %q", jc.On, "c.id = o.customer_id")
+	if Render(jc.On) != "c.id = o.customer_id" {
+		t.Errorf("On: got %q, want %q", Render(jc.On), "c.id = o.customer_id")
 	}
-	if stmt.Where != "o.status = 'active'" {
-		t.Errorf("Where: got %q", stmt.Where)
+	if Render(stmt.Where) != "o.status = 'active'" {
+		t.Errorf("Where: got %q", Render(stmt.Where))
 	}
 }
 
@@ -360,8 +360,8 @@ func TestParseSelectLeftJoin(t *testing.T) {
 	if stmt.Joins[0].Type != JoinLeft {
 		t.Errorf("Type: got %v, want JoinLeft", stmt.Joins[0].Type)
 	}
-	if stmt.Joins[0].On != "o.customer_id = c.id" {
-		t.Errorf("On: got %q", stmt.Joins[0].On)
+	if Render(stmt.Joins[0].On) != "o.customer_id = c.id" {
+		t.Errorf("On: got %q", Render(stmt.Joins[0].On))
 	}
 }
 
@@ -397,8 +397,8 @@ func TestParseSelectCrossJoin(t *testing.T) {
 	if jc.Type != JoinCross {
 		t.Errorf("Type: got %v, want JoinCross", jc.Type)
 	}
-	if jc.On != "" {
-		t.Errorf("On: expected empty, got %q", jc.On)
+	if jc.On != nil {
+		t.Errorf("On: expected nil, got %q", Render(jc.On))
 	}
 	if len(jc.Using) != 0 {
 		t.Errorf("Using: expected empty, got %v", jc.Using)
@@ -414,8 +414,8 @@ func TestParseSelectJoinUsing(t *testing.T) {
 		t.Fatalf("Joins: got %d, want 1", len(stmt.Joins))
 	}
 	jc := stmt.Joins[0]
-	if jc.On != "" {
-		t.Errorf("On: expected empty, got %q", jc.On)
+	if jc.On != nil {
+		t.Errorf("On: expected nil, got %q", Render(jc.On))
 	}
 	if len(jc.Using) != 1 || jc.Using[0] != "customer_id" {
 		t.Errorf("Using: got %v, want [customer_id]", jc.Using)
@@ -459,8 +459,8 @@ func TestParseCTESingle(t *testing.T) {
 	if len(cte.Select.Columns) != 3 {
 		t.Fatalf("CTEs[0].Columns: got %d, want 3", len(cte.Select.Columns))
 	}
-	if cte.Select.Where != "t.status = 'active'" {
-		t.Errorf("CTEs[0].Where: got %q, want %q", cte.Select.Where, "t.status = 'active'")
+	if Render(cte.Select.Where) != "t.status = 'active'" {
+		t.Errorf("CTEs[0].Where: got %q, want %q", Render(cte.Select.Where), "t.status = 'active'")
 	}
 	// main SELECT
 	if len(stmt.Columns) != 2 {
