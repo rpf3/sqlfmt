@@ -246,7 +246,7 @@ func (*MergeStmt) statementNode() {}
 
 // SelectItem is one entry in a SELECT list.
 type SelectItem struct {
-	Expr  string // normalised expression (keywords lowercased); "*" for SELECT *
+	Value Expr   // expression; "*" for SELECT *
 	Alias string // alias from AS <name>; empty if no alias
 }
 
@@ -273,7 +273,7 @@ type JoinClause struct {
 
 // OrderItem is one term in an ORDER BY list.
 type OrderItem struct {
-	Expr      string
+	Value     Expr
 	Direction Direction
 }
 
@@ -307,7 +307,7 @@ type SelectStmt struct {
 	Where         Expr         // WHERE predicate; nil if WhereSubq is set
 	WherePred     string       // expression before a WHERE subquery (e.g. "t.id in", "exists")
 	WhereSubq     *SelectStmt  // structured WHERE subquery; nil if Where is set
-	GroupBy       []string     // GROUP BY expressions; nil if absent
+	GroupBy       []Expr       // GROUP BY expressions; nil if absent
 	Having        Expr         // HAVING predicate; nil if absent
 	OrderBy       []OrderItem  // ORDER BY items; nil if absent
 	Offset        string       // n from OFFSET n ROWS; empty if absent

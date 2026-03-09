@@ -16,7 +16,7 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 
 	// #12 select-star
 	for _, col := range s.Columns {
-		if col.Expr == "*" {
+		if parser.Render(col.Value) == "*" {
 			l.warn(config.RuleSelectStar,
 				"SELECT * retrieves all columns; list the columns explicitly")
 			break
@@ -27,7 +27,7 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 	for _, item := range s.OrderBy {
 		if item.Direction == parser.DirectionNone {
 			l.warn(config.RuleOrderByDirection,
-				fmt.Sprintf("order by %q has no explicit direction; specify ASC or DESC", item.Expr))
+				fmt.Sprintf("order by %q has no explicit direction; specify ASC or DESC", parser.Render(item.Value)))
 		}
 	}
 
@@ -78,7 +78,7 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 	// #37 exists-select-one
 	if s.WhereSubq != nil && strings.TrimSpace(s.WherePred) == "exists" {
 		cols := s.WhereSubq.Columns
-		if len(cols) != 1 || strings.TrimSpace(cols[0].Expr) != "1" {
+		if len(cols) != 1 || strings.TrimSpace(parser.Render(cols[0].Value)) != "1" {
 			l.warn(config.RuleExistsSelectOne,
 				"EXISTS subquery should use SELECT 1 rather than selecting columns")
 		}
