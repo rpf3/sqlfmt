@@ -114,7 +114,11 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 			b.WriteString(" " + f.kw("as") + " " + jc.Alias)
 		}
 		if jc.On != nil {
-			b.WriteString("\n" + ind + ind + f.kw("on") + " " + parser.Render(jc.On))
+			terms := parser.AndTerms(jc.On)
+			b.WriteString("\n" + ind + ind + f.kw("on") + " " + parser.Render(terms[0]))
+			for _, term := range terms[1:] {
+				b.WriteString("\n" + ind + ind + f.kw("and") + " " + parser.Render(term))
+			}
 		} else if len(jc.Using) > 0 {
 			b.WriteString("\n" + ind + ind + f.kw("using") + " (" + strings.Join(jc.Using, ", ") + ")")
 		}
@@ -123,8 +127,7 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	// WHERE
 	if s.Where != nil {
 		b.WriteString("\n" + f.kw("where"))
-		b.WriteString("\n" + ind)
-		b.WriteString(parser.Render(s.Where))
+		f.writeExprPred(&b, s.Where)
 	} else if s.WhereSubq != nil {
 		b.WriteString("\n" + f.kw("where"))
 		if s.WherePred != "" {
@@ -148,8 +151,7 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	// HAVING
 	if s.Having != nil {
 		b.WriteString("\n" + f.kw("having"))
-		b.WriteString("\n" + ind)
-		b.WriteString(parser.Render(s.Having))
+		f.writeExprPred(&b, s.Having)
 	}
 
 	// ORDER BY
