@@ -30,6 +30,7 @@ task fmt && task test && task vet && task lint
 
 ## Git workflow
 
+- **Always create a branch before starting any work** — never commit feature or fix work directly to `main`. Name branches `feat/issue-N-short-desc` or `refactor/issue-N-short-desc` etc.
 - Prefer rebase + fast-forward; always open a PR, never merge locally
 - One issue per commit maximum — a large feature may span multiple commits, but a single commit must not touch more than one issue
 - No parenthetical scopes in conventional commit types (`feat:` not `feat(pkg):`)
