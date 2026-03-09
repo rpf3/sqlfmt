@@ -1,0 +1,5 @@
+CREATE TABLE warehouses (id INT NOT NULL, name VARCHAR(100) NOT NULL, code VARCHAR(10) NOT NULL, city VARCHAR(100) NOT NULL, country_code VARCHAR(2) NOT NULL DEFAULT 'US', is_active BOOLEAN NOT NULL DEFAULT TRUE, CONSTRAINT pk_warehouses PRIMARY KEY (id), CONSTRAINT uq_warehouses_code UNIQUE (code));
+CREATE TABLE inventory (id INT NOT NULL, product_id INT NOT NULL, warehouse_id INT NOT NULL, quantity_on_hand INT NOT NULL DEFAULT 0, reorder_point INT NOT NULL DEFAULT 10, CONSTRAINT pk_inventory PRIMARY KEY (id), CONSTRAINT fk_inventory_product FOREIGN KEY (product_id) REFERENCES products (id), CONSTRAINT fk_inventory_warehouse FOREIGN KEY (warehouse_id) REFERENCES warehouses (id), CONSTRAINT uq_inventory UNIQUE (product_id, warehouse_id));
+INSERT INTO warehouses (id, name, code, city, country_code) VALUES (1, 'Main Warehouse', 'MAIN', 'New York', 'US');
+UPDATE products SET is_active = FALSE WHERE base_price < 0;
+CREATE INDEX idx_inventory_product ON inventory (product_id ASC, warehouse_id ASC);

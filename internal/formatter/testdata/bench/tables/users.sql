@@ -1,0 +1,15 @@
+CREATE TABLE users (
+id INT NOT NULL,
+email VARCHAR(255) NOT NULL,
+username VARCHAR(100) NOT NULL,
+password_hash TEXT NOT NULL,
+first_name VARCHAR(100),
+last_name VARCHAR(100),
+is_active BOOLEAN NOT NULL DEFAULT TRUE,
+created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CONSTRAINT pk_users PRIMARY KEY (id),
+CONSTRAINT uq_users_email UNIQUE (email),
+CONSTRAINT uq_users_username UNIQUE (username),
+CONSTRAINT chk_users_email CHECK (email LIKE '%@%')
+);

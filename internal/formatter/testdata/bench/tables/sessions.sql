@@ -1,0 +1,14 @@
+CREATE TABLE sessions (
+id INT NOT NULL,
+user_id INT NOT NULL,
+token VARCHAR(500) NOT NULL,
+ip_address VARCHAR(45),
+user_agent TEXT,
+created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+expires_at TIMESTAMP NOT NULL,
+last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+is_revoked BOOLEAN NOT NULL DEFAULT FALSE,
+CONSTRAINT pk_sessions PRIMARY KEY (id),
+CONSTRAINT uq_sessions_token UNIQUE (token),
+CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users (id)
+);

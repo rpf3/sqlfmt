@@ -1,0 +1,4 @@
+CREATE TABLE sessions (id INT NOT NULL, user_id INT NOT NULL, token VARCHAR(500) NOT NULL, expires_at TIMESTAMP NOT NULL, last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, is_revoked BOOLEAN NOT NULL DEFAULT FALSE, CONSTRAINT pk_sessions PRIMARY KEY (id), CONSTRAINT uq_sessions_token UNIQUE (token), CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users (id));
+CREATE TABLE api_keys (id INT NOT NULL, user_id INT NOT NULL, name VARCHAR(100) NOT NULL, key_hash VARCHAR(255) NOT NULL, expires_at TIMESTAMP, is_revoked BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT pk_api_keys PRIMARY KEY (id), CONSTRAINT uq_api_keys_hash UNIQUE (key_hash), CONSTRAINT fk_api_keys_user FOREIGN KEY (user_id) REFERENCES users (id));
+CREATE INDEX idx_sessions_user ON sessions (user_id ASC, expires_at DESC);
+CREATE INDEX idx_sessions_expires ON sessions (expires_at ASC, is_revoked ASC);

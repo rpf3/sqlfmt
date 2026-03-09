@@ -1,0 +1,4 @@
+CREATE TABLE orders (id INT NOT NULL, user_id INT NOT NULL, status VARCHAR(50) NOT NULL DEFAULT 'pending', total_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00, placed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT pk_orders PRIMARY KEY (id), CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users (id));
+CREATE TABLE order_items (id INT NOT NULL, order_id INT NOT NULL, product_id INT NOT NULL, quantity INT NOT NULL, unit_price DECIMAL(12,2) NOT NULL, line_total DECIMAL(12,2) NOT NULL, CONSTRAINT pk_order_items PRIMARY KEY (id), CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders (id), CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products (id));
+CREATE INDEX idx_orders_user_status ON orders (user_id ASC, status ASC);
+CREATE INDEX idx_order_items_order ON order_items (order_id ASC);

@@ -1,0 +1,4 @@
+CREATE TABLE payment_methods (id INT NOT NULL, user_id INT NOT NULL, method_type VARCHAR(50) NOT NULL, provider VARCHAR(100) NOT NULL, token VARCHAR(500) NOT NULL, is_default BOOLEAN NOT NULL DEFAULT FALSE, CONSTRAINT pk_payment_methods PRIMARY KEY (id), CONSTRAINT fk_payment_methods_user FOREIGN KEY (user_id) REFERENCES users (id));
+CREATE TABLE payments (id INT NOT NULL, order_id INT NOT NULL, method_id INT NOT NULL, amount DECIMAL(12,2) NOT NULL, status VARCHAR(50) NOT NULL DEFAULT 'pending', processed_at TIMESTAMP, CONSTRAINT pk_payments PRIMARY KEY (id), CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders (id), CONSTRAINT fk_payments_method FOREIGN KEY (method_id) REFERENCES payment_methods (id));
+CREATE INDEX idx_payments_order ON payments (order_id ASC, status ASC);
+CREATE INDEX idx_payments_status_date ON payments (status ASC, processed_at DESC);
