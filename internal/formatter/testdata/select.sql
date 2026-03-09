@@ -279,8 +279,8 @@ from
 	orders as t
 where
 	t.status = 'active'
-and	t.region = 'us'
-and	t.amount > 100;
+	and t.region = 'us'
+	and t.amount > 100;
 
 select
 	t.status
@@ -291,7 +291,7 @@ group by
 	t.status
 having
 	count(*) > 10
-and	sum(t.amount) > 1000;
+	and sum(t.amount) > 1000;
 
 select
 	o.id
@@ -304,4 +304,4 @@ inner join
 		and c.active = 1
 where
 	o.status = 'active'
-and	o.total_amount > 0;
+	and o.total_amount > 0;

@@ -77,15 +77,14 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 // writeExprPred writes a predicate expression as one indented line per AND term.
 // It must be called immediately after the caller writes the keyword (WHERE,
 // HAVING) on its own line. Single-term expressions produce one indented line.
-// Multi-term AndChain expressions produce one line per term: the first at one
-// indent, subsequent terms prefixed with "and" + indent, mirroring the
-// leading-comma style used for column lists.
+// Multi-term AndChain expressions produce one line per term, all at the same
+// indent level: the first term plain, subsequent terms prefixed with "and ".
 func (f *formatter) writeExprPred(b *strings.Builder, e parser.Expr) {
 	ind := f.indent()
 	terms := parser.AndTerms(e)
 	b.WriteString("\n" + ind + parser.Render(terms[0]))
 	for _, term := range terms[1:] {
-		b.WriteString("\n" + f.kw("and") + ind + parser.Render(term))
+		b.WriteString("\n" + ind + f.kw("and") + " " + parser.Render(term))
 	}
 }
 
