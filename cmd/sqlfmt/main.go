@@ -14,6 +14,8 @@ import (
 	"github.com/rpf3/sqlfmt/internal/linter"
 )
 
+var version = "dev"
+
 func main() {
 	os.Exit(run(os.Args[1:], os.Stderr))
 }
@@ -153,12 +155,18 @@ func run(args []string, stderr io.Writer) int {
 	check := fset.Bool("check", false, "exit non-zero if any file is not formatted; write nothing")
 	warningsAsErrors := fset.Bool("warnings-as-errors", false, "exit non-zero if any lint warnings are emitted")
 	recursive := fset.Bool("recursive", false, "recurse into subdirectories when a directory argument is given")
+	showVersion := fset.Bool("version", false, "print version and exit")
 
 	if err := fset.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
 		return 1
+	}
+
+	if *showVersion {
+		fmt.Fprintln(os.Stdout, "sqlfmt "+version)
+		return 0
 	}
 
 	cwd, err := os.Getwd()
