@@ -185,9 +185,10 @@ type ProcParam struct {
 //	    <body>
 //	END
 type CreateProcStmt struct {
-	Name   string      // procedure name (may be schema-qualified)
-	Params []ProcParam // parameter list; nil if no parameters
-	Body   []Statement // body statements; fully-parsed where possible, *RawStmt otherwise
+	Name        string      // procedure name (may be schema-qualified)
+	Params      []ProcParam // parameter list; nil if no parameters
+	HasBeginEnd bool        // true when body was explicitly wrapped in BEGIN...END
+	Body        []Statement // body statements; fully-parsed where possible, *RawStmt otherwise
 }
 
 func (*CreateProcStmt) statementNode() {}
@@ -221,6 +222,7 @@ type CreateFuncStmt struct {
 	ReturnsType  string      // scalar: data type (e.g. "INT"); inline: "TABLE"
 	ReturnsVar   string      // multi-table: table variable name (e.g. "@result")
 	ReturnsTable []ColumnDef // multi-table: column definitions for the return table
+	HasBeginEnd  bool        // true when body was explicitly wrapped in BEGIN...END (scalar + multi-table only)
 	Body         []Statement // scalar + multi-table: BEGIN...END body
 	InlineSelect *SelectStmt // inline TVF: the SELECT inside RETURN (...)
 }

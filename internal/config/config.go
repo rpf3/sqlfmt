@@ -64,6 +64,7 @@ const (
 	RuleMissingSchemaName           = "missing-schema-name"
 	RuleOneObjectPerFile            = "one-object-per-file"
 	RuleIdentifierWithSpaces        = "identifier-with-spaces"
+	RuleMissingBeginEnd             = "missing-begin-end"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -89,6 +90,7 @@ var knownRules = map[string]bool{
 	RuleMissingSchemaName:           true,
 	RuleOneObjectPerFile:            true,
 	RuleIdentifierWithSpaces:        true,
+	RuleMissingBeginEnd:             true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

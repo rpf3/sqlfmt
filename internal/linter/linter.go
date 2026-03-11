@@ -123,6 +123,10 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkDeleteStmt(s)
 	case *parser.MergeStmt:
 		l.checkMergeStmt(s)
+	case *parser.CreateProcStmt:
+		l.checkCreateProc(s)
+	case *parser.CreateFuncStmt:
+		l.checkCreateFunc(s)
 	}
 	l.checkSchemaQualification(stmt)
 	l.checkIdentsWithSpaces(stmt)

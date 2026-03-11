@@ -329,11 +329,12 @@ func (p *parser) parseCreateProc() (Statement, error) {
 		p.advance() // consume AS
 	}
 
-	body, err := p.parseProcBody()
+	body, hasBeginEnd, err := p.parseProcBody()
 	if err != nil {
 		return nil, err
 	}
 	stmt.Body = body
+	stmt.HasBeginEnd = hasBeginEnd
 
 	p.consumeSemicolon()
 	return stmt, nil
@@ -414,25 +415,14 @@ func (p *parser) parseProcParams() ([]ProcParam, error) {
 	return params, nil
 }
 
-// parseProcBody reads the BEGIN...END block of a procedure body.
-// On entry: p.cur should be BEGIN (the AS keyword must already be consumed).
-// On exit: p.cur is positioned after the closing END.
-// Each semicolon-terminated chunk is re-parsed into a fully structured Statement
-// where possible; unknown statement types fall back to *RawStmt.
-func (p *parser) parseProcBody() ([]Statement, error) {
-	if !p.curKeyword("BEGIN") {
-		return nil, fmt.Errorf(
-			"expected BEGIN in procedure body at %d:%d, got %s %q",
-			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
-		)
-	}
-	p.advance() // consume BEGIN
-
-	var stmts []Statement
-	var tokBuf []lexer.Token
-	depth := 0 // depth inside proc body: incremented by nested BEGIN, decremented by END
-
-	flush := func(buf []lexer.Token) {
+// parseProcBody reads the body of a procedure or scalar/multi-table function.
+// BEGIN...END is optional: if present, hasBeginEnd is true and the body may
+// contain multiple statements; if absent, a single statement up to the first
+// semicolon (or EOF) is collected and hasBeginEnd is false.
+// On entry: p.cur should be BEGIN or the first token of the body statement.
+// On exit: p.cur is positioned after the closing END (or the closing semicolon).
+func (p *parser) parseProcBody() (stmts []Statement, hasBeginEnd bool, err error) {
+	appendStmt := func(buf []lexer.Token) {
 		if len(buf) == 0 {
 			return
 		}
@@ -445,10 +435,27 @@ func (p *parser) parseProcBody() ([]Statement, error) {
 		}
 	}
 
+	if !p.curKeyword("BEGIN") {
+		// No BEGIN/END: collect a single statement until ; or EOF.
+		var tokBuf []lexer.Token
+		for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
+			tokBuf = append(tokBuf, p.cur)
+			p.advance()
+		}
+		appendStmt(tokBuf)
+		return stmts, false, nil
+	}
+
+	hasBeginEnd = true
+	p.advance() // consume BEGIN
+
+	var tokBuf []lexer.Token
+	depth := 0 // depth inside proc body: incremented by nested BEGIN, decremented by END
+
 	for p.cur.Type != lexer.EOF {
 		// Closing END of the procedure body.
 		if p.curKeyword("END") && depth == 0 {
-			flush(tokBuf)
+			appendStmt(tokBuf)
 			p.advance() // consume END
 			break
 		}
@@ -461,7 +468,7 @@ func (p *parser) parseProcBody() ([]Statement, error) {
 
 		// Statement boundary: semicolon at depth 0.
 		if p.curIs(lexer.Semicolon) && depth == 0 {
-			flush(tokBuf)
+			appendStmt(tokBuf)
 			tokBuf = nil
 			p.advance() // consume ;
 			continue
@@ -471,7 +478,7 @@ func (p *parser) parseProcBody() ([]Statement, error) {
 		p.advance()
 	}
 
-	return stmts, nil
+	return stmts, hasBeginEnd, nil
 }
 
 // joinBodyTokens joins a slice of tokens into a whitespace-normalised string,
@@ -583,11 +590,12 @@ func (p *parser) parseCreateFunc() (Statement, error) {
 
 	default:
 		// Scalar and multi-statement TVF: AS BEGIN...END
-		body, err := p.parseProcBody()
+		body, hasBeginEnd, err := p.parseProcBody()
 		if err != nil {
 			return nil, err
 		}
 		stmt.Body = body
+		stmt.HasBeginEnd = hasBeginEnd
 	}
 
 	p.consumeSemicolon()
