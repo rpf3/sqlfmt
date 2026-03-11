@@ -154,6 +154,14 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		f.writeExprPred(&b, s.Having)
 	}
 
+	// Set operations: UNION [ALL] / INTERSECT / EXCEPT
+	for _, setOp := range s.SetOps {
+		b.WriteString("\n" + f.kw(setOpKeyword(setOp.Op)))
+		branch := f.formatSelectStmt(setOp.Select)
+		branch = strings.TrimSuffix(branch, ";")
+		b.WriteString("\n" + branch)
+	}
+
 	// ORDER BY
 	if len(s.OrderBy) > 0 {
 		b.WriteString("\n" + f.kw("order by"))
@@ -191,6 +199,21 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 
 	b.WriteString(";")
 	return b.String()
+}
+
+// setOpKeyword returns the canonical lowercase keyword phrase for a SetOpType.
+func setOpKeyword(op parser.SetOpType) string {
+	switch op {
+	case parser.SetOpUnion:
+		return "union"
+	case parser.SetOpUnionAll:
+		return "union all"
+	case parser.SetOpIntersect:
+		return "intersect"
+	case parser.SetOpExcept:
+		return "except"
+	}
+	return "union"
 }
 
 // joinKeyword returns the canonical lowercase keyword phrase for a JoinType.

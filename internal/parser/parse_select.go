@@ -6,11 +6,18 @@ import (
 	"github.com/rpf3/sqlfmt/internal/lexer"
 )
 
-// parseSelectCore parses the body of a SELECT statement, consuming the SELECT
-// keyword through all clauses. It does NOT consume a trailing semicolon or
-// closing parenthesis — the caller handles those. It is used both for
-// top-level SELECTs (via parseSelect) and for subqueries.
-func (p *parser) parseSelectCore() (*SelectStmt, error) {
+// isSetOpKeyword reports whether the current token starts a set operator
+// (UNION, INTERSECT, or EXCEPT).
+func (p *parser) isSetOpKeyword() bool {
+	return p.curKeyword("UNION") || p.curKeyword("INTERSECT") || p.curKeyword("EXCEPT")
+}
+
+// parseSelectBranch parses one SELECT branch: SELECT [DISTINCT] cols FROM …
+// [JOINs] [WHERE] [GROUP BY] [HAVING]. It stops before ORDER BY, OFFSET,
+// FETCH, LIMIT, set operators (UNION/INTERSECT/EXCEPT), semicolons, and
+// closing parentheses. The ORDER BY and pagination clauses are parsed by the
+// enclosing parseSelectCore so they apply to the whole compound query.
+func (p *parser) parseSelectBranch() (*SelectStmt, error) {
 	p.advance() // consume SELECT
 
 	stmt := &SelectStmt{}
@@ -50,6 +57,7 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 				p.curKeyword("GROUP") || p.curKeyword("HAVING") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+				p.isSetOpKeyword() ||
 				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
 		}
 		whereExpr := p.parseAndChain(stopFn)
@@ -84,10 +92,58 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 		stmt.Having = p.parseAndChain(func() bool {
 			return p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+				p.isSetOpKeyword() ||
 				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
 		})
 	}
 
+	return stmt, nil
+}
+
+// parseSelectCore parses a full SELECT statement (possibly compound via set
+// operators) through all clauses including ORDER BY and pagination. It does
+// NOT consume a trailing semicolon or closing parenthesis — the caller
+// handles those. It is used both for top-level SELECTs and for subqueries.
+func (p *parser) parseSelectCore() (*SelectStmt, error) {
+	stmt, err := p.parseSelectBranch()
+	if err != nil {
+		return nil, err
+	}
+
+	// Set operators: UNION [ALL] / INTERSECT / EXCEPT
+	for p.isSetOpKeyword() {
+		var opType SetOpType
+		switch {
+		case p.curKeyword("UNION"):
+			p.advance() // consume UNION
+			if p.curKeyword("ALL") {
+				p.advance() // consume ALL
+				opType = SetOpUnionAll
+			} else {
+				opType = SetOpUnion
+			}
+		case p.curKeyword("INTERSECT"):
+			p.advance()
+			opType = SetOpIntersect
+		default: // EXCEPT
+			p.advance()
+			opType = SetOpExcept
+		}
+
+		if !p.curKeyword("SELECT") {
+			return nil, fmt.Errorf(
+				"expected SELECT after set operator at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		branch, err := p.parseSelectBranch()
+		if err != nil {
+			return nil, err
+		}
+		stmt.SetOps = append(stmt.SetOps, SetOp{Op: opType, Select: branch})
+	}
+
+	// ORDER BY / pagination — apply to the whole compound query (or plain SELECT).
 	if p.curKeyword("ORDER") && p.peekKeyword("BY") {
 		p.advance() // consume ORDER
 		p.advance() // consume BY
@@ -255,6 +311,7 @@ func (p *parser) parseGroupByList() ([]Expr, error) {
 			return p.curIs(lexer.Comma) || p.curKeyword("HAVING") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+				p.isSetOpKeyword() ||
 				p.curIs(lexer.Semicolon)
 		})
 		exprs = append(exprs, expr)
@@ -382,7 +439,8 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 					p.curKeyword("WHERE") || p.curKeyword("GROUP") ||
 					p.curKeyword("HAVING") || p.curKeyword("ORDER") ||
 					p.curKeyword("OFFSET") || p.curKeyword("FETCH") ||
-					p.curKeyword("LIMIT") || p.curIs(lexer.Semicolon)
+					p.curKeyword("LIMIT") || p.isSetOpKeyword() ||
+					p.curIs(lexer.Semicolon)
 			})
 		} else if p.curKeyword("USING") {
 			p.advance()
