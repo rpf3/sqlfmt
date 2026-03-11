@@ -488,7 +488,6 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 }
 
 func (f *formatter) formatCreateProc(s *parser.CreateProcStmt) string {
-	ind := f.indent()
 	var b strings.Builder
 	b.WriteString(f.kw("create procedure "))
 	b.WriteString(f.ident(s.Name))
@@ -515,8 +514,12 @@ func (f *formatter) formatCreateProc(s *parser.CreateProcStmt) string {
 
 	b.WriteString("\n" + f.kw("as") + " " + f.kw("begin"))
 
-	for _, stmt := range s.Body {
-		b.WriteString("\n" + ind + stmt + ";")
+	for i, stmt := range s.Body {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString("\n")
+		b.WriteString(f.indentBodyStmt(stmt))
 	}
 
 	b.WriteString("\n" + f.kw("end") + ";")

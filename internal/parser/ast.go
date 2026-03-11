@@ -187,10 +187,18 @@ type ProcParam struct {
 type CreateProcStmt struct {
 	Name   string      // procedure name (may be schema-qualified)
 	Params []ProcParam // parameter list; nil if no parameters
-	Body   []string    // body statements, token-normalized, without trailing semicolons
+	Body   []Statement // body statements; fully-parsed where possible, *RawStmt otherwise
 }
 
 func (*CreateProcStmt) statementNode() {}
+
+// RawStmt holds an unparsed statement body — used as a fallback for statement
+// types the parser does not yet fully support (e.g. EXEC, IF, WHILE, RETURN).
+type RawStmt struct {
+	Text string // token-normalised statement text, without trailing semicolon
+}
+
+func (*RawStmt) statementNode() {}
 
 // DeleteStmt represents: DELETE [<alias>] FROM <table> [AS <alias>] [WHERE <predicate>]
 type DeleteStmt struct {
