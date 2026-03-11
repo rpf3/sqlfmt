@@ -80,6 +80,9 @@ func (l *linter) checkSchemaQualification(stmt parser.Statement) {
 					fmt.Sprintf("type %q: REFERENCES", s.Name))
 			}
 		}
+
+	case *parser.CreateProcStmt:
+		l.warnUnqualified(s.Name, "CREATE PROCEDURE")
 	}
 }
 

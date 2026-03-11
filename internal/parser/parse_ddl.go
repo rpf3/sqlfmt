@@ -227,6 +227,9 @@ func (p *parser) parseCreate() (Statement, error) {
 	if p.curValue("TYPE") {
 		return p.parseCreateType()
 	}
+	if p.curValue("PROCEDURE") || p.curValue("PROC") {
+		return p.parseCreateProc()
+	}
 	return p.parseCreateTable()
 }
 
@@ -296,6 +299,181 @@ func (p *parser) parseCreateType() (Statement, error) {
 
 	p.consumeSemicolon()
 	return stmt, nil
+}
+
+// parseCreateProc handles:
+//
+//	CREATE PROCEDURE <name> [@param datatype [= default] [OUTPUT]] [, ...] AS BEGIN <body> END
+//	CREATE PROC is accepted as an alias for CREATE PROCEDURE.
+func (p *parser) parseCreateProc() (Statement, error) {
+	p.advance() // consume PROCEDURE or PROC
+
+	procName, err := p.parseQualifiedName()
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := &CreateProcStmt{Name: procName}
+
+	params, err := p.parseProcParams()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Params = params
+
+	// AS keyword before BEGIN
+	if p.curKeyword("AS") {
+		p.advance() // consume AS
+	}
+
+	body, err := p.parseProcBody()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Body = body
+
+	p.consumeSemicolon()
+	return stmt, nil
+}
+
+// parseProcParams reads the optional parameter list for a CREATE PROCEDURE statement.
+// Parameters may appear with or without surrounding parentheses.
+// Each parameter is: @name datatype [= default] [OUTPUT|OUT]
+// Returns nil (no error) when no parameters are present.
+func (p *parser) parseProcParams() ([]ProcParam, error) {
+	// Parenthesised form: (...)
+	hasParen := p.curIs(lexer.LParen)
+	if hasParen {
+		p.advance() // consume (
+	}
+
+	var params []ProcParam
+	for {
+		// Bail out if we've reached AS, BEGIN, ), or EOF.
+		if p.curKeyword("AS") || p.curKeyword("BEGIN") ||
+			p.curIs(lexer.RParen) || p.cur.Type == lexer.EOF {
+			break
+		}
+
+		// Expect a @param name.
+		nameTok := p.cur
+		if nameTok.Type != lexer.Ident {
+			return nil, fmt.Errorf(
+				"expected parameter name at %d:%d, got %s %q",
+				nameTok.Line, nameTok.Column, nameTok.Type, nameTok.Value,
+			)
+		}
+		p.advance() // consume @name
+
+		dataType, err := p.parseDataType()
+		if err != nil {
+			return nil, err
+		}
+
+		param := ProcParam{Name: nameTok.Value, DataType: dataType}
+
+		// Optional default: = <expr>
+		if p.curIs(lexer.Eq) {
+			p.advance() // consume =
+			param.Default = p.parseExpr(func() bool {
+				return p.cur.Type == lexer.Comma ||
+					p.cur.Type == lexer.RParen ||
+					p.curKeyword("AS") ||
+					p.curKeyword("BEGIN") ||
+					p.curValue("OUTPUT") ||
+					p.curValue("OUT") ||
+					p.curValue("READONLY")
+			})
+		}
+
+		// Optional direction: OUTPUT or OUT
+		if p.curValue("OUTPUT") || p.curValue("OUT") {
+			param.Direction = ParamDirectionOut
+			p.advance()
+		}
+		// Optional READONLY (input-only hint; treated as input direction)
+		if p.curValue("READONLY") {
+			p.advance()
+		}
+
+		params = append(params, param)
+
+		if p.curIs(lexer.Comma) {
+			p.advance() // consume , between params
+		} else {
+			break
+		}
+	}
+	// Consume the closing ) when the param list was parenthesised.
+	if hasParen && p.curIs(lexer.RParen) {
+		p.advance()
+	}
+	return params, nil
+}
+
+// parseProcBody reads the BEGIN...END block of a procedure body.
+// On entry: p.cur should be BEGIN (the AS keyword must already be consumed).
+// On exit: p.cur is positioned after the closing END.
+// Each semicolon-terminated statement is returned as a token-normalised string.
+func (p *parser) parseProcBody() ([]string, error) {
+	if !p.curKeyword("BEGIN") {
+		return nil, fmt.Errorf(
+			"expected BEGIN in procedure body at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+	p.advance() // consume BEGIN
+
+	var stmts []string
+	var tokBuf []lexer.Token
+	depth := 0 // depth inside proc body: incremented by nested BEGIN, decremented by END
+
+	for p.cur.Type != lexer.EOF {
+		// Closing END of the procedure body.
+		if p.curKeyword("END") && depth == 0 {
+			if len(tokBuf) > 0 {
+				stmts = append(stmts, joinBodyTokens(tokBuf))
+			}
+			p.advance() // consume END
+			break
+		}
+
+		if p.curKeyword("BEGIN") {
+			depth++
+		} else if p.curKeyword("END") {
+			depth--
+		}
+
+		// Statement boundary: semicolon at depth 0.
+		if p.curIs(lexer.Semicolon) && depth == 0 {
+			if len(tokBuf) > 0 {
+				stmts = append(stmts, joinBodyTokens(tokBuf))
+				tokBuf = nil
+			}
+			p.advance() // consume ;
+			continue
+		}
+
+		tokBuf = append(tokBuf, p.cur)
+		p.advance()
+	}
+
+	return stmts, nil
+}
+
+// joinBodyTokens joins a slice of tokens into a whitespace-normalised string,
+// lowercasing keywords and applying SQL spacing conventions.
+func joinBodyTokens(tokens []lexer.Token) string {
+	var b strings.Builder
+	var prevType lexer.TokenType
+	for i, tok := range tokens {
+		if i > 0 && needsSelectSpace(prevType, tok.Type) {
+			b.WriteByte(' ')
+		}
+		b.WriteString(exprToken(tok))
+		prevType = tok.Type
+	}
+	return strings.TrimSpace(b.String())
 }
 
 // parseCreateTable handles CREATE TABLE.

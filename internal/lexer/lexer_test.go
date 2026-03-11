@@ -352,26 +352,54 @@ func TestTokenizeIllegalChar(t *testing.T) {
 }
 
 func TestTokenizeIllegalContinuesScanning(t *testing.T) {
-	// Lexer should emit Illegal and keep going — all bad chars in one pass.
-	tokens, _ := Tokenize("@foo$bar")
+	// Lexer should emit Illegal and keep going.
+	// '@foo' is now a valid T-SQL variable ident; '$bar' produces Illegal '$' + Ident 'bar'.
+	tokens, _ := Tokenize("@foo $bar")
 	var illegalCount int
 	for _, tok := range tokens {
 		if tok.Type == Illegal {
 			illegalCount++
 		}
 	}
-	if illegalCount != 2 {
-		t.Errorf("got %d Illegal tokens, want 2", illegalCount)
+	if illegalCount != 1 {
+		t.Errorf("got %d Illegal tokens, want 1", illegalCount)
 	}
-	// The ident "foo" and "bar" should still be present
+	// '@foo' (whole) and 'bar' should be present as idents.
 	var identValues []string
 	for _, tok := range tokens {
 		if tok.Type == Ident {
 			identValues = append(identValues, tok.Value)
 		}
 	}
-	if len(identValues) != 2 || identValues[0] != "foo" || identValues[1] != "bar" {
-		t.Errorf("idents: got %v, want [foo bar]", identValues)
+	if len(identValues) != 2 || identValues[0] != "@foo" || identValues[1] != "bar" {
+		t.Errorf("idents: got %v, want [@foo bar]", identValues)
+	}
+}
+
+func TestTokenizeAtVar(t *testing.T) {
+	// @local and @@system variables should tokenize as Ident with sigil included.
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"@customer_id", "@customer_id"},
+		{"@@rowcount", "@@rowcount"},
+		{"@@IDENTITY", "@@IDENTITY"},
+	}
+	for _, tc := range tests {
+		tokens, err := Tokenize(tc.input)
+		if err != nil {
+			t.Errorf("Tokenize(%q): unexpected error %v", tc.input, err)
+			continue
+		}
+		// Expect Ident + EOF
+		if len(tokens) < 1 || tokens[0].Type != Ident {
+			t.Errorf("Tokenize(%q): got type %v, want Ident", tc.input, tokens[0].Type)
+			continue
+		}
+		if tokens[0].Value != tc.want {
+			t.Errorf("Tokenize(%q): got value %q, want %q", tc.input, tokens[0].Value, tc.want)
+		}
 	}
 }
 

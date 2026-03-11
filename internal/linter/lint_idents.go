@@ -67,5 +67,8 @@ func (l *linter) checkIdentsWithSpaces(stmt parser.Statement) {
 				l.checkIdentSpaces(tc.Name, fmt.Sprintf("type %q: constraint", s.Name))
 			}
 		}
+
+	case *parser.CreateProcStmt:
+		l.checkIdentSpaces(s.Name, "procedure")
 	}
 }

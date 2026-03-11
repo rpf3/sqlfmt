@@ -487,6 +487,42 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 	return b.String()
 }
 
+func (f *formatter) formatCreateProc(s *parser.CreateProcStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+	b.WriteString(f.kw("create procedure "))
+	b.WriteString(f.ident(s.Name))
+
+	// Parameter list — wrapped in ( ), one per line, same comma style as columns.
+	if len(s.Params) > 0 {
+		params := make([]string, 0, len(s.Params))
+		for _, p := range s.Params {
+			var pb strings.Builder
+			pb.WriteString(p.Name)
+			pb.WriteString(" " + f.kw(strings.ToLower(p.DataType)))
+			if p.Default != nil {
+				pb.WriteString(" = " + parser.Render(p.Default))
+			}
+			if p.Direction == parser.ParamDirectionOut {
+				pb.WriteString(" " + f.kw("output"))
+			}
+			params = append(params, pb.String())
+		}
+		b.WriteString("\n(")
+		f.writeCommaList(&b, params)
+		b.WriteString("\n)")
+	}
+
+	b.WriteString("\n" + f.kw("as") + " " + f.kw("begin"))
+
+	for _, stmt := range s.Body {
+		b.WriteString("\n" + ind + stmt + ";")
+	}
+
+	b.WriteString("\n" + f.kw("end") + ";")
+	return b.String()
+}
+
 func (f *formatter) formatCreateType(s *parser.CreateTypeStmt) string {
 	ind := f.indent()
 	var b strings.Builder

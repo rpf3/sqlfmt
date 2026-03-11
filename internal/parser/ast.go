@@ -160,6 +160,38 @@ type CreateTypeStmt struct {
 
 func (*CreateTypeStmt) statementNode() {}
 
+// ParamDirection indicates whether a procedure/function parameter is input or output.
+type ParamDirection int
+
+const (
+	ParamDirectionIn  ParamDirection = iota // default: input parameter
+	ParamDirectionOut                       // OUTPUT or OUT keyword
+)
+
+// ProcParam is one parameter in a CREATE PROCEDURE or CREATE FUNCTION parameter list.
+type ProcParam struct {
+	Name      string         // parameter name including sigil (e.g. "@customer_id")
+	DataType  string         // data type (e.g. "INT", "NVARCHAR(20)")
+	Direction ParamDirection // ParamDirectionIn (default) or ParamDirectionOut
+	Default   Expr           // default from = <expr>; nil if absent
+}
+
+// CreateProcStmt represents:
+//
+//	CREATE PROCEDURE <name>
+//	    [@param datatype [= default] [OUTPUT]] [, ...]
+//	AS
+//	BEGIN
+//	    <body>
+//	END
+type CreateProcStmt struct {
+	Name   string      // procedure name (may be schema-qualified)
+	Params []ProcParam // parameter list; nil if no parameters
+	Body   []string    // body statements, token-normalized, without trailing semicolons
+}
+
+func (*CreateProcStmt) statementNode() {}
+
 // DeleteStmt represents: DELETE [<alias>] FROM <table> [AS <alias>] [WHERE <predicate>]
 type DeleteStmt struct {
 	Table         string // table name
