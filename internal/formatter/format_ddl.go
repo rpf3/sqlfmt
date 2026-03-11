@@ -78,7 +78,11 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 				b.WriteString(" " + f.kw("as") + " " + jc.Alias)
 			}
 			if jc.On != nil {
-				b.WriteString("\n" + ind + ind + f.kw("on") + " " + parser.Render(jc.On))
+				terms := parser.AndTerms(jc.On)
+				b.WriteString("\n" + ind + ind + f.kw("on") + " " + parser.Render(terms[0]))
+				for _, term := range terms[1:] {
+					b.WriteString("\n" + ind + ind + f.kw("and") + " " + parser.Render(term))
+				}
 			}
 		}
 	}
