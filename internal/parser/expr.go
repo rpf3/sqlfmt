@@ -20,11 +20,18 @@ type IdentExpr struct{ Parts []string }
 // LiteralExpr is a literal token: string, integer, float, or keyword literal.
 type LiteralExpr struct{ Token lexer.Token }
 
+// WindowSpec holds the OVER clause of a window function call.
+type WindowSpec struct {
+	PartitionBy []Expr      // PARTITION BY expressions; nil if absent
+	OrderBy     []OrderItem // ORDER BY items; nil if absent
+}
+
 // FunctionCallExpr is a function call: name(args…) or name(*).
 type FunctionCallExpr struct {
 	Name string
 	Args []Expr
-	Star bool // true for count(*)
+	Star bool        // true for count(*)
+	Over *WindowSpec // non-nil for window functions with OVER clause
 }
 
 // BinaryExpr is a binary operation: left op right (e.g. "a.id = b.id").
@@ -68,14 +75,41 @@ func Render(e Expr) string {
 	case *LiteralExpr:
 		return v.Token.Value
 	case *FunctionCallExpr:
+		var result string
 		if v.Star {
-			return v.Name + "(*)"
+			result = v.Name + "(*)"
+		} else {
+			args := make([]string, len(v.Args))
+			for i, a := range v.Args {
+				args[i] = Render(a)
+			}
+			result = v.Name + "(" + strings.Join(args, ", ") + ")"
 		}
-		args := make([]string, len(v.Args))
-		for i, a := range v.Args {
-			args[i] = Render(a)
+		if v.Over != nil {
+			var overParts []string
+			if len(v.Over.PartitionBy) > 0 {
+				parts := make([]string, len(v.Over.PartitionBy))
+				for i, e := range v.Over.PartitionBy {
+					parts[i] = Render(e)
+				}
+				overParts = append(overParts, "partition by "+strings.Join(parts, ", "))
+			}
+			if len(v.Over.OrderBy) > 0 {
+				items := make([]string, len(v.Over.OrderBy))
+				for i, ob := range v.Over.OrderBy {
+					s := Render(ob.Value)
+					if ob.Direction == DirectionAsc {
+						s += " asc"
+					} else if ob.Direction == DirectionDesc {
+						s += " desc"
+					}
+					items[i] = s
+				}
+				overParts = append(overParts, "order by "+strings.Join(items, ", "))
+			}
+			result += " over (" + strings.Join(overParts, " ") + ")"
 		}
-		return v.Name + "(" + strings.Join(args, ", ") + ")"
+		return result
 	case *BinaryExpr:
 		return Render(v.Left) + " " + v.Op + " " + Render(v.Right)
 	case *ParenExpr:
@@ -106,6 +140,14 @@ func Walk(e Expr, fn func(Expr)) {
 	case *FunctionCallExpr:
 		for _, a := range v.Args {
 			Walk(a, fn)
+		}
+		if v.Over != nil {
+			for _, e := range v.Over.PartitionBy {
+				Walk(e, fn)
+			}
+			for _, ob := range v.Over.OrderBy {
+				Walk(ob.Value, fn)
+			}
 		}
 	case *BinaryExpr:
 		Walk(v.Left, fn)

@@ -69,16 +69,15 @@ func needsSelectSpace(prev, cur lexer.TokenType) bool {
 	return true
 }
 
-// parseExpr wraps parseExprRaw into a RawExpr, providing a zero-behaviour-change
-// bridge from string-based parsing to the Expr interface. Callers that do not
-// need AND-splitting should use this instead of parseExprRaw directly.
+// parseExpr parses a single expression, lifting top-level function calls into
+// *FunctionCallExpr nodes when possible. Falls back to *RawExpr otherwise.
+// Callers that do not need AND-splitting should use this instead of parseExprRaw directly.
 func (p *parser) parseExpr(stopFn func() bool) Expr {
-	text, _ := p.parseExprRaw(stopFn)
-	return &RawExpr{Text: text}
+	return p.parseExprNode(stopFn)
 }
 
 // parseAndChain splits an expression on top-level AND tokens, returning an
-// AndChain when more than one term is found, or a single RawExpr otherwise.
+// AndChain when more than one term is found, or a single node otherwise.
 // This enables the formatter to emit multi-line WHERE/HAVING/ON predicates
 // (#101) while keeping Render(result) == parseExprRaw(same stopFn) for all
 // inputs — golden tests remain byte-identical.
@@ -86,10 +85,10 @@ func (p *parser) parseAndChain(stopFn func() bool) Expr {
 	var terms []Expr
 	for {
 		// Read one AND-term: stop at AND (at depth 0) or at the caller's stop.
-		text, _ := p.parseExprRaw(func() bool {
+		term := p.parseExprNode(func() bool {
 			return p.curKeyword("AND") || stopFn()
 		})
-		terms = append(terms, &RawExpr{Text: text})
+		terms = append(terms, term)
 
 		// If the caller's stop condition fired (not AND), we're done.
 		if !p.curKeyword("AND") {
@@ -102,6 +101,119 @@ func (p *parser) parseAndChain(stopFn func() bool) Expr {
 		return terms[0]
 	}
 	return &AndChain{Terms: terms}
+}
+
+// parseExprNode wraps parseExprRaw but lifts top-level function calls into
+// *FunctionCallExpr nodes. When the expression does not start with a function
+// call, or when the function call is only part of a larger expression (e.g.
+// count(*) + 1), it falls back to *RawExpr — preserving the Render invariant.
+func (p *parser) parseExprNode(stopFn func() bool) Expr {
+	if p.cur.Type == lexer.Ident && p.peek.Type == lexer.LParen {
+		fn := p.parseFunctionCall()
+		// If the function call consumed the entire expression, return it structured.
+		if p.cur.Type == lexer.EOF || p.cur.Type == lexer.RParen || stopFn() {
+			return fn
+		}
+		// More tokens follow — render fn back to string and accumulate the rest.
+		rest, _ := p.parseExprRaw(stopFn)
+		return &RawExpr{Text: Render(fn) + " " + rest}
+	}
+	text, _ := p.parseExprRaw(stopFn)
+	return &RawExpr{Text: text}
+}
+
+// parseFunctionCall parses a function call starting at the current Ident token.
+// On entry: p.cur is the function name Ident; p.peek is LParen.
+// On exit: p.cur is positioned after the closing RParen (and OVER clause if present).
+func (p *parser) parseFunctionCall() *FunctionCallExpr {
+	name := exprToken(p.cur) // normalize (lowercase built-in names)
+	p.advance()              // consume ident
+	p.advance()              // consume (
+
+	fn := &FunctionCallExpr{Name: name}
+
+	if p.cur.Type == lexer.Star {
+		fn.Star = true
+		p.advance() // consume *
+		p.advance() // consume )
+	} else {
+		for p.cur.Type != lexer.RParen && p.cur.Type != lexer.EOF {
+			arg := p.parseExprNode(func() bool {
+				return p.cur.Type == lexer.Comma || p.cur.Type == lexer.RParen
+			})
+			fn.Args = append(fn.Args, arg)
+			if p.cur.Type == lexer.Comma {
+				p.advance() // consume ,
+			}
+		}
+		if p.cur.Type == lexer.RParen {
+			p.advance() // consume )
+		}
+	}
+
+	// Window function: check for OVER (
+	if p.curKeyword("OVER") && p.peek.Type == lexer.LParen {
+		p.advance() // consume OVER
+		fn.Over = p.parseWindowSpec()
+	}
+
+	return fn
+}
+
+// parseWindowSpec parses the parenthesised OVER clause of a window function.
+// On entry: p.cur is LParen (the opening paren of the OVER clause).
+// On exit: p.cur is positioned after the closing RParen.
+func (p *parser) parseWindowSpec() *WindowSpec {
+	p.advance() // consume (
+	ws := &WindowSpec{}
+
+	if p.curKeyword("PARTITION") {
+		p.advance() // consume PARTITION
+		p.advance() // consume BY
+		for {
+			expr := p.parseExprNode(func() bool {
+				return p.cur.Type == lexer.Comma ||
+					p.curKeyword("ORDER") ||
+					p.cur.Type == lexer.RParen
+			})
+			ws.PartitionBy = append(ws.PartitionBy, expr)
+			if p.cur.Type == lexer.Comma {
+				p.advance()
+			} else {
+				break
+			}
+		}
+	}
+
+	if p.curKeyword("ORDER") {
+		p.advance() // consume ORDER
+		p.advance() // consume BY
+		for {
+			val := p.parseExprNode(func() bool {
+				return p.curKeyword("ASC") || p.curKeyword("DESC") ||
+					p.cur.Type == lexer.Comma || p.cur.Type == lexer.RParen
+			})
+			dir := DirectionNone
+			if p.curKeyword("ASC") {
+				dir = DirectionAsc
+				p.advance()
+			} else if p.curKeyword("DESC") {
+				dir = DirectionDesc
+				p.advance()
+			}
+			ws.OrderBy = append(ws.OrderBy, OrderItem{Value: val, Direction: dir})
+			if p.cur.Type == lexer.Comma {
+				p.advance()
+			} else {
+				break
+			}
+		}
+	}
+
+	if p.cur.Type == lexer.RParen {
+		p.advance() // consume )
+	}
+	return ws
 }
 
 // parseExprRaw reads tokens into a normalised expression string, tracking
