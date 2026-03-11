@@ -200,6 +200,33 @@ type RawStmt struct {
 
 func (*RawStmt) statementNode() {}
 
+// CreateFuncKind identifies the variant of a CREATE FUNCTION statement.
+type CreateFuncKind int
+
+const (
+	CreateFuncScalar      CreateFuncKind = iota // RETURNS <type> AS BEGIN...END
+	CreateFuncInlineTable                       // RETURNS TABLE AS RETURN (SELECT...)
+	CreateFuncMultiTable                        // RETURNS @var TABLE (...) AS BEGIN...END
+)
+
+// CreateFuncStmt represents a CREATE FUNCTION statement.
+//
+//	Scalar:      CREATE FUNCTION <name> (<params>) RETURNS <type> AS BEGIN <body> END
+//	Inline TVF:  CREATE FUNCTION <name> (<params>) RETURNS TABLE AS RETURN (<select>)
+//	Multi TVF:   CREATE FUNCTION <name> (<params>) RETURNS @var TABLE (<cols>) AS BEGIN <body> END
+type CreateFuncStmt struct {
+	Name         string      // function name (may be schema-qualified)
+	Params       []ProcParam // parameter list; nil if no parameters
+	Kind         CreateFuncKind
+	ReturnsType  string      // scalar: data type (e.g. "INT"); inline: "TABLE"
+	ReturnsVar   string      // multi-table: table variable name (e.g. "@result")
+	ReturnsTable []ColumnDef // multi-table: column definitions for the return table
+	Body         []Statement // scalar + multi-table: BEGIN...END body
+	InlineSelect *SelectStmt // inline TVF: the SELECT inside RETURN (...)
+}
+
+func (*CreateFuncStmt) statementNode() {}
+
 // DeleteStmt represents: DELETE [<alias>] FROM <table> [AS <alias>] [WHERE <predicate>]
 type DeleteStmt struct {
 	Table         string // table name

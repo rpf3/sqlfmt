@@ -76,6 +76,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatCreateType(s)
 	case *parser.CreateProcStmt:
 		return f.formatCreateProc(s)
+	case *parser.CreateFuncStmt:
+		return f.formatCreateFunc(s)
 	case *parser.DeleteStmt:
 		return f.formatDelete(s)
 	case *parser.InsertStmt:

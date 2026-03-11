@@ -75,10 +75,12 @@ var keywords = map[string]bool{
 	// Subqueries / CTEs
 	"WITH":      true,
 	"RECURSIVE": true,
-	// Transactions
+	// Transactions / flow control
 	"BEGIN":    true,
 	"COMMIT":   true,
 	"ROLLBACK": true,
+	"RETURN":   true,
+	"RETURNS":  true,
 	// Type-related
 	"CAST":       true,
 	"PRIMARY":    true,

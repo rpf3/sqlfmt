@@ -526,6 +526,88 @@ func (f *formatter) formatCreateProc(s *parser.CreateProcStmt) string {
 	return b.String()
 }
 
+func (f *formatter) formatCreateFunc(s *parser.CreateFuncStmt) string {
+	var b strings.Builder
+	b.WriteString(f.kw("create function "))
+	b.WriteString(f.ident(s.Name))
+
+	// Parameter list — wrapped in ( ), one per line, same style as procedures.
+	if len(s.Params) > 0 {
+		params := make([]string, 0, len(s.Params))
+		for _, p := range s.Params {
+			var pb strings.Builder
+			pb.WriteString(p.Name)
+			pb.WriteString(" " + f.kw(strings.ToLower(p.DataType)))
+			if p.Default != nil {
+				pb.WriteString(" = " + parser.Render(p.Default))
+			}
+			if p.Direction == parser.ParamDirectionOut {
+				pb.WriteString(" " + f.kw("output"))
+			}
+			params = append(params, pb.String())
+		}
+		b.WriteString("\n(")
+		f.writeCommaList(&b, params)
+		b.WriteString("\n)")
+	}
+
+	switch s.Kind {
+	case parser.CreateFuncScalar:
+		b.WriteString("\n" + f.kw("returns") + " " + f.kw(strings.ToLower(s.ReturnsType)))
+		b.WriteString("\n" + f.kw("as") + " " + f.kw("begin"))
+		for i, stmt := range s.Body {
+			if i > 0 {
+				b.WriteString("\n")
+			}
+			b.WriteString("\n")
+			b.WriteString(f.indentBodyStmt(stmt))
+		}
+		b.WriteString("\n" + f.kw("end"))
+
+	case parser.CreateFuncInlineTable:
+		b.WriteString("\n" + f.kw("returns table"))
+		b.WriteString("\n" + f.kw("as") + " " + f.kw("return"))
+		b.WriteString("\n(")
+		b.WriteString("\n" + f.indentCTE(s.InlineSelect))
+		b.WriteString("\n)")
+
+	case parser.CreateFuncMultiTable:
+		b.WriteString("\n" + f.kw("returns") + " " + s.ReturnsVar + " " + f.kw("table"))
+		b.WriteString("\n(")
+		ind := f.indent()
+		totalItems := len(s.ReturnsTable)
+		for i, col := range s.ReturnsTable {
+			if f.cfg.CommaStyle == config.CommaTrailing {
+				b.WriteString("\n" + ind)
+				f.writeColumnDef(&b, col)
+				if i < totalItems-1 {
+					b.WriteString(",")
+				}
+			} else {
+				if i == 0 {
+					b.WriteString("\n" + ind)
+				} else {
+					b.WriteString("\n," + ind)
+				}
+				f.writeColumnDef(&b, col)
+			}
+		}
+		b.WriteString("\n)")
+		b.WriteString("\n" + f.kw("as") + " " + f.kw("begin"))
+		for i, stmt := range s.Body {
+			if i > 0 {
+				b.WriteString("\n")
+			}
+			b.WriteString("\n")
+			b.WriteString(f.indentBodyStmt(stmt))
+		}
+		b.WriteString("\n" + f.kw("end"))
+	}
+
+	b.WriteString(";")
+	return b.String()
+}
+
 func (f *formatter) formatCreateType(s *parser.CreateTypeStmt) string {
 	ind := f.indent()
 	var b strings.Builder

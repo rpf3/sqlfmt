@@ -230,6 +230,9 @@ func (p *parser) parseCreate() (Statement, error) {
 	if p.curValue("PROCEDURE") || p.curValue("PROC") {
 		return p.parseCreateProc()
 	}
+	if p.curValue("FUNCTION") {
+		return p.parseCreateFunc()
+	}
 	return p.parseCreateTable()
 }
 
@@ -484,6 +487,117 @@ func joinBodyTokens(tokens []lexer.Token) string {
 		prevType = tok.Type
 	}
 	return strings.TrimSpace(b.String())
+}
+
+// parseCreateFunc handles:
+//
+//	CREATE FUNCTION <name> (<params>) RETURNS <type> AS BEGIN <body> END        -- scalar
+//	CREATE FUNCTION <name> (<params>) RETURNS TABLE AS RETURN (<select>)        -- inline TVF
+//	CREATE FUNCTION <name> (<params>) RETURNS @var TABLE (<cols>) AS BEGIN END  -- multi-statement TVF
+func (p *parser) parseCreateFunc() (Statement, error) {
+	p.advance() // consume FUNCTION
+
+	funcName, err := p.parseQualifiedName()
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := &CreateFuncStmt{Name: funcName}
+
+	params, err := p.parseProcParams()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Params = params
+
+	// RETURNS clause
+	if !p.curValue("RETURNS") {
+		return nil, fmt.Errorf(
+			"expected RETURNS in CREATE FUNCTION at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+	p.advance() // consume RETURNS
+
+	switch {
+	case p.curKeyword("TABLE"):
+		// Inline TVF: RETURNS TABLE
+		stmt.Kind = CreateFuncInlineTable
+		stmt.ReturnsType = "TABLE"
+		p.advance() // consume TABLE
+
+	case p.cur.Type == lexer.Ident && peekIsTableKeyword(p):
+		// Multi-statement TVF: RETURNS @var TABLE (col_defs)
+		stmt.Kind = CreateFuncMultiTable
+		stmt.ReturnsVar = p.cur.Value
+		p.advance() // consume @var
+		p.advance() // consume TABLE
+		if _, err := p.expect(lexer.LParen); err != nil {
+			return nil, err
+		}
+		cols, _, err := p.parseColumnList()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return nil, err
+		}
+		stmt.ReturnsTable = cols
+
+	default:
+		// Scalar: RETURNS <data_type>
+		stmt.Kind = CreateFuncScalar
+		dataType, err := p.parseDataType()
+		if err != nil {
+			return nil, err
+		}
+		stmt.ReturnsType = dataType
+	}
+
+	// AS keyword
+	if p.curKeyword("AS") {
+		p.advance() // consume AS
+	}
+
+	switch stmt.Kind {
+	case CreateFuncInlineTable:
+		// AS RETURN (SELECT ...)
+		if !p.curValue("RETURN") {
+			return nil, fmt.Errorf(
+				"expected RETURN after AS in inline TVF at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance() // consume RETURN
+		if _, err := p.expect(lexer.LParen); err != nil {
+			return nil, err
+		}
+		sel, err := p.parseSelectCore()
+		if err != nil {
+			return nil, err
+		}
+		stmt.InlineSelect = sel
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return nil, err
+		}
+
+	default:
+		// Scalar and multi-statement TVF: AS BEGIN...END
+		body, err := p.parseProcBody()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Body = body
+	}
+
+	p.consumeSemicolon()
+	return stmt, nil
+}
+
+// peekIsTableKeyword reports whether the peek token is the TABLE keyword.
+// Used to disambiguate RETURNS @var TABLE (...) from RETURNS <scalar_type>.
+func peekIsTableKeyword(p *parser) bool {
+	return p.peek.Type == lexer.Keyword && strings.EqualFold(p.peek.Value, "TABLE")
 }
 
 // parseCreateTable handles CREATE TABLE.

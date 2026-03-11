@@ -70,5 +70,8 @@ func (l *linter) checkIdentsWithSpaces(stmt parser.Statement) {
 
 	case *parser.CreateProcStmt:
 		l.checkIdentSpaces(s.Name, "procedure")
+
+	case *parser.CreateFuncStmt:
+		l.checkIdentSpaces(s.Name, "function")
 	}
 }
