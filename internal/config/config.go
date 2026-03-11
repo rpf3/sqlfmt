@@ -62,6 +62,7 @@ const (
 	RuleMergeUpdateWithoutCondition = "merge-update-without-condition"
 	RuleWindowOrderDirection        = "window-order-direction"
 	RuleMissingSchemaName           = "missing-schema-name"
+	RuleOneObjectPerFile            = "one-object-per-file"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -85,6 +86,7 @@ var knownRules = map[string]bool{
 	RuleMergeUpdateWithoutCondition: true,
 	RuleWindowOrderDirection:        true,
 	RuleMissingSchemaName:           true,
+	RuleOneObjectPerFile:            true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

@@ -2,6 +2,8 @@ package linter
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/rpf3/sqlfmt/internal/config"
 	"github.com/rpf3/sqlfmt/internal/parser"
@@ -29,7 +31,57 @@ func Lint(input string, cfg config.Config) ([]Warning, error) {
 			l.warn(config.RuleMissingTrailingSemicolon, "statement is missing a trailing semicolon")
 		}
 	}
+	l.checkOneObjectPerFile(result.Statements)
 	return l.warnings, nil
+}
+
+// checkOneObjectPerFile warns when a file defines more than one distinct
+// primary DDL object. Primary objects are CREATE TABLE and CREATE VIEW.
+// CREATE INDEX is subordinate: it is exempt unless its ON table differs from
+// the file's single CREATE TABLE. ALTER TABLE and DROP are always exempt.
+func (l *linter) checkOneObjectPerFile(stmts []parser.Statement) {
+	sev := l.severity(config.RuleOneObjectPerFile)
+	if sev == config.RuleSeverityOff {
+		return
+	}
+
+	seen := map[string]bool{}
+	var primaryTable string // name from the first CREATE TABLE, if any
+
+	for _, stmt := range stmts {
+		switch s := stmt.(type) {
+		case *parser.CreateTableStmt:
+			seen[s.Name] = true
+			if primaryTable == "" {
+				primaryTable = s.Name
+			}
+		case *parser.CreateViewStmt:
+			seen[s.Name] = true
+		}
+	}
+
+	// A CREATE INDEX that references a table other than the primary CREATE TABLE
+	// implies a second object is present in the file.
+	for _, stmt := range stmts {
+		if s, ok := stmt.(*parser.CreateIndexStmt); ok {
+			if primaryTable != "" && s.Table != primaryTable {
+				seen[s.Table] = true
+			}
+		}
+	}
+
+	if len(seen) <= 1 {
+		return
+	}
+
+	names := make([]string, 0, len(seen))
+	for n := range seen {
+		names = append(names, fmt.Sprintf("%q", n))
+	}
+	sort.Strings(names)
+	l.warn(config.RuleOneObjectPerFile,
+		fmt.Sprintf("file defines multiple objects (%s); each object should have its own file",
+			strings.Join(names, ", ")))
 }
 
 // linter holds configuration and accumulates warnings during a lint run.
