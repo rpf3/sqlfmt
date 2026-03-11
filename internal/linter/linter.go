@@ -125,6 +125,7 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkMergeStmt(s)
 	}
 	l.checkSchemaQualification(stmt)
+	l.checkIdentsWithSpaces(stmt)
 }
 
 func (l *linter) checkCreateIndex(s *parser.CreateIndexStmt) {
