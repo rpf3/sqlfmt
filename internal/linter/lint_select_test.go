@@ -55,12 +55,12 @@ func TestLintOrderByDirection(t *testing.T) {
 		},
 		{
 			name:     "explicit asc is clean",
-			input:    `select id from orders as o order by created_at asc;`,
+			input:    `select id from dbo.orders as o order by created_at asc;`,
 			wantRule: "",
 		},
 		{
 			name:     "explicit desc is clean",
-			input:    `select id from orders as o order by created_at desc;`,
+			input:    `select id from dbo.orders as o order by created_at desc;`,
 			wantRule: "",
 		},
 		{
@@ -76,7 +76,7 @@ func TestLintOrderByDirection(t *testing.T) {
 	}
 
 	t.Run("off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select id from orders as o order by created_at;`, config.RuleOrderByDirection)
+		checkRuleOff(t, `select id from dbo.orders as o order by created_at;`, config.RuleOrderByDirection)
 	})
 }
 
@@ -93,12 +93,12 @@ func TestLintAliasWithoutAs(t *testing.T) {
 		},
 		{
 			name:     "AS FROM alias is clean",
-			input:    `select o.id from orders as o;`,
+			input:    `select o.id from dbo.orders as o;`,
 			wantRule: "",
 		},
 		{
 			name:     "no alias does not trigger alias-without-as",
-			input:    `select id from orders as o;`,
+			input:    `select id from dbo.orders as o;`,
 			wantRule: "",
 		},
 		{
@@ -108,7 +108,7 @@ func TestLintAliasWithoutAs(t *testing.T) {
 		},
 		{
 			name:     "AS JOIN alias is clean",
-			input:    `select o.id from orders as o join customers as c on o.customer_id = c.id;`,
+			input:    `select o.id from dbo.orders as o join dbo.customers as c on o.customer_id = c.id;`,
 			wantRule: "",
 		},
 	}
@@ -119,7 +119,7 @@ func TestLintAliasWithoutAs(t *testing.T) {
 	}
 
 	t.Run("off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select o.id from orders o;`, config.RuleAliasWithoutAs)
+		checkRuleOff(t, `select o.id from dbo.orders o;`, config.RuleAliasWithoutAs)
 	})
 }
 
@@ -136,12 +136,12 @@ func TestLintNoLimit(t *testing.T) {
 		},
 		{
 			name:     "FETCH NEXT is clean",
-			input:    `select id from orders as o fetch next 10 rows only;`,
+			input:    `select id from dbo.orders as o fetch next 10 rows only;`,
 			wantRule: "",
 		},
 		{
 			name:     "no pagination is clean",
-			input:    `select id from orders as o;`,
+			input:    `select id from dbo.orders as o;`,
 			wantRule: "",
 		},
 	}
@@ -152,7 +152,7 @@ func TestLintNoLimit(t *testing.T) {
 	}
 
 	t.Run("off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select id from orders as o limit 10;`, config.RuleNoLimit)
+		checkRuleOff(t, `select id from dbo.orders as o limit 10;`, config.RuleNoLimit)
 	})
 }
 
@@ -169,12 +169,12 @@ func TestLintOffsetRows(t *testing.T) {
 		},
 		{
 			name:     "OFFSET ROWS is clean",
-			input:    `select id from orders as o order by id asc offset 5 rows fetch next 10 rows only;`,
+			input:    `select id from dbo.orders as o order by id asc offset 5 rows fetch next 10 rows only;`,
 			wantRule: "",
 		},
 		{
 			name:     "no OFFSET is clean",
-			input:    `select id from orders as o;`,
+			input:    `select id from dbo.orders as o;`,
 			wantRule: "",
 		},
 	}
@@ -186,7 +186,7 @@ func TestLintOffsetRows(t *testing.T) {
 
 	t.Run("off suppresses warning", func(t *testing.T) {
 		checkRuleOff(t,
-			`select id from orders as o order by id asc offset 5 fetch next 10 rows only;`,
+			`select id from dbo.orders as o order by id asc offset 5 fetch next 10 rows only;`,
 			config.RuleOffsetRows)
 	})
 }
@@ -204,17 +204,17 @@ func TestLintExistsSelectOne(t *testing.T) {
 		},
 		{
 			name:     "EXISTS SELECT 1 is clean",
-			input:    `select id from orders as o where exists (select 1 from customers as c where c.id = o.customer_id);`,
+			input:    `select id from dbo.orders as o where exists (select 1 from dbo.customers as c where c.id = o.customer_id);`,
 			wantRule: "",
 		},
 		{
 			name:     "IN subquery is not checked",
-			input:    `select id from orders as o where o.customer_id in (select id from customers as c);`,
+			input:    `select id from dbo.orders as o where o.customer_id in (select id from dbo.customers as c);`,
 			wantRule: "",
 		},
 		{
 			name:     "no subquery is clean",
-			input:    `select id from orders as o where o.status = 'active';`,
+			input:    `select id from dbo.orders as o where o.status = 'active';`,
 			wantRule: "",
 		},
 	}
@@ -226,7 +226,7 @@ func TestLintExistsSelectOne(t *testing.T) {
 
 	t.Run("off suppresses warning", func(t *testing.T) {
 		checkRuleOff(t,
-			`select id from orders as o where exists (select id from customers as c where c.id = o.customer_id);`,
+			`select id from dbo.orders as o where exists (select id from dbo.customers as c where c.id = o.customer_id);`,
 			config.RuleExistsSelectOne)
 	})
 }
@@ -244,7 +244,7 @@ func TestLintUnaliasedTable(t *testing.T) {
 		},
 		{
 			name:     "FROM table with alias is clean",
-			input:    `select o.id from orders as o;`,
+			input:    `select o.id from dbo.orders as o;`,
 			wantRule: "",
 		},
 		{
@@ -254,7 +254,7 @@ func TestLintUnaliasedTable(t *testing.T) {
 		},
 		{
 			name:     "JOIN table with alias is clean",
-			input:    `select o.id from orders as o join customers as c on o.customer_id = c.id;`,
+			input:    `select o.id from dbo.orders as o join dbo.customers as c on o.customer_id = c.id;`,
 			wantRule: "",
 		},
 	}
@@ -265,7 +265,7 @@ func TestLintUnaliasedTable(t *testing.T) {
 	}
 
 	t.Run("rule off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select id from orders;`, config.RuleUnaliasedTable)
+		checkRuleOff(t, `select id from dbo.orders;`, config.RuleUnaliasedTable)
 	})
 }
 
@@ -282,12 +282,12 @@ func TestLintWindowOrderDirection(t *testing.T) {
 		},
 		{
 			name:     "explicit desc is clean",
-			input:    `select row_number() over (order by created_at desc) as rn from events as e;`,
+			input:    `select row_number() over (order by created_at desc) as rn from dbo.events as e;`,
 			wantRule: "",
 		},
 		{
 			name:     "explicit asc is clean",
-			input:    `select rank() over (order by score asc) as rnk from events as e;`,
+			input:    `select rank() over (order by score asc) as rnk from dbo.events as e;`,
 			wantRule: "",
 		},
 		{
@@ -297,17 +297,17 @@ func TestLintWindowOrderDirection(t *testing.T) {
 		},
 		{
 			name:     "partition by with explicit direction is clean",
-			input:    `select sum(amount) over (partition by customer_id order by created_at asc) as running_total from orders as o;`,
+			input:    `select sum(amount) over (partition by customer_id order by created_at asc) as running_total from dbo.orders as o;`,
 			wantRule: "",
 		},
 		{
 			name:     "window function with no over clause is clean",
-			input:    `select count(*) from orders as o;`,
+			input:    `select count(*) from dbo.orders as o;`,
 			wantRule: "",
 		},
 		{
 			name:     "plain select with no window function is clean",
-			input:    `select id from orders as o order by created_at asc;`,
+			input:    `select id from dbo.orders as o order by created_at asc;`,
 			wantRule: "",
 		},
 	}
@@ -319,7 +319,7 @@ func TestLintWindowOrderDirection(t *testing.T) {
 
 	t.Run("off suppresses warning", func(t *testing.T) {
 		checkRuleOff(t,
-			`select row_number() over (order by created_at) as rn from events as e;`,
+			`select row_number() over (order by created_at) as rn from dbo.events as e;`,
 			config.RuleWindowOrderDirection)
 	})
 }
@@ -337,12 +337,12 @@ func TestLintSelectStar(t *testing.T) {
 		},
 		{
 			name:     "explicit column list is clean",
-			input:    `select id, status from orders as o;`,
+			input:    `select id, status from dbo.orders as o;`,
 			wantRule: "",
 		},
 		{
 			name:     "count star is clean",
-			input:    `select count(*) from orders as o;`,
+			input:    `select count(*) from dbo.orders as o;`,
 			wantRule: "",
 		},
 		{
@@ -362,6 +362,6 @@ func TestLintSelectStar(t *testing.T) {
 		})
 	}
 	t.Run("rule off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select * from orders as o;`, config.RuleSelectStar)
+		checkRuleOff(t, `select * from dbo.orders as o;`, config.RuleSelectStar)
 	})
 }

@@ -108,12 +108,12 @@ func TestLintIndexDirection(t *testing.T) {
 		},
 		{
 			name:     "explicit asc is clean",
-			input:    `create index ix_orders_status on orders (status asc);`,
+			input:    `create index ix_orders_status on dbo.orders (status asc);`,
 			wantRule: "",
 		},
 		{
 			name:     "explicit desc is clean",
-			input:    `create index ix_orders_status on orders (status desc);`,
+			input:    `create index ix_orders_status on dbo.orders (status desc);`,
 			wantRule: "",
 		},
 		{
