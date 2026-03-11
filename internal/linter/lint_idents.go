@@ -56,5 +56,16 @@ func (l *linter) checkIdentsWithSpaces(stmt parser.Statement) {
 			l.checkIdentSpaces(s.Action.NewName,
 				fmt.Sprintf("table %q: column", s.Name))
 		}
+
+	case *parser.CreateTypeStmt:
+		l.checkIdentSpaces(s.Name, "type")
+		for _, col := range s.Columns {
+			l.checkIdentSpaces(col.Name, fmt.Sprintf("type %q: column", s.Name))
+		}
+		for _, tc := range s.Constraints {
+			if tc.Name != "" {
+				l.checkIdentSpaces(tc.Name, fmt.Sprintf("type %q: constraint", s.Name))
+			}
+		}
 	}
 }

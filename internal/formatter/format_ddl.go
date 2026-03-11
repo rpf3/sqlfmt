@@ -487,6 +487,74 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 	return b.String()
 }
 
+func (f *formatter) formatCreateType(s *parser.CreateTypeStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+	b.WriteString(f.kw("create type "))
+	b.WriteString(f.ident(s.Name))
+
+	switch s.Kind {
+	case parser.CreateTypeAlias:
+		b.WriteString("\n" + ind + f.kw("from") + " ")
+		b.WriteString(f.kw(strings.ToLower(s.BaseType)))
+		switch s.Nullability {
+		case parser.NullabilityNotNull:
+			b.WriteString(" " + f.kw("not null"))
+		case parser.NullabilityNull:
+			b.WriteString(" " + f.kw("null"))
+		}
+
+	case parser.CreateTypeTable:
+		b.WriteString(" " + f.kw("as table"))
+		b.WriteString("\n(\n")
+
+		totalItems := len(s.Columns) + len(s.Constraints)
+		itemIdx := 0
+
+		for _, col := range s.Columns {
+			if f.cfg.CommaStyle == config.CommaTrailing {
+				b.WriteString(ind)
+				f.writeColumnDef(&b, col)
+				if itemIdx < totalItems-1 {
+					b.WriteString(",")
+				}
+			} else {
+				if itemIdx == 0 {
+					b.WriteString(ind)
+				} else {
+					b.WriteString("," + ind)
+				}
+				f.writeColumnDef(&b, col)
+			}
+			b.WriteString("\n")
+			itemIdx++
+		}
+
+		if len(s.Constraints) > 0 {
+			b.WriteString("\n")
+		}
+		for _, tc := range s.Constraints {
+			if f.cfg.CommaStyle == config.CommaTrailing {
+				b.WriteString(ind)
+				f.writeTableConstraint(&b, tc)
+				if itemIdx < totalItems-1 {
+					b.WriteString(",")
+				}
+			} else {
+				b.WriteString("," + ind)
+				f.writeTableConstraint(&b, tc)
+			}
+			b.WriteString("\n")
+			itemIdx++
+		}
+
+		b.WriteString(")")
+	}
+
+	b.WriteString(";")
+	return b.String()
+}
+
 // formatSet formats a SET statement as a single line: set <option> <value>;
 func (f *formatter) formatSet(s *parser.SetStmt) string {
 	var b strings.Builder

@@ -224,7 +224,78 @@ func (p *parser) parseCreate() (Statement, error) {
 	if p.curKeyword("VIEW") {
 		return p.parseCreateView()
 	}
+	if p.curValue("TYPE") {
+		return p.parseCreateType()
+	}
 	return p.parseCreateTable()
+}
+
+// parseCreateType handles:
+//
+//	CREATE TYPE <name> FROM <base_type> [NULL|NOT NULL]         -- alias type
+//	CREATE TYPE <name> AS TABLE (<col_defs> [, <constraints>])  -- table type
+func (p *parser) parseCreateType() (Statement, error) {
+	p.advance() // consume TYPE
+
+	typeName, err := p.parseQualifiedName()
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := &CreateTypeStmt{Name: typeName}
+
+	if p.curKeyword("FROM") {
+		// alias type: CREATE TYPE <name> FROM <base_type> [NULL|NOT NULL]
+		p.advance() // consume FROM
+		baseType, err := p.parseDataType()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Kind = CreateTypeAlias
+		stmt.BaseType = baseType
+		switch {
+		case p.curKeyword("NOT"):
+			p.advance() // consume NOT
+			if err := p.expectKeyword("NULL"); err != nil {
+				return nil, err
+			}
+			stmt.Nullability = NullabilityNotNull
+		case p.curKeyword("NULL"):
+			p.advance() // consume NULL
+			stmt.Nullability = NullabilityNull
+		}
+	} else if p.curKeyword("AS") {
+		// table type: CREATE TYPE <name> AS TABLE (...)
+		p.advance() // consume AS
+		if !p.curKeyword("TABLE") {
+			return nil, fmt.Errorf(
+				"expected TABLE after AS in CREATE TYPE at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance() // consume TABLE
+		if _, err := p.expect(lexer.LParen); err != nil {
+			return nil, err
+		}
+		cols, constraints, err := p.parseColumnList()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return nil, err
+		}
+		stmt.Kind = CreateTypeTable
+		stmt.Columns = cols
+		stmt.Constraints = constraints
+	} else {
+		return nil, fmt.Errorf(
+			"expected FROM or AS after type name in CREATE TYPE at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+
+	p.consumeSemicolon()
+	return stmt, nil
 }
 
 // parseCreateTable handles CREATE TABLE.
