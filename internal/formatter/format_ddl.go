@@ -10,7 +10,7 @@ import (
 func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 	var b strings.Builder
 	b.WriteString(f.kw("insert into "))
-	b.WriteString(s.Table)
+	b.WriteString(f.ident(s.Table))
 
 	// Optional column list: vertical block, same comma style as SELECT columns.
 	if len(s.Columns) > 0 {
@@ -50,7 +50,7 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 	b.WriteString(f.kw("update"))
 	b.WriteString("\n")
 	b.WriteString(ind)
-	b.WriteString(s.Target)
+	b.WriteString(f.ident(s.Target))
 
 	b.WriteString("\n")
 	b.WriteString(f.kw("set"))
@@ -66,16 +66,16 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 		b.WriteString(f.kw("from"))
 		b.WriteString("\n")
 		b.WriteString(ind)
-		b.WriteString(s.From.Name)
+		b.WriteString(f.ident(s.From.Name))
 		if s.From.Alias != "" {
 			b.WriteString(f.kw(" as "))
-			b.WriteString(s.From.Alias)
+			b.WriteString(f.ident(s.From.Alias))
 		}
 		for _, jc := range s.From.Joins {
 			b.WriteString("\n" + f.kw(joinKeyword(jc.Type)))
-			b.WriteString("\n" + ind + jc.Name)
+			b.WriteString("\n" + ind + f.ident(jc.Name))
 			if jc.Alias != "" {
-				b.WriteString(" " + f.kw("as") + " " + jc.Alias)
+				b.WriteString(" " + f.kw("as") + " " + f.ident(jc.Alias))
 			}
 			if jc.On != nil {
 				terms := parser.AndTerms(jc.On)
@@ -103,24 +103,24 @@ func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 		b.WriteString(f.kw("delete"))
 		b.WriteString("\n")
 		b.WriteString(ind)
-		b.WriteString(s.Alias)
+		b.WriteString(f.ident(s.Alias))
 		b.WriteString("\n")
 		b.WriteString(f.kw("from"))
 		b.WriteString("\n")
 		b.WriteString(ind)
-		b.WriteString(s.Table)
+		b.WriteString(f.ident(s.Table))
 		b.WriteString(f.kw(" as "))
-		b.WriteString(s.Alias)
+		b.WriteString(f.ident(s.Alias))
 	} else if s.Where != nil {
 		// No alias but WHERE present: table on its own line for readability
 		b.WriteString(f.kw("delete from"))
 		b.WriteString("\n")
 		b.WriteString(ind)
-		b.WriteString(s.Table)
+		b.WriteString(f.ident(s.Table))
 	} else {
 		// No alias, no WHERE: compact single line
 		b.WriteString(f.kw("delete from "))
-		b.WriteString(s.Table)
+		b.WriteString(f.ident(s.Table))
 	}
 	if s.Where != nil {
 		b.WriteString("\n" + f.kw("where"))
@@ -131,11 +131,11 @@ func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 }
 
 func (f *formatter) formatCreateView(s *parser.CreateViewStmt) string {
-	return f.kw("create view ") + s.Name + f.kw(" as") + "\n" + f.formatSelectStmt(s.Select)
+	return f.kw("create view ") + f.ident(s.Name) + f.kw(" as") + "\n" + f.formatSelectStmt(s.Select)
 }
 
 func (f *formatter) formatTruncate(s *parser.TruncateStmt) string {
-	return f.kw("truncate table ") + s.Name + ";"
+	return f.kw("truncate table ") + f.ident(s.Name) + ";"
 }
 
 func (f *formatter) formatDrop(s *parser.DropStmt) string {
@@ -152,7 +152,7 @@ func (f *formatter) formatDrop(s *parser.DropStmt) string {
 	if s.IfExists {
 		b.WriteString(f.kw("if exists "))
 	}
-	b.WriteString(s.Name)
+	b.WriteString(f.ident(s.Name))
 	b.WriteString(";")
 	return b.String()
 }
@@ -168,15 +168,15 @@ func (f *formatter) formatCreateIndex(s *parser.CreateIndexStmt) string {
 	if s.IfNotExists {
 		b.WriteString(f.kw("if not exists "))
 	}
-	b.WriteString(s.Name)
+	b.WriteString(f.ident(s.Name))
 	b.WriteString("\n")
 	b.WriteString(ind)
 	b.WriteString(f.kw("on "))
-	b.WriteString(s.Table)
+	b.WriteString(f.ident(s.Table))
 	b.WriteString(" (")
 	var colParts []string
 	for _, col := range s.Columns {
-		part := col.Name
+		part := f.ident(col.Name)
 		if col.Direction == parser.DirectionDesc {
 			part += " " + f.kw("desc")
 		}
@@ -200,7 +200,7 @@ func (f *formatter) normalizeDefaultExpr(v string) string {
 // It does not include any leading indentation or comma — the caller handles that.
 func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 	ind := f.indent()
-	b.WriteString(col.Name)
+	b.WriteString(f.ident(col.Name))
 	b.WriteString(" ")
 	b.WriteString(f.kw(strings.ToLower(col.DataType)))
 	if col.PrimaryKey {
@@ -222,10 +222,14 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 	}
 	if col.References != nil {
 		b.WriteString(" " + f.kw("references") + " ")
-		b.WriteString(col.References.Table)
+		b.WriteString(f.ident(col.References.Table))
 		if len(col.References.Columns) > 0 {
 			b.WriteString(" (")
-			b.WriteString(strings.Join(col.References.Columns, ", "))
+			refCols := make([]string, len(col.References.Columns))
+			for i, c := range col.References.Columns {
+				refCols[i] = f.ident(c)
+			}
+			b.WriteString(strings.Join(refCols, ", "))
 			b.WriteString(")")
 		}
 	}
@@ -234,7 +238,7 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 		b.WriteString(ind + ind)
 		if col.DefaultConstraint != "" {
 			b.WriteString(f.kw("constraint") + " ")
-			b.WriteString(col.DefaultConstraint)
+			b.WriteString(f.ident(col.DefaultConstraint))
 			b.WriteString(" ")
 		}
 		b.WriteString(f.kw("default") + " ")
@@ -247,7 +251,7 @@ func (f *formatter) writeTableConstraint(b *strings.Builder, tc parser.TableCons
 	ind := f.indent()
 	if tc.Name != "" {
 		b.WriteString(f.kw("constraint "))
-		b.WriteString(tc.Name)
+		b.WriteString(f.ident(tc.Name))
 		b.WriteString("\n")
 		b.WriteString(ind)
 		b.WriteString(ind)
@@ -255,21 +259,37 @@ func (f *formatter) writeTableConstraint(b *strings.Builder, tc parser.TableCons
 	switch tc.Type {
 	case parser.ConstraintPrimaryKey:
 		b.WriteString(f.kw("primary key") + " (")
-		b.WriteString(strings.Join(tc.Columns, ", "))
+		pkCols := make([]string, len(tc.Columns))
+		for i, c := range tc.Columns {
+			pkCols[i] = f.ident(c)
+		}
+		b.WriteString(strings.Join(pkCols, ", "))
 		b.WriteString(")")
 	case parser.ConstraintForeignKey:
 		b.WriteString(f.kw("foreign key") + " (")
-		b.WriteString(strings.Join(tc.Columns, ", "))
+		fkCols := make([]string, len(tc.Columns))
+		for i, c := range tc.Columns {
+			fkCols[i] = f.ident(c)
+		}
+		b.WriteString(strings.Join(fkCols, ", "))
 		b.WriteString(") " + f.kw("references") + " ")
-		b.WriteString(tc.RefTable)
+		b.WriteString(f.ident(tc.RefTable))
 		if len(tc.RefColumns) > 0 {
 			b.WriteString(" (")
-			b.WriteString(strings.Join(tc.RefColumns, ", "))
+			refCols := make([]string, len(tc.RefColumns))
+			for i, c := range tc.RefColumns {
+				refCols[i] = f.ident(c)
+			}
+			b.WriteString(strings.Join(refCols, ", "))
 			b.WriteString(")")
 		}
 	case parser.ConstraintUnique:
 		b.WriteString(f.kw("unique") + " (")
-		b.WriteString(strings.Join(tc.Columns, ", "))
+		uqCols := make([]string, len(tc.Columns))
+		for i, c := range tc.Columns {
+			uqCols[i] = f.ident(c)
+		}
+		b.WriteString(strings.Join(uqCols, ", "))
 		b.WriteString(")")
 	case parser.ConstraintCheck:
 		b.WriteString(f.kw("check") + " (")
@@ -282,7 +302,7 @@ func (f *formatter) formatCreateTable(s *parser.CreateTableStmt) string {
 	ind := f.indent()
 	var b strings.Builder
 	b.WriteString(f.kw("create table "))
-	b.WriteString(s.Name)
+	b.WriteString(f.ident(s.Name))
 	b.WriteString("\n(\n")
 
 	totalItems := len(s.Columns) + len(s.Constraints)
@@ -335,7 +355,7 @@ func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
 	ind := f.indent()
 	var b strings.Builder
 	b.WriteString(f.kw("alter table "))
-	b.WriteString(s.Name)
+	b.WriteString(f.ident(s.Name))
 	b.WriteString("\n")
 	b.WriteString(ind)
 
@@ -345,21 +365,21 @@ func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
 		f.writeColumnDef(&b, *s.Action.Column)
 	case parser.AlterDropColumn:
 		b.WriteString(f.kw("drop column "))
-		b.WriteString(s.Action.ColumnName)
+		b.WriteString(f.ident(s.Action.ColumnName))
 	case parser.AlterAddConstraint:
 		b.WriteString(f.kw("add "))
 		f.writeTableConstraint(&b, *s.Action.Constraint)
 	case parser.AlterDropConstraint:
 		b.WriteString(f.kw("drop constraint "))
-		b.WriteString(s.Action.ConstraintName)
+		b.WriteString(f.ident(s.Action.ConstraintName))
 	case parser.AlterRenameTable:
 		b.WriteString(f.kw("rename to "))
-		b.WriteString(s.Action.NewName)
+		b.WriteString(f.ident(s.Action.NewName))
 	case parser.AlterRenameColumn:
 		b.WriteString(f.kw("rename column "))
-		b.WriteString(s.Action.ColumnName)
+		b.WriteString(f.ident(s.Action.ColumnName))
 		b.WriteString(" " + f.kw("to") + " ")
-		b.WriteString(s.Action.NewName)
+		b.WriteString(f.ident(s.Action.NewName))
 	}
 
 	b.WriteString(";")
@@ -371,9 +391,9 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 	var b strings.Builder
 
 	// merge into <target> [as <alias>]
-	b.WriteString(f.kw("merge into ") + s.Target)
+	b.WriteString(f.kw("merge into ") + f.ident(s.Target))
 	if s.TargetAlias != "" {
-		b.WriteString(f.kw(" as ") + s.TargetAlias)
+		b.WriteString(f.kw(" as ") + f.ident(s.TargetAlias))
 	}
 
 	// using <source> [as <alias>]
@@ -385,12 +405,12 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 		b.WriteString("\n" + f.indentCTE(s.Source.Subquery))
 		b.WriteString("\n)")
 		if s.Source.Alias != "" {
-			b.WriteString(f.kw(" as ") + s.Source.Alias)
+			b.WriteString(f.kw(" as ") + f.ident(s.Source.Alias))
 		}
 	} else {
-		b.WriteString("\n" + f.kw("using ") + s.Source.Name)
+		b.WriteString("\n" + f.kw("using ") + f.ident(s.Source.Name))
 		if s.Source.Alias != "" {
-			b.WriteString(f.kw(" as ") + s.Source.Alias)
+			b.WriteString(f.kw(" as ") + f.ident(s.Source.Alias))
 		}
 	}
 

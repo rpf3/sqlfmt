@@ -54,12 +54,12 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	// WITH clause (CTEs)
 	for i, cte := range s.CTEs {
 		if i == 0 {
-			b.WriteString(f.kw("with") + " " + cte.Name + " " + f.kw("as"))
+			b.WriteString(f.kw("with") + " " + f.ident(cte.Name) + " " + f.kw("as"))
 		} else if f.cfg.CommaStyle == config.CommaTrailing {
-			b.WriteString(cte.Name + " " + f.kw("as"))
+			b.WriteString(f.ident(cte.Name) + " " + f.kw("as"))
 		} else {
 			// leading comma: ", name as"
-			b.WriteString(", " + cte.Name + " " + f.kw("as"))
+			b.WriteString(", " + f.ident(cte.Name) + " " + f.kw("as"))
 		}
 		b.WriteString("\n(\n")
 		b.WriteString(f.indentCTE(cte.Select))
@@ -83,7 +83,7 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	for _, col := range s.Columns {
 		c := parser.Render(col.Value)
 		if col.Alias != "" {
-			c += " " + f.kw("as") + " " + col.Alias
+			c += " " + f.kw("as") + " " + f.ident(col.Alias)
 		}
 		cols = append(cols, c)
 	}
@@ -96,22 +96,22 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		b.WriteString("\n" + f.indentSubquery(s.From.Subquery))
 		b.WriteString("\n" + ind + ")")
 		if s.From.Alias != "" {
-			b.WriteString(" " + f.kw("as") + " " + s.From.Alias)
+			b.WriteString(" " + f.kw("as") + " " + f.ident(s.From.Alias))
 		}
 	} else {
 		b.WriteString("\n" + ind)
-		b.WriteString(s.From.Name)
+		b.WriteString(f.ident(s.From.Name))
 		if s.From.Alias != "" {
-			b.WriteString(" " + f.kw("as") + " " + s.From.Alias)
+			b.WriteString(" " + f.kw("as") + " " + f.ident(s.From.Alias))
 		}
 	}
 
 	// JOINs
 	for _, jc := range s.Joins {
 		b.WriteString("\n" + f.kw(joinKeyword(jc.Type)))
-		b.WriteString("\n" + ind + jc.Name)
+		b.WriteString("\n" + ind + f.ident(jc.Name))
 		if jc.Alias != "" {
-			b.WriteString(" " + f.kw("as") + " " + jc.Alias)
+			b.WriteString(" " + f.kw("as") + " " + f.ident(jc.Alias))
 		}
 		if jc.On != nil {
 			terms := parser.AndTerms(jc.On)

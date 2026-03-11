@@ -97,6 +97,7 @@ type Config struct {
 	CommaStyle       CommaStyle              `yaml:"comma_style"`
 	WarningsAsErrors bool                    `yaml:"warnings_as_errors"`
 	LintRules        map[string]RuleSeverity `yaml:"lint"`
+	QuoteIdentifiers bool                    `yaml:"quote_identifiers"`
 }
 
 // Default returns a Config with the canonical default values.

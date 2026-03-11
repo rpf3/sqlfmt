@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/rpf3/sqlfmt/internal/config"
+	"github.com/rpf3/sqlfmt/internal/lexer"
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
@@ -34,6 +35,19 @@ func (f *formatter) kw(s string) string {
 		return strings.ToUpper(s)
 	}
 	return s
+}
+
+// ident formats a structured identifier field according to cfg.QuoteIdentifiers.
+// It always strips surrounding [brackets] or "double-quotes" first.
+// When QuoteIdentifiers is true (or when the bare name requires quoting), the
+// result is wrapped in [square brackets] with ] escaped as ]]. Otherwise the
+// bare name is returned as-is.
+func (f *formatter) ident(name string) string {
+	raw := lexer.UnquoteIdent(name)
+	if f.cfg.QuoteIdentifiers || lexer.NeedsQuoting(raw) {
+		return "[" + strings.ReplaceAll(raw, "]", "]]") + "]"
+	}
+	return raw
 }
 
 // indent returns the configured indentation string (tab or spaces).
