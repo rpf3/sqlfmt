@@ -137,6 +137,29 @@ type CreateViewStmt struct {
 
 func (*CreateViewStmt) statementNode() {}
 
+// CreateTypeKind identifies the variant of a CREATE TYPE statement.
+type CreateTypeKind int
+
+const (
+	CreateTypeAlias CreateTypeKind = iota // CREATE TYPE <name> FROM <base_type> [NULL|NOT NULL]
+	CreateTypeTable                       // CREATE TYPE <name> AS TABLE (<col_defs>)
+)
+
+// CreateTypeStmt represents:
+//
+//	CREATE TYPE <name> FROM <base_type> [NULL|NOT NULL]          -- alias type
+//	CREATE TYPE <name> AS TABLE (<col_defs> [, <constraints>])   -- table type
+type CreateTypeStmt struct {
+	Name        string // type name (may be schema-qualified, e.g. dbo.SSN)
+	Kind        CreateTypeKind
+	BaseType    string            // for CreateTypeAlias: base data type (e.g. "varchar(11)")
+	Nullability Nullability       // for CreateTypeAlias: optional nullability; NullabilityNone if absent
+	Columns     []ColumnDef       // for CreateTypeTable: column definitions
+	Constraints []TableConstraint // for CreateTypeTable: table-level constraints
+}
+
+func (*CreateTypeStmt) statementNode() {}
+
 // DeleteStmt represents: DELETE [<alias>] FROM <table> [AS <alias>] [WHERE <predicate>]
 type DeleteStmt struct {
 	Table         string // table name

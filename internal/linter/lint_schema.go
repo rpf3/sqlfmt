@@ -69,6 +69,17 @@ func (l *linter) checkSchemaQualification(stmt parser.Statement) {
 					fmt.Sprintf("table %q: REFERENCES", s.Name))
 			}
 		}
+
+	case *parser.CreateTypeStmt:
+		// The type itself should be schema-qualified.
+		l.warnUnqualified(s.Name, "CREATE TYPE")
+		// Table types may contain FK REFERENCES columns — check those too.
+		for _, tc := range s.Constraints {
+			if tc.Type == parser.ConstraintForeignKey {
+				l.warnUnqualified(tc.RefTable,
+					fmt.Sprintf("type %q: REFERENCES", s.Name))
+			}
+		}
 	}
 }
 
