@@ -101,11 +101,14 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 		}
 	}
 
-	// Recurse into subqueries.
+	// Recurse into subqueries and set-operation branches.
 	if s.From.Subquery != nil {
 		l.checkSelectStmt(s.From.Subquery)
 	}
 	if s.WhereSubq != nil {
 		l.checkSelectStmt(s.WhereSubq)
+	}
+	for _, setOp := range s.SetOps {
+		l.checkSelectStmt(setOp.Select)
 	}
 }

@@ -88,4 +88,7 @@ func (l *linter) checkSchemaSelect(s *parser.SelectStmt) {
 	if s.WhereSubq != nil {
 		l.checkSchemaSelect(s.WhereSubq)
 	}
+	for _, setOp := range s.SetOps {
+		l.checkSchemaSelect(setOp.Select)
+	}
 }

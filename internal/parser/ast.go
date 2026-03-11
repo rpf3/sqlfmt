@@ -244,6 +244,22 @@ func (*MergeStmt) statementNode() {}
 
 // ─── SELECT statement ─────────────────────────────────────────────────────────
 
+// SetOpType identifies the kind of set operation joining two SELECT branches.
+type SetOpType int
+
+const (
+	SetOpUnion     SetOpType = iota // UNION (distinct)
+	SetOpUnionAll                   // UNION ALL
+	SetOpIntersect                  // INTERSECT
+	SetOpExcept                     // EXCEPT
+)
+
+// SetOp pairs a set operator with the right-hand SELECT branch.
+type SetOp struct {
+	Op     SetOpType
+	Select *SelectStmt
+}
+
 // SelectItem is one entry in a SELECT list.
 type SelectItem struct {
 	Value Expr   // expression; "*" for SELECT *
@@ -309,7 +325,8 @@ type SelectStmt struct {
 	WhereSubq     *SelectStmt  // structured WHERE subquery; nil if Where is set
 	GroupBy       []Expr       // GROUP BY expressions; nil if absent
 	Having        Expr         // HAVING predicate; nil if absent
-	OrderBy       []OrderItem  // ORDER BY items; nil if absent
+	SetOps        []SetOp      // UNION/INTERSECT/EXCEPT branches; nil for a plain SELECT
+	OrderBy       []OrderItem  // ORDER BY items; nil if absent; applies to whole compound query when SetOps non-nil
 	Offset        string       // n from OFFSET n ROWS; empty if absent
 	OffsetHasRows bool         // true when ROWS or ROW keyword followed the offset value
 	Fetch         string       // n from FETCH NEXT n ROWS ONLY; empty if absent
