@@ -83,6 +83,9 @@ func (l *linter) checkSchemaQualification(stmt parser.Statement) {
 
 	case *parser.CreateProcStmt:
 		l.warnUnqualified(s.Name, "CREATE PROCEDURE")
+
+	case *parser.CreateFuncStmt:
+		l.warnUnqualified(s.Name, "CREATE FUNCTION")
 	}
 }
 
