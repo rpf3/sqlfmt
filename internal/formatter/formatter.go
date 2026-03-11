@@ -88,6 +88,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatMerge(s)
 	case *parser.SelectStmt:
 		return f.formatSelectStmt(s)
+	case *parser.RawStmt:
+		return s.Text + ";"
 	}
 	return ""
 }

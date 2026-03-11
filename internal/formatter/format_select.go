@@ -7,6 +7,25 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+// indentBodyStmt formats a procedure/function body statement with each
+// non-empty line prefixed by ind (single indent). The trailing semicolon
+// from formatStatement is preserved as-is.
+func (f *formatter) indentBodyStmt(stmt parser.Statement) string {
+	inner := f.formatStatement(stmt)
+	prefix := f.indent()
+	lines := strings.Split(inner, "\n")
+	var b strings.Builder
+	for i, line := range lines {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		if line != "" {
+			b.WriteString(prefix + line)
+		}
+	}
+	return b.String()
+}
+
 // indentCTE formats s as a SELECT body with each non-empty line prefixed by
 // ind (single indent). Used for CTE bodies where the surrounding ( ) are at
 // column zero.
