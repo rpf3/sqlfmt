@@ -269,6 +269,61 @@ func TestLintUnaliasedTable(t *testing.T) {
 	})
 }
 
+func TestLintWindowOrderDirection(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "no direction warns",
+			input:    `select row_number() over (order by created_at) as rn from events as e;`,
+			wantRule: config.RuleWindowOrderDirection,
+		},
+		{
+			name:     "explicit desc is clean",
+			input:    `select row_number() over (order by created_at desc) as rn from events as e;`,
+			wantRule: "",
+		},
+		{
+			name:     "explicit asc is clean",
+			input:    `select rank() over (order by score asc) as rnk from events as e;`,
+			wantRule: "",
+		},
+		{
+			name:     "partition by with no order direction warns",
+			input:    `select sum(amount) over (partition by customer_id order by created_at) as running_total from orders as o;`,
+			wantRule: config.RuleWindowOrderDirection,
+		},
+		{
+			name:     "partition by with explicit direction is clean",
+			input:    `select sum(amount) over (partition by customer_id order by created_at asc) as running_total from orders as o;`,
+			wantRule: "",
+		},
+		{
+			name:     "window function with no over clause is clean",
+			input:    `select count(*) from orders as o;`,
+			wantRule: "",
+		},
+		{
+			name:     "plain select with no window function is clean",
+			input:    `select id from orders as o order by created_at asc;`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+
+	t.Run("off suppresses warning", func(t *testing.T) {
+		checkRuleOff(t,
+			`select row_number() over (order by created_at) as rn from events as e;`,
+			config.RuleWindowOrderDirection)
+	})
+}
+
 func TestLintSelectStar(t *testing.T) {
 	tests := []struct {
 		name     string
