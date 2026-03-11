@@ -66,9 +66,12 @@ func (l *Lexer) Next() Token {
 		return l.readString()
 	}
 
-	// Quoted identifiers
+	// Quoted identifiers — ANSI double-quote or T-SQL bracket style.
 	if ch == '"' {
 		return l.readQuotedIdent()
+	}
+	if ch == '[' {
+		return l.readBracketIdent()
 	}
 
 	// Comments
@@ -268,6 +271,28 @@ func (l *Lexer) readTempTableIdent() Token {
 		l.advance()
 	}
 	return l.makeTokenAt(Ident, l.input[start:l.pos], line, col)
+}
+
+// readBracketIdent scans a T-SQL bracket-quoted identifier: [name].
+// A doubled closing bracket (]]) is the escape for a literal ] inside the name.
+// On unterminated input an Illegal token is returned with the partial content.
+func (l *Lexer) readBracketIdent() Token {
+	line, col := l.line, l.column
+	start := l.pos
+	l.advance() // consume opening '['
+	for l.pos < len(l.input) {
+		ch := l.input[l.pos]
+		if ch == ']' {
+			l.advance() // consume ']'
+			if l.pos < len(l.input) && l.input[l.pos] == ']' {
+				l.advance() // consume second ']' of ]] escape
+				continue
+			}
+			return l.makeTokenAt(QuotedIdent, l.input[start:l.pos], line, col)
+		}
+		l.advance()
+	}
+	return l.makeTokenAt(Illegal, l.input[start:l.pos], line, col)
 }
 
 // readQuotedIdent scans a double-quoted identifier.
