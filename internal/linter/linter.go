@@ -72,6 +72,7 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 	case *parser.MergeStmt:
 		l.checkMergeStmt(s)
 	}
+	l.checkSchemaQualification(stmt)
 }
 
 func (l *linter) checkCreateIndex(s *parser.CreateIndexStmt) {

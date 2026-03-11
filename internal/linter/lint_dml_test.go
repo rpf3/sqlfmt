@@ -19,7 +19,7 @@ func TestLintMissingTrailingSemicolon(t *testing.T) {
 		},
 		{
 			name:     "select with semicolon is clean",
-			input:    `select id from orders as o;`,
+			input:    `select id from dbo.orders as o;`,
 			wantRule: "",
 		},
 		{
@@ -63,7 +63,7 @@ func TestLintMissingTrailingSemicolon(t *testing.T) {
 		})
 	}
 	t.Run("rule off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `select id from orders as o`, config.RuleMissingTrailingSemicolon)
+		checkRuleOff(t, `select id from dbo.orders as o`, config.RuleMissingTrailingSemicolon)
 	})
 }
 
@@ -80,7 +80,7 @@ func TestLintInsertColumnList(t *testing.T) {
 		},
 		{
 			name:     "insert with column list is clean",
-			input:    `insert into orders (id, status) values (1, 'pending');`,
+			input:    `insert into dbo.orders (id, status) values (1, 'pending');`,
 			wantRule: "",
 		},
 		{
@@ -90,7 +90,7 @@ func TestLintInsertColumnList(t *testing.T) {
 		},
 		{
 			name:     "insert select with column list is clean",
-			input:    `insert into orders (id, status) select id, status from staging;`,
+			input:    `insert into dbo.orders (id, status) select id, status from dbo.staging as s;`,
 			wantRule: "",
 		},
 	}
@@ -100,7 +100,7 @@ func TestLintInsertColumnList(t *testing.T) {
 		})
 	}
 	t.Run("rule off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `insert into orders values (1, 'pending');`, config.RuleInsertColumnList)
+		checkRuleOff(t, `insert into dbo.orders values (1, 'pending');`, config.RuleInsertColumnList)
 	})
 }
 
@@ -117,7 +117,7 @@ func TestLintUpdateWithoutWhere(t *testing.T) {
 		},
 		{
 			name:     "update with where is clean",
-			input:    `update orders set status = 'shipped' where id = 42;`,
+			input:    `update dbo.orders set status = 'shipped' where id = 42;`,
 			wantRule: "",
 		},
 		{
@@ -127,7 +127,7 @@ func TestLintUpdateWithoutWhere(t *testing.T) {
 		},
 		{
 			name:     "sql server update with where is clean",
-			input:    `update o set o.status = 'shipped' from orders as o where o.id = 42;`,
+			input:    `update o set o.status = 'shipped' from dbo.orders as o where o.id = 42;`,
 			wantRule: "",
 		},
 	}
@@ -137,7 +137,7 @@ func TestLintUpdateWithoutWhere(t *testing.T) {
 		})
 	}
 	t.Run("rule off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `update orders set status = 'shipped';`, config.RuleUpdateWithoutWhere)
+		checkRuleOff(t, `update dbo.orders set status = 'shipped';`, config.RuleUpdateWithoutWhere)
 	})
 }
 
@@ -154,7 +154,7 @@ func TestLintMergeInsertColumnList(t *testing.T) {
 		},
 		{
 			name:     "INSERT with column list is clean",
-			input:    `merge into orders as t using staging as s on t.id = s.id when not matched then insert (id, status) values (s.id, s.status);`,
+			input:    `merge into dbo.orders as t using dbo.staging as s on t.id = s.id when not matched then insert (id, status) values (s.id, s.status);`,
 			wantRule: "",
 		},
 	}
@@ -165,7 +165,7 @@ func TestLintMergeInsertColumnList(t *testing.T) {
 	}
 	t.Run("rule off suppresses warning", func(t *testing.T) {
 		checkRuleOff(t,
-			`merge into orders as t using staging as s on t.id = s.id when not matched then insert values (s.id, s.status);`,
+			`merge into dbo.orders as t using dbo.staging as s on t.id = s.id when not matched then insert values (s.id, s.status);`,
 			config.RuleMergeInsertColumnList)
 	})
 }
@@ -183,7 +183,7 @@ func TestLintMergeUpdateWithoutCondition(t *testing.T) {
 		},
 		{
 			name:     "WHEN MATCHED UPDATE with AND condition is clean",
-			input:    `merge into orders as t using staging as s on t.id = s.id when matched and t.status != s.status then update set t.status = s.status when not matched then insert (id, status) values (s.id, s.status);`,
+			input:    `merge into dbo.orders as t using dbo.staging as s on t.id = s.id when matched and t.status != s.status then update set t.status = s.status when not matched then insert (id, status) values (s.id, s.status);`,
 			wantRule: "",
 		},
 		{
@@ -199,7 +199,7 @@ func TestLintMergeUpdateWithoutCondition(t *testing.T) {
 	}
 	t.Run("rule off suppresses warning", func(t *testing.T) {
 		checkRuleOff(t,
-			`merge into orders as t using staging as s on t.id = s.id when matched then update set t.status = s.status when not matched then insert (id, status) values (s.id, s.status);`,
+			`merge into dbo.orders as t using dbo.staging as s on t.id = s.id when matched then update set t.status = s.status when not matched then insert (id, status) values (s.id, s.status);`,
 			config.RuleMergeUpdateWithoutCondition)
 	})
 }
@@ -217,7 +217,7 @@ func TestLintDeleteWithoutWhere(t *testing.T) {
 		},
 		{
 			name:     "delete with where is clean",
-			input:    `delete from orders where id = 1;`,
+			input:    `delete from dbo.orders where id = 1;`,
 			wantRule: "",
 		},
 	}
@@ -227,6 +227,6 @@ func TestLintDeleteWithoutWhere(t *testing.T) {
 		})
 	}
 	t.Run("rule off suppresses warning", func(t *testing.T) {
-		checkRuleOff(t, `delete from orders;`, config.RuleDeleteWithoutWhere)
+		checkRuleOff(t, `delete from dbo.orders;`, config.RuleDeleteWithoutWhere)
 	})
 }

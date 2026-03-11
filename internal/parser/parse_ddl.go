@@ -233,7 +233,7 @@ func (p *parser) parseCreateTable() (Statement, error) {
 		return nil, err
 	}
 
-	nameTok, err := p.expectIdent()
+	createTableName, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (p *parser) parseCreateTable() (Statement, error) {
 	p.consumeSemicolon()
 
 	stmt := &CreateTableStmt{
-		Name:        nameTok.Value,
+		Name:        createTableName,
 		Columns:     cols,
 		Constraints: constraints,
 	}
@@ -290,11 +290,11 @@ func (p *parser) parseCreateIndex(unique bool) (Statement, error) {
 		return nil, err
 	}
 
-	tableTok, err := p.expectIdent()
+	indexTable, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	stmt.Table = tableTok.Value
+	stmt.Table = indexTable
 
 	cols, err := p.parseIndexColumnList()
 	if err != nil {
@@ -481,7 +481,7 @@ func (p *parser) parseReferences() (string, []string, error) {
 	if err := p.expectKeyword("REFERENCES"); err != nil {
 		return "", nil, err
 	}
-	tableTok, err := p.expectIdent()
+	refTable, err := p.parseQualifiedName()
 	if err != nil {
 		return "", nil, err
 	}
@@ -492,7 +492,7 @@ func (p *parser) parseReferences() (string, []string, error) {
 			return "", nil, err
 		}
 	}
-	return tableTok.Value, columns, nil
+	return refTable, columns, nil
 }
 
 // parseColumnDef parses a column definition: <name> <datatype> [constraints...].
@@ -719,11 +719,11 @@ func (p *parser) parseInsert() (Statement, error) {
 	if err := p.expectKeyword("INTO"); err != nil {
 		return nil, err
 	}
-	nameTok, err := p.expectIdent()
+	tableName, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	stmt := &InsertStmt{Table: nameTok.Value}
+	stmt := &InsertStmt{Table: tableName}
 
 	// Optional column list: (col1, col2, ...)
 	if p.curIs(lexer.LParen) {
@@ -793,11 +793,11 @@ func (p *parser) parseValueRow() ([]Expr, error) {
 func (p *parser) parseUpdate() (Statement, error) {
 	p.advance() // consume UPDATE
 
-	targetTok, err := p.expectIdent()
+	target, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	stmt := &UpdateStmt{Target: targetTok.Value}
+	stmt := &UpdateStmt{Target: target}
 
 	sets, err := p.parseSetClause()
 	if err != nil {
@@ -828,11 +828,11 @@ func (p *parser) parseUpdate() (Statement, error) {
 func (p *parser) parseUpdateFrom() (*UpdateFromSource, error) {
 	p.advance() // consume FROM
 
-	nameTok, err := p.expectIdent()
+	fromName, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	from := &UpdateFromSource{Name: nameTok.Value}
+	from := &UpdateFromSource{Name: fromName}
 
 	if p.curKeyword("AS") {
 		p.advance()
@@ -924,12 +924,12 @@ func (p *parser) parseDelete() (Statement, error) {
 		return nil, err
 	}
 
-	nameTok, err := p.expectIdent()
+	deleteName, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
 
-	stmt := &DeleteStmt{Table: nameTok.Value}
+	stmt := &DeleteStmt{Table: deleteName}
 
 	if p.curKeyword("AS") {
 		p.advance()
@@ -970,11 +970,11 @@ func (p *parser) parseMerge() (Statement, error) {
 		p.advance() // consume optional INTO
 	}
 
-	nameTok, err := p.expectIdent()
+	mergeTarget, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	stmt := &MergeStmt{Target: nameTok.Value}
+	stmt := &MergeStmt{Target: mergeTarget}
 
 	if p.curKeyword("AS") {
 		p.advance()

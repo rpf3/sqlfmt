@@ -224,11 +224,11 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 	}
 
 	// Named table
-	nameTok, err := p.expectIdent()
+	name, err := p.parseQualifiedName()
 	if err != nil {
 		return SelectFromSource{}, err
 	}
-	source := SelectFromSource{Name: nameTok.Value}
+	source := SelectFromSource{Name: name}
 
 	if p.curKeyword("AS") {
 		p.advance()
@@ -354,11 +354,11 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 			joinType = JoinCross
 		}
 
-		nameTok, err := p.expectIdent()
+		joinName, err := p.parseQualifiedName()
 		if err != nil {
 			return nil, err
 		}
-		jc := JoinClause{Type: joinType, Name: nameTok.Value}
+		jc := JoinClause{Type: joinType, Name: joinName}
 
 		// Optional alias (AS or bare)
 		if p.curKeyword("AS") {
