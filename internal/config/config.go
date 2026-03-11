@@ -63,6 +63,7 @@ const (
 	RuleWindowOrderDirection        = "window-order-direction"
 	RuleMissingSchemaName           = "missing-schema-name"
 	RuleOneObjectPerFile            = "one-object-per-file"
+	RuleIdentifierWithSpaces        = "identifier-with-spaces"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -87,6 +88,7 @@ var knownRules = map[string]bool{
 	RuleWindowOrderDirection:        true,
 	RuleMissingSchemaName:           true,
 	RuleOneObjectPerFile:            true,
+	RuleIdentifierWithSpaces:        true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.
