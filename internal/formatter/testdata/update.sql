@@ -42,3 +42,16 @@ from
 where
 	o.id = 1
 	and o.active = 1;
+
+update
+	o
+set
+	o.status = 'shipped'
+from
+	orders as o
+inner join
+	customers as c
+		on o.customer_id = c.id
+		and o.region = c.region
+where
+	c.name = 'test';
