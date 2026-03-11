@@ -31,6 +31,23 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 		}
 	}
 
+	// #32 window-order-direction
+	for _, col := range s.Columns {
+		parser.Walk(col.Value, func(e parser.Expr) {
+			fn, ok := e.(*parser.FunctionCallExpr)
+			if !ok || fn.Over == nil {
+				return
+			}
+			for _, ob := range fn.Over.OrderBy {
+				if ob.Direction == parser.DirectionNone {
+					l.warn(config.RuleWindowOrderDirection,
+						fmt.Sprintf("window function %s has ORDER BY column %q with no explicit direction; specify ASC or DESC",
+							fn.Name, parser.Render(ob.Value)))
+				}
+			}
+		})
+	}
+
 	// #34 alias-without-as (FROM source)
 	if s.From.Alias != "" && !s.From.AliasExplicit {
 		name := s.From.Name

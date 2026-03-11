@@ -60,6 +60,7 @@ const (
 	RuleUnaliasedTable              = "unaliased-table"
 	RuleMergeInsertColumnList       = "merge-insert-column-list"
 	RuleMergeUpdateWithoutCondition = "merge-update-without-condition"
+	RuleWindowOrderDirection        = "window-order-direction"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -81,6 +82,7 @@ var knownRules = map[string]bool{
 	RuleUnaliasedTable:              true,
 	RuleMergeInsertColumnList:       true,
 	RuleMergeUpdateWithoutCondition: true,
+	RuleWindowOrderDirection:        true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.
