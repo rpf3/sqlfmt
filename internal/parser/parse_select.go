@@ -27,6 +27,29 @@ func (p *parser) parseSelectBranch() (*SelectStmt, error) {
 		stmt.Distinct = true
 	}
 
+	if p.curKeyword("TOP") {
+		p.advance() // consume TOP
+		if p.curIs(lexer.LParen) {
+			p.advance() // consume (
+			topExpr, _ := p.parseExprRaw(func() bool { return false })
+			p.advance() // consume )
+			stmt.Top = topExpr
+		} else {
+			// bare TOP n without parentheses
+			stmt.Top = p.cur.Value
+			p.advance()
+		}
+		if p.curKeyword("PERCENT") {
+			p.advance()
+			stmt.TopPercent = true
+		}
+		if p.curKeyword("WITH") && p.peekKeyword("TIES") {
+			p.advance() // consume WITH
+			p.advance() // consume TIES
+			stmt.TopWithTies = true
+		}
+	}
+
 	cols, err := p.parseSelectList()
 	if err != nil {
 		return nil, err

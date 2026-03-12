@@ -101,6 +101,9 @@ var keywords = map[string]bool{
 	"DEFAULT":    true,
 	"CONSTRAINT": true,
 	// Functions / misc
+	"TOP":       true,
+	"TIES":      true,
+	"PERCENT":   true,
 	"OVER":      true,
 	"PARTITION": true,
 	"ROWS":      true,
