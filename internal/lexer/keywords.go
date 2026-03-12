@@ -105,6 +105,7 @@ var keywords = map[string]bool{
 	"TIES":      true,
 	"PERCENT":   true,
 	"OVER":      true,
+	"WINDOW":    true,
 	"PARTITION": true,
 	"ROWS":      true,
 	"RANGE":     true,
