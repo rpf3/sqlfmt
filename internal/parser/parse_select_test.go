@@ -98,7 +98,7 @@ func TestParseSelectGroupByHaving(t *testing.T) {
 	if Render(stmt.Columns[2].Value) != "sum(t.total_amount)" {
 		t.Errorf("Columns[2].Value: got %q, want %q", Render(stmt.Columns[2].Value), "sum(t.total_amount)")
 	}
-	if len(stmt.GroupBy) != 1 || Render(stmt.GroupBy[0]) != "t.status" {
+	if len(stmt.GroupBy) != 1 || Render(stmt.GroupBy[0].Expr) != "t.status" {
 		t.Errorf("GroupBy: got %v", stmt.GroupBy)
 	}
 	if Render(stmt.Having) != "count(*) > 10" {
@@ -286,7 +286,7 @@ func TestParseSelectFromSubquery(t *testing.T) {
 	if subq.From.Name != "orders" || subq.From.Alias != "t" {
 		t.Errorf("Subquery.From: got {Name:%q Alias:%q}", subq.From.Name, subq.From.Alias)
 	}
-	if len(subq.GroupBy) != 1 || Render(subq.GroupBy[0]) != "t.status" {
+	if len(subq.GroupBy) != 1 || Render(subq.GroupBy[0].Expr) != "t.status" {
 		t.Errorf("Subquery.GroupBy: got %v", subq.GroupBy)
 	}
 	if Render(stmt.Where) != "s.order_count > 5" {
@@ -302,11 +302,11 @@ func TestParseSelectGroupByMultiple(t *testing.T) {
 	if len(stmt.GroupBy) != 2 {
 		t.Fatalf("GroupBy: got %d items, want 2", len(stmt.GroupBy))
 	}
-	if Render(stmt.GroupBy[0]) != "c.id" {
-		t.Errorf("GroupBy[0]: got %q, want %q", Render(stmt.GroupBy[0]), "c.id")
+	if Render(stmt.GroupBy[0].Expr) != "c.id" {
+		t.Errorf("GroupBy[0]: got %q, want %q", Render(stmt.GroupBy[0].Expr), "c.id")
 	}
-	if Render(stmt.GroupBy[1]) != "c.name" {
-		t.Errorf("GroupBy[1]: got %q, want %q", Render(stmt.GroupBy[1]), "c.name")
+	if Render(stmt.GroupBy[1].Expr) != "c.name" {
+		t.Errorf("GroupBy[1]: got %q, want %q", Render(stmt.GroupBy[1].Expr), "c.name")
 	}
 }
 
@@ -472,7 +472,7 @@ func TestParseCTESingle(t *testing.T) {
 	if len(stmt.Joins) != 1 || stmt.Joins[0].Name != "customers" {
 		t.Errorf("main Joins: got %v", stmt.Joins)
 	}
-	if len(stmt.GroupBy) != 1 || Render(stmt.GroupBy[0]) != "c.name" {
+	if len(stmt.GroupBy) != 1 || Render(stmt.GroupBy[0].Expr) != "c.name" {
 		t.Errorf("main GroupBy: got %v", stmt.GroupBy)
 	}
 	if len(stmt.OrderBy) != 1 || Render(stmt.OrderBy[0].Value) != "lifetime_value" || stmt.OrderBy[0].Direction != DirectionDesc {
@@ -496,7 +496,7 @@ func TestParseCTEMultiple(t *testing.T) {
 	if stmt.CTEs[1].Select == nil {
 		t.Fatal("CTEs[1].Select: got nil, want non-nil")
 	}
-	if len(stmt.CTEs[1].Select.GroupBy) != 1 || Render(stmt.CTEs[1].Select.GroupBy[0]) != "t.customer_id" {
+	if len(stmt.CTEs[1].Select.GroupBy) != 1 || Render(stmt.CTEs[1].Select.GroupBy[0].Expr) != "t.customer_id" {
 		t.Errorf("CTEs[1].GroupBy: got %v", stmt.CTEs[1].Select.GroupBy)
 	}
 	// main SELECT

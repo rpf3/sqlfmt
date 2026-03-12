@@ -419,6 +419,28 @@ type WindowDef struct {
 	Spec string // raw window spec content (between the parens)
 }
 
+// GroupByModifier identifies the form of a GROUP BY item.
+type GroupByModifier int
+
+const (
+	GroupBySimple     GroupByModifier = iota // plain expression
+	GroupByRollup                            // ROLLUP(...)
+	GroupByCube                              // CUBE(...)
+	GroupBySets                              // GROUPING SETS(...)
+	GroupByGrandTotal                        // () grand total
+)
+
+// GroupByItem is one element in a GROUP BY clause.
+// For GroupBySimple, Expr holds the expression.
+// For GroupByRollup, GroupByCube, and GroupBySets, RawArgs holds the
+// parenthesised argument list as a raw string (e.g. "(a, b)").
+// For GroupByGrandTotal, RawArgs is "()".
+type GroupByItem struct {
+	Modifier GroupByModifier
+	Expr     Expr   // GroupBySimple only
+	RawArgs  string // Rollup / Cube / Sets / GrandTotal
+}
+
 // SelectFromSource is the target of a FROM clause.
 // Exactly one of Name (a table name) or Subquery is non-zero.
 type SelectFromSource struct {
@@ -443,19 +465,19 @@ type SelectStmt struct {
 	TopWithTies   bool   // true when WITH TIES modifier present
 	Columns       []SelectItem
 	From          SelectFromSource
-	Joins         []JoinClause // nil if no JOINs
-	Where         Expr         // WHERE predicate; nil if WhereSubq is set
-	WherePred     string       // expression before a WHERE subquery (e.g. "t.id in", "exists")
-	WhereSubq     *SelectStmt  // structured WHERE subquery; nil if Where is set
-	GroupBy       []Expr       // GROUP BY expressions; nil if absent
-	Having        Expr         // HAVING predicate; nil if absent
-	Windows       []WindowDef  // WINDOW clause definitions; nil if absent
-	SetOps        []SetOp      // UNION/INTERSECT/EXCEPT branches; nil for a plain SELECT
-	OrderBy       []OrderItem  // ORDER BY items; nil if absent; applies to whole compound query when SetOps non-nil
-	Offset        string       // n from OFFSET n ROWS; empty if absent
-	OffsetHasRows bool         // true when ROWS or ROW keyword followed the offset value
-	Fetch         string       // n from FETCH NEXT n ROWS ONLY; empty if absent
-	Limit         string       // n from LIMIT n (non-ANSI); empty if absent
+	Joins         []JoinClause  // nil if no JOINs
+	Where         Expr          // WHERE predicate; nil if WhereSubq is set
+	WherePred     string        // expression before a WHERE subquery (e.g. "t.id in", "exists")
+	WhereSubq     *SelectStmt   // structured WHERE subquery; nil if Where is set
+	GroupBy       []GroupByItem // GROUP BY items; nil if absent
+	Having        Expr          // HAVING predicate; nil if absent
+	Windows       []WindowDef   // WINDOW clause definitions; nil if absent
+	SetOps        []SetOp       // UNION/INTERSECT/EXCEPT branches; nil for a plain SELECT
+	OrderBy       []OrderItem   // ORDER BY items; nil if absent; applies to whole compound query when SetOps non-nil
+	Offset        string        // n from OFFSET n ROWS; empty if absent
+	OffsetHasRows bool          // true when ROWS or ROW keyword followed the offset value
+	Fetch         string        // n from FETCH NEXT n ROWS ONLY; empty if absent
+	Limit         string        // n from LIMIT n (non-ANSI); empty if absent
 }
 
 func (*SelectStmt) statementNode() {}
