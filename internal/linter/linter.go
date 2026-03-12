@@ -32,6 +32,7 @@ func Lint(input string, cfg config.Config) ([]Warning, error) {
 		}
 	}
 	l.checkOneObjectPerFile(result.Statements)
+	l.checkMustBeOnlyStatement(result.Statements)
 	return l.warnings, nil
 }
 
@@ -82,6 +83,37 @@ func (l *linter) checkOneObjectPerFile(stmts []parser.Statement) {
 	l.warn(config.RuleOneObjectPerFile,
 		fmt.Sprintf("file defines multiple objects (%s); each object should have its own file",
 			strings.Join(names, ", ")))
+}
+
+// checkMustBeOnlyStatement warns when CREATE VIEW, CREATE PROCEDURE,
+// CREATE FUNCTION, or CREATE TYPE AS TABLE appears alongside other statements
+// in the same batch. These DDL statements require an exclusive batch in T-SQL.
+func (l *linter) checkMustBeOnlyStatement(stmts []parser.Statement) {
+	sev := l.severity(config.RuleMustBeOnlyStatement)
+	if sev == config.RuleSeverityOff {
+		return
+	}
+	if len(stmts) <= 1 {
+		return
+	}
+	for _, stmt := range stmts {
+		switch s := stmt.(type) {
+		case *parser.CreateViewStmt:
+			l.warn(config.RuleMustBeOnlyStatement,
+				fmt.Sprintf("CREATE VIEW %q must be the only statement in the batch", s.Name))
+		case *parser.CreateProcStmt:
+			l.warn(config.RuleMustBeOnlyStatement,
+				fmt.Sprintf("CREATE PROCEDURE %q must be the only statement in the batch", s.Name))
+		case *parser.CreateFuncStmt:
+			l.warn(config.RuleMustBeOnlyStatement,
+				fmt.Sprintf("CREATE FUNCTION %q must be the only statement in the batch", s.Name))
+		case *parser.CreateTypeStmt:
+			if s.Kind == parser.CreateTypeTable {
+				l.warn(config.RuleMustBeOnlyStatement,
+					fmt.Sprintf("CREATE TYPE %q must be the only statement in the batch", s.Name))
+			}
+		}
+	}
 }
 
 // linter holds configuration and accumulates warnings during a lint run.
