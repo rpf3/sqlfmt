@@ -428,6 +428,9 @@ type SelectStmt struct {
 	CTEs          []CTEDef // WITH clause; nil if no CTEs
 	Recursive     bool     // true when WITH RECURSIVE was used
 	Distinct      bool
+	Top           string // expression inside TOP(...); empty if absent
+	TopPercent    bool   // true when PERCENT modifier present
+	TopWithTies   bool   // true when WITH TIES modifier present
 	Columns       []SelectItem
 	From          SelectFromSource
 	Joins         []JoinClause // nil if no JOINs

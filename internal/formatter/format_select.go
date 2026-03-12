@@ -94,11 +94,21 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		}
 	}
 
-	// SELECT [DISTINCT]
+	// SELECT [DISTINCT] [TOP (...) [PERCENT] [WITH TIES]]
 	if s.Distinct {
 		b.WriteString(f.kw("select distinct"))
 	} else {
 		b.WriteString(f.kw("select"))
+	}
+	if s.Top != "" {
+		top := " " + f.kw("top") + " (" + s.Top + ")"
+		if s.TopPercent {
+			top += " " + f.kw("percent")
+		}
+		if s.TopWithTies {
+			top += " " + f.kw("with ties")
+		}
+		b.WriteString(top)
 	}
 
 	// SELECT list
