@@ -308,7 +308,8 @@ func (f *formatter) formatPivot(p *parser.PivotClause) string {
 	b.WriteString("\n(")
 	b.WriteString("\n" + ind + p.Value)
 	b.WriteString("\n" + ind + f.kw("for") + " " + p.ForColumn)
-	b.WriteString("\n" + ind + f.kw("in") + " (" + p.InList + ")")
+	b.WriteString("\n" + ind + f.kw("in"))
+	f.writeInListBlock(&b, splitDepthZeroCommas(p.InList))
 	b.WriteString("\n)")
 	return b.String()
 }
