@@ -1066,7 +1066,7 @@ func (p *parser) parseCreateView() (Statement, error) {
 	var ctes []CTEDef
 	if p.curKeyword("WITH") {
 		var err error
-		ctes, err = p.parseCTEDefs()
+		ctes, _, err = p.parseCTEDefs()
 		if err != nil {
 			return nil, err
 		}

@@ -73,7 +73,11 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	// WITH clause (CTEs)
 	for i, cte := range s.CTEs {
 		if i == 0 {
-			b.WriteString(f.kw("with") + " " + f.ident(cte.Name) + " " + f.kw("as"))
+			withKw := f.kw("with")
+			if s.Recursive {
+				withKw = f.kw("with recursive")
+			}
+			b.WriteString(withKw + " " + f.ident(cte.Name) + " " + f.kw("as"))
 		} else if f.cfg.CommaStyle == config.CommaTrailing {
 			b.WriteString(f.ident(cte.Name) + " " + f.kw("as"))
 		} else {
@@ -250,6 +254,12 @@ func joinKeyword(jt parser.JoinType) string {
 		return "full outer join"
 	case parser.JoinCross:
 		return "cross join"
+	case parser.JoinNatural:
+		return "natural join"
+	case parser.JoinNaturalLeft:
+		return "natural left join"
+	case parser.JoinNaturalRight:
+		return "natural right join"
 	}
 	return "join"
 }

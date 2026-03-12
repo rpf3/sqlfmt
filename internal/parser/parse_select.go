@@ -361,7 +361,8 @@ func (p *parser) isNextJoin() bool {
 		(p.curKeyword("LEFT") && (p.peekKeyword("JOIN") || p.peekKeyword("OUTER"))) ||
 		(p.curKeyword("RIGHT") && (p.peekKeyword("JOIN") || p.peekKeyword("OUTER"))) ||
 		(p.curKeyword("FULL") && (p.peekKeyword("OUTER") || p.peekKeyword("JOIN"))) ||
-		(p.curKeyword("CROSS") && p.peekKeyword("JOIN"))
+		(p.curKeyword("CROSS") && p.peekKeyword("JOIN")) ||
+		p.curKeyword("NATURAL")
 }
 
 // parseJoinClauses consumes zero or more JOIN clauses following a FROM source.
@@ -409,6 +410,33 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 			p.advance() // consume CROSS
 			p.advance() // consume JOIN
 			joinType = JoinCross
+		case p.curKeyword("NATURAL"):
+			p.advance() // consume NATURAL
+			switch {
+			case p.curKeyword("LEFT"):
+				p.advance() // consume LEFT
+				if p.curKeyword("OUTER") {
+					p.advance() // consume optional OUTER
+				}
+				if err := p.expectKeyword("JOIN"); err != nil {
+					return nil, err
+				}
+				joinType = JoinNaturalLeft
+			case p.curKeyword("RIGHT"):
+				p.advance() // consume RIGHT
+				if p.curKeyword("OUTER") {
+					p.advance() // consume optional OUTER
+				}
+				if err := p.expectKeyword("JOIN"); err != nil {
+					return nil, err
+				}
+				joinType = JoinNaturalRight
+			default:
+				if err := p.expectKeyword("JOIN"); err != nil {
+					return nil, err
+				}
+				joinType = JoinNatural
+			}
 		}
 
 		joinName, err := p.parseQualifiedName()
@@ -463,26 +491,31 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 //
 // WITH is consumed on entry. The caller is responsible for parsing the main
 // SELECT body that follows.
-func (p *parser) parseCTEDefs() ([]CTEDef, error) {
+func (p *parser) parseCTEDefs() ([]CTEDef, bool, error) {
 	p.advance() // consume WITH
+	recursive := false
+	if p.curKeyword("RECURSIVE") {
+		p.advance() // consume RECURSIVE
+		recursive = true
+	}
 	var ctes []CTEDef
 	for {
 		nameTok, err := p.expectIdent()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if err := p.expectKeyword("AS"); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if _, err := p.expect(lexer.LParen); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		body, err := p.parseSelectCore()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if _, err := p.expect(lexer.RParen); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		ctes = append(ctes, CTEDef{Name: nameTok.Value, Select: body})
 
@@ -491,11 +524,11 @@ func (p *parser) parseCTEDefs() ([]CTEDef, error) {
 		}
 		p.advance() // consume ','
 	}
-	return ctes, nil
+	return ctes, recursive, nil
 }
 
 func (p *parser) parseWithSelect() (Statement, error) {
-	ctes, err := p.parseCTEDefs()
+	ctes, recursive, err := p.parseCTEDefs()
 	if err != nil {
 		return nil, err
 	}
@@ -511,6 +544,7 @@ func (p *parser) parseWithSelect() (Statement, error) {
 		return nil, err
 	}
 	stmt.CTEs = ctes
+	stmt.Recursive = recursive
 
 	p.consumeSemicolon()
 	return stmt, nil
