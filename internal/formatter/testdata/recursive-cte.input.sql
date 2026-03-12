@@ -1,0 +1,2 @@
+WITH RECURSIVE subordinates AS (SELECT id, manager_id, name FROM employees WHERE manager_id IS NULL UNION ALL SELECT e.id, e.manager_id, e.name FROM employees AS e INNER JOIN subordinates AS s ON s.id = e.manager_id) SELECT id, name FROM subordinates;
+WITH RECURSIVE ancestors AS (SELECT id, parent_id, name FROM nodes WHERE id = 1 UNION ALL SELECT n.id, n.parent_id, n.name FROM nodes AS n INNER JOIN ancestors AS a ON a.id = n.parent_id) SELECT id, name FROM ancestors;
