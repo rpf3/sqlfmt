@@ -61,8 +61,12 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 	// #34 alias-without-as (JOINs)
 	for _, jc := range s.Joins {
 		if jc.Alias != "" && !jc.AliasExplicit {
+			name := jc.Name
+			if name == "" {
+				name = "(subquery)"
+			}
 			l.warn(config.RuleAliasWithoutAs,
-				fmt.Sprintf("joined table %q has a bare alias %q; use AS", jc.Name, jc.Alias))
+				fmt.Sprintf("joined table %q has a bare alias %q; use AS", name, jc.Alias))
 		}
 	}
 
@@ -75,8 +79,12 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 	// #13 unaliased-table (JOINs)
 	for _, jc := range s.Joins {
 		if jc.Alias == "" {
+			name := jc.Name
+			if name == "" {
+				name = "(subquery)"
+			}
 			l.warn(config.RuleUnaliasedTable,
-				fmt.Sprintf("joined table %q has no alias; give it one with AS", jc.Name))
+				fmt.Sprintf("joined table %q has no alias; give it one with AS", name))
 		}
 	}
 
@@ -107,6 +115,11 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 	}
 	if s.WhereSubq != nil {
 		l.checkSelectStmt(s.WhereSubq)
+	}
+	for _, jc := range s.Joins {
+		if jc.Subquery != nil {
+			l.checkSelectStmt(jc.Subquery)
+		}
 	}
 	for _, setOp := range s.SetOps {
 		l.checkSelectStmt(setOp.Select)
