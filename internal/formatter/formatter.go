@@ -148,10 +148,16 @@ func splitInList(text string) (lhs, kw string, items []string, ok bool) {
 	if strings.Contains(strings.ToLower(body), "select") {
 		return "", "", nil, false
 	}
-	// Split body on depth-0 commas.
+	return lhs, kw, splitDepthZeroCommas(body), true
+}
+
+// splitDepthZeroCommas splits s on commas at parenthesis depth 0, trimming
+// whitespace from each resulting part. It is used wherever a parenthetical
+// comma-separated list needs to be expanded into individual items.
+func splitDepthZeroCommas(s string) []string {
 	var parts []string
 	depth, start := 0, 0
-	for i, ch := range body {
+	for i, ch := range s {
 		switch ch {
 		case '(':
 			depth++
@@ -159,13 +165,12 @@ func splitInList(text string) (lhs, kw string, items []string, ok bool) {
 			depth--
 		case ',':
 			if depth == 0 {
-				parts = append(parts, strings.TrimSpace(body[start:i]))
+				parts = append(parts, strings.TrimSpace(s[start:i]))
 				start = i + 1
 			}
 		}
 	}
-	parts = append(parts, strings.TrimSpace(body[start:]))
-	return lhs, kw, parts, true
+	return append(parts, strings.TrimSpace(s[start:]))
 }
 
 // writeInListBlock writes an IN list as a vertical paren block at the current

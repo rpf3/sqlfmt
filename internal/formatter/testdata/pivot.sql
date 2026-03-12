@@ -6,7 +6,13 @@ pivot
 (
 	sum(amount)
 	for quarter
-	in ([Q1], [Q2], [Q3], [Q4])
+	in
+	(
+		[Q1]
+	,	[Q2]
+	,	[Q3]
+	,	[Q4]
+	)
 ) as pvt;
 
 select
@@ -17,7 +23,13 @@ unpivot
 (
 	amount
 	for quarter
-	in (q1, q2, q3, q4)
+	in
+	(
+		q1
+	,	q2
+	,	q3
+	,	q4
+	)
 ) as unpvt;
 
 select
@@ -30,7 +42,11 @@ pivot
 (
 	sum(amount)
 	for quarter
-	in ([Q1], [Q2])
+	in
+	(
+		[Q1]
+	,	[Q2]
+	)
 ) as pvt
 inner join
 	customers as c
