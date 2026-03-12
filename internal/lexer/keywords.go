@@ -33,6 +33,7 @@ var keywords = map[string]bool{
 	"OUTER":   true,
 	"CROSS":   true,
 	"NATURAL": true,
+	"APPLY":   true,
 	// Data definition
 	"CREATE": true,
 	"TABLE":  true,

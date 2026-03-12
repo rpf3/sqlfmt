@@ -385,16 +385,20 @@ const (
 	JoinNatural                      // NATURAL JOIN
 	JoinNaturalLeft                  // NATURAL LEFT JOIN
 	JoinNaturalRight                 // NATURAL RIGHT JOIN
+	JoinCrossApply                   // CROSS APPLY
+	JoinOuterApply                   // OUTER APPLY
 )
 
 // JoinClause is one JOIN clause attached to a SELECT's FROM source.
 type JoinClause struct {
 	Type          JoinType
-	Name          string   // joined table name
-	Alias         string   // table alias; empty if none
-	AliasExplicit bool     // true when the AS keyword preceded the alias
-	On            Expr     // ON condition; nil for CROSS or USING
-	Using         []string // USING column list; empty if ON or CROSS
+	Name          string      // joined table name; empty for APPLY subquery sources
+	Alias         string      // table alias; empty if none
+	AliasExplicit bool        // true when the AS keyword preceded the alias
+	On            Expr        // ON condition; nil for CROSS or USING
+	Using         []string    // USING column list; empty if ON or CROSS
+	TVFArgs       string      // parenthesised arg list for APPLY TVF sources; empty for regular joins
+	Subquery      *SelectStmt // subquery source for APPLY (SELECT ...) form; nil for regular joins
 }
 
 // OrderItem is one term in an ORDER BY list.

@@ -411,7 +411,8 @@ func (p *parser) isNextJoin() bool {
 		(p.curKeyword("LEFT") && (p.peekKeyword("JOIN") || p.peekKeyword("OUTER"))) ||
 		(p.curKeyword("RIGHT") && (p.peekKeyword("JOIN") || p.peekKeyword("OUTER"))) ||
 		(p.curKeyword("FULL") && (p.peekKeyword("OUTER") || p.peekKeyword("JOIN"))) ||
-		(p.curKeyword("CROSS") && p.peekKeyword("JOIN")) ||
+		(p.curKeyword("CROSS") && (p.peekKeyword("JOIN") || p.peekKeyword("APPLY"))) ||
+		(p.curKeyword("OUTER") && p.peekKeyword("APPLY")) ||
 		p.curKeyword("NATURAL")
 }
 
@@ -458,8 +459,19 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 			joinType = JoinFullOuter
 		case p.curKeyword("CROSS"):
 			p.advance() // consume CROSS
-			p.advance() // consume JOIN
-			joinType = JoinCross
+			if p.curKeyword("APPLY") {
+				p.advance() // consume APPLY
+				joinType = JoinCrossApply
+			} else {
+				p.advance() // consume JOIN
+				joinType = JoinCross
+			}
+		case p.curKeyword("OUTER"):
+			p.advance() // consume OUTER
+			if err := p.expectKeyword("APPLY"); err != nil {
+				return nil, err
+			}
+			joinType = JoinOuterApply
 		case p.curKeyword("NATURAL"):
 			p.advance() // consume NATURAL
 			switch {
@@ -487,6 +499,51 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 				}
 				joinType = JoinNatural
 			}
+		}
+
+		// APPLY joins (CROSS APPLY / OUTER APPLY) have a different source syntax:
+		// either a TVF with parenthesised args or a (SELECT ...) subquery.
+		if joinType == JoinCrossApply || joinType == JoinOuterApply {
+			jc := JoinClause{Type: joinType}
+			if p.curIs(lexer.LParen) && p.peekKeyword("SELECT") {
+				// subquery source: (SELECT ...)
+				p.advance() // consume (
+				subq, err := p.parseSelectCore()
+				if err != nil {
+					return nil, err
+				}
+				if _, err := p.expect(lexer.RParen); err != nil {
+					return nil, err
+				}
+				jc.Subquery = subq
+			} else {
+				// TVF source: schema.name(args...)
+				tvfName, err := p.parseQualifiedName()
+				if err != nil {
+					return nil, err
+				}
+				jc.Name = tvfName
+				if p.curIs(lexer.LParen) {
+					p.advance() // consume (
+					tvfArgs, _ := p.parseExprRaw(func() bool { return false })
+					p.advance() // consume )
+					jc.TVFArgs = "(" + tvfArgs + ")"
+				}
+			}
+			if p.curKeyword("AS") {
+				p.advance()
+				aliasTok, err := p.expectIdent()
+				if err != nil {
+					return nil, err
+				}
+				jc.Alias = aliasTok.Value
+				jc.AliasExplicit = true
+			} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+				jc.Alias = p.cur.Value
+				p.advance()
+			}
+			joins = append(joins, jc)
+			continue
 		}
 
 		joinName, err := p.parseQualifiedName()
