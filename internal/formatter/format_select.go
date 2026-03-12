@@ -142,18 +142,31 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	// JOINs
 	for _, jc := range s.Joins {
 		b.WriteString("\n" + f.kw(joinKeyword(jc.Type)))
-		b.WriteString("\n" + ind + f.ident(jc.Name))
-		if jc.Alias != "" {
-			b.WriteString(" " + f.kw("as") + " " + f.ident(jc.Alias))
-		}
-		if jc.On != nil {
-			terms := parser.AndTerms(jc.On)
-			b.WriteString("\n" + ind + ind + f.kw("on") + " " + parser.Render(terms[0]))
-			for _, term := range terms[1:] {
-				b.WriteString("\n" + ind + ind + f.kw("and") + " " + parser.Render(term))
+		if jc.Subquery != nil {
+			// APPLY (SELECT ...) subquery source
+			b.WriteString("\n" + ind + "(")
+			b.WriteString("\n" + f.indentSubquery(jc.Subquery))
+			b.WriteString("\n" + ind + ")")
+			if jc.Alias != "" {
+				b.WriteString(" " + f.kw("as") + " " + f.ident(jc.Alias))
 			}
-		} else if len(jc.Using) > 0 {
-			b.WriteString("\n" + ind + ind + f.kw("using") + " (" + strings.Join(jc.Using, ", ") + ")")
+		} else {
+			b.WriteString("\n" + ind + f.ident(jc.Name))
+			if jc.TVFArgs != "" {
+				b.WriteString(jc.TVFArgs)
+			}
+			if jc.Alias != "" {
+				b.WriteString(" " + f.kw("as") + " " + f.ident(jc.Alias))
+			}
+			if jc.On != nil {
+				terms := parser.AndTerms(jc.On)
+				b.WriteString("\n" + ind + ind + f.kw("on") + " " + parser.Render(terms[0]))
+				for _, term := range terms[1:] {
+					b.WriteString("\n" + ind + ind + f.kw("and") + " " + parser.Render(term))
+				}
+			} else if len(jc.Using) > 0 {
+				b.WriteString("\n" + ind + ind + f.kw("using") + " (" + strings.Join(jc.Using, ", ") + ")")
+			}
 		}
 	}
 
@@ -280,6 +293,10 @@ func joinKeyword(jt parser.JoinType) string {
 		return "natural left join"
 	case parser.JoinNaturalRight:
 		return "natural right join"
+	case parser.JoinCrossApply:
+		return "cross apply"
+	case parser.JoinOuterApply:
+		return "outer apply"
 	}
 	return "join"
 }
