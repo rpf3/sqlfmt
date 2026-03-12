@@ -419,6 +419,25 @@ type WindowDef struct {
 	Spec string // raw window spec content (between the parens)
 }
 
+// PivotKind identifies whether a FROM-source pivot operator is PIVOT or UNPIVOT.
+type PivotKind int
+
+const (
+	PivotPivot   PivotKind = iota // PIVOT
+	PivotUnpivot                  // UNPIVOT
+)
+
+// PivotClause holds the parsed PIVOT or UNPIVOT operator attached to a FROM source.
+//
+//	PIVOT   ( aggregate(value_col) FOR pivot_col IN (col_list) )
+//	UNPIVOT ( value_col            FOR pivot_col IN (col_list) )
+type PivotClause struct {
+	Kind      PivotKind
+	Value     string // PIVOT: aggregate expression; UNPIVOT: value column name
+	ForColumn string // column name after FOR
+	InList    string // raw content of IN (...) without surrounding parens
+}
+
 // GroupByModifier identifies the form of a GROUP BY item.
 type GroupByModifier int
 
@@ -444,10 +463,11 @@ type GroupByItem struct {
 // SelectFromSource is the target of a FROM clause.
 // Exactly one of Name (a table name) or Subquery is non-zero.
 type SelectFromSource struct {
-	Name          string      // table name; empty for a subquery
-	Subquery      *SelectStmt // derived table; nil for a named table
-	Alias         string      // alias for either kind; empty if no alias
-	AliasExplicit bool        // true when the AS keyword preceded the alias
+	Name          string       // table name; empty for a subquery
+	Subquery      *SelectStmt  // derived table; nil for a named table
+	Alias         string       // alias for either kind; empty if no alias
+	AliasExplicit bool         // true when the AS keyword preceded the alias
+	Pivot         *PivotClause // non-nil when a PIVOT or UNPIVOT operator follows the named source
 }
 
 // SelectStmt represents a [WITH ...] SELECT statement.
