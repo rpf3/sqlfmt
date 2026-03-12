@@ -335,6 +335,15 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 	}
 	source := SelectFromSource{Name: name}
 
+	// Optional PIVOT / UNPIVOT postfix operator before the alias.
+	if p.curKeyword("PIVOT") || p.curKeyword("UNPIVOT") {
+		pivot, err := p.parsePivotClause()
+		if err != nil {
+			return SelectFromSource{}, err
+		}
+		source.Pivot = pivot
+	}
+
 	if p.curKeyword("AS") {
 		p.advance()
 		aliasTok, err := p.expectIdent()
@@ -350,6 +359,53 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 	}
 
 	return source, nil
+}
+
+// parsePivotClause parses a PIVOT or UNPIVOT postfix operator:
+//
+//	PIVOT   ( aggregate(col) FOR pivot_col IN (col_list) )
+//	UNPIVOT ( value_col      FOR pivot_col IN (col_list) )
+//
+// The PIVOT/UNPIVOT keyword is consumed on entry. The trailing alias is
+// parsed by the caller (parseFromSource) using the standard alias logic.
+func (p *parser) parsePivotClause() (*PivotClause, error) {
+	kind := PivotPivot
+	if p.curKeyword("UNPIVOT") {
+		kind = PivotUnpivot
+	}
+	p.advance() // consume PIVOT / UNPIVOT
+
+	if _, err := p.expect(lexer.LParen); err != nil {
+		return nil, err
+	}
+
+	// Read aggregate expression (PIVOT) or value column (UNPIVOT) up to FOR.
+	value, _ := p.parseExprRaw(func() bool { return p.curKeyword("FOR") })
+
+	if err := p.expectKeyword("FOR"); err != nil {
+		return nil, err
+	}
+
+	// Read the pivot column name up to IN.
+	forCol, _ := p.parseExprRaw(func() bool { return p.curKeyword("IN") })
+
+	if err := p.expectKeyword("IN"); err != nil {
+		return nil, err
+	}
+
+	// IN (col_list) — store content without outer parens.
+	raw, err := p.parseParenRaw()
+	if err != nil {
+		return nil, err
+	}
+	inList := raw[1 : len(raw)-1] // strip surrounding ( )
+
+	if _, err := p.expect(lexer.RParen); err != nil {
+		return nil, err
+	}
+
+	pivot := &PivotClause{Kind: kind, Value: value, ForColumn: forCol, InList: inList}
+	return pivot, nil
 }
 
 // parseGroupByList parses a comma-separated list of GROUP BY items,

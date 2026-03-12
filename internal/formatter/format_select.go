@@ -134,6 +134,9 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	} else {
 		b.WriteString("\n" + ind)
 		b.WriteString(f.ident(s.From.Name))
+		if s.From.Pivot != nil {
+			b.WriteString(f.formatPivot(s.From.Pivot))
+		}
 		if s.From.Alias != "" {
 			b.WriteString(" " + f.kw("as") + " " + f.ident(s.From.Alias))
 		}
@@ -282,6 +285,32 @@ func setOpKeyword(op parser.SetOpType) string {
 		return "except"
 	}
 	return "union"
+}
+
+// formatPivot renders a PIVOT or UNPIVOT operator as:
+//
+//	pivot
+//	(
+//		<value>
+//		for <col>
+//		in (<col_list>)
+//	)
+//
+// The trailing alias is written by the caller.
+func (f *formatter) formatPivot(p *parser.PivotClause) string {
+	ind := f.indent()
+	var b strings.Builder
+	if p.Kind == parser.PivotUnpivot {
+		b.WriteString("\n" + f.kw("unpivot"))
+	} else {
+		b.WriteString("\n" + f.kw("pivot"))
+	}
+	b.WriteString("\n(")
+	b.WriteString("\n" + ind + p.Value)
+	b.WriteString("\n" + ind + f.kw("for") + " " + p.ForColumn)
+	b.WriteString("\n" + ind + f.kw("in") + " (" + p.InList + ")")
+	b.WriteString("\n)")
+	return b.String()
 }
 
 // groupByModKeyword returns the canonical lowercase keyword phrase for a

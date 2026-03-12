@@ -101,6 +101,10 @@ var keywords = map[string]bool{
 	"CHECK":      true,
 	"DEFAULT":    true,
 	"CONSTRAINT": true,
+	// PIVOT / UNPIVOT
+	"PIVOT":   true,
+	"UNPIVOT": true,
+	"FOR":     true,
 	// GROUP BY extensions
 	"ROLLUP":   true,
 	"CUBE":     true,
