@@ -6,7 +6,11 @@ select
 from
 	Sales.SalesOrderDetail
 where
-	SalesOrderID in (43659, 43664)
+	SalesOrderID in
+	(
+		43659
+	,	43664
+	)
 window win as
 (
 	partition by SalesOrderID

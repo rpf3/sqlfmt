@@ -101,13 +101,96 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 // HAVING) on its own line. Single-term expressions produce one indented line.
 // Multi-term AndChain expressions produce one line per term, all at the same
 // indent level: the first term plain, subsequent terms prefixed with "and ".
+// Terms that match an IN (list) pattern are expanded into a vertical paren block.
 func (f *formatter) writeExprPred(b *strings.Builder, e parser.Expr) {
 	ind := f.indent()
 	terms := parser.AndTerms(e)
-	b.WriteString("\n" + ind + parser.Render(terms[0]))
-	for _, term := range terms[1:] {
-		b.WriteString("\n" + ind + f.kw("and") + " " + parser.Render(term))
+	for i, term := range terms {
+		rendered := parser.Render(term)
+		lhs, inKw, items, isInList := splitInList(rendered)
+		var prefix string
+		if i == 0 {
+			prefix = "\n" + ind
+		} else {
+			prefix = "\n" + ind + f.kw("and") + " "
+		}
+		if isInList {
+			b.WriteString(prefix + lhs + " " + f.kw(inKw))
+			f.writeInListBlock(b, items)
+		} else {
+			b.WriteString(prefix + rendered)
+		}
 	}
+}
+
+// splitInList detects an "expr IN (item, ...)" or "expr NOT IN (item, ...)"
+// pattern in a rendered expression string. Returns the LHS, the keyword phrase
+// ("in" or "not in"), and the trimmed items. Returns ok=false if the string
+// does not match or if the parens contain a subquery.
+func splitInList(text string) (lhs, kw string, items []string, ok bool) {
+	lower := strings.ToLower(text)
+	var afterKw int
+	if i := strings.Index(lower, " not in ("); i >= 0 {
+		lhs = text[:i]
+		kw = "not in"
+		afterKw = i + len(" not in (")
+	} else if i := strings.Index(lower, " in ("); i >= 0 {
+		lhs = text[:i]
+		kw = "in"
+		afterKw = i + len(" in (")
+	} else {
+		return "", "", nil, false
+	}
+	if !strings.HasSuffix(text, ")") {
+		return "", "", nil, false
+	}
+	body := text[afterKw : len(text)-1]
+	if strings.Contains(strings.ToLower(body), "select") {
+		return "", "", nil, false
+	}
+	// Split body on depth-0 commas.
+	var parts []string
+	depth, start := 0, 0
+	for i, ch := range body {
+		switch ch {
+		case '(':
+			depth++
+		case ')':
+			depth--
+		case ',':
+			if depth == 0 {
+				parts = append(parts, strings.TrimSpace(body[start:i]))
+				start = i + 1
+			}
+		}
+	}
+	parts = append(parts, strings.TrimSpace(body[start:]))
+	return lhs, kw, parts, true
+}
+
+// writeInListBlock writes an IN list as a vertical paren block at the current
+// indent level. Opening ( and closing ) sit at ind; items are at ind+ind with
+// the leading comma placed at ind to align with the parens.
+func (f *formatter) writeInListBlock(b *strings.Builder, items []string) {
+	ind := f.indent()
+	b.WriteString("\n" + ind + "(")
+	for i, item := range items {
+		b.WriteString("\n")
+		if f.cfg.CommaStyle == config.CommaTrailing {
+			b.WriteString(ind + ind + item)
+			if i < len(items)-1 {
+				b.WriteString(",")
+			}
+		} else {
+			// leading comma: align comma at ind, value at ind+ind
+			if i == 0 {
+				b.WriteString(ind + ind + item)
+			} else {
+				b.WriteString(ind + "," + ind + item)
+			}
+		}
+	}
+	b.WriteString("\n" + ind + ")")
 }
 
 // writeCommaList writes a list of pre-formatted items to b using the configured
