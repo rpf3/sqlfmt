@@ -77,6 +77,7 @@ var keywords = map[string]bool{
 	"WITH":      true,
 	"RECURSIVE": true,
 	// Transactions / flow control
+	"DECLARE":      true,
 	"BEGIN":        true,
 	"COMMIT":       true,
 	"ROLLBACK":     true,

@@ -278,6 +278,25 @@ type SetStmt struct {
 
 func (*SetStmt) statementNode() {}
 
+// VarDecl is one variable declaration in a DECLARE statement.
+// Exactly one of Type (scalar) or Columns (table variable) is populated.
+type VarDecl struct {
+	Name    string      // includes @ prefix, e.g. "@count"
+	Type    string      // data type for scalar variable; empty for table variable
+	Default Expr        // optional initialiser after =; nil if absent
+	Columns []ColumnDef // column list for table variable; nil for scalar
+}
+
+// DeclareStmt represents a T-SQL DECLARE statement.
+//
+//	DECLARE @name type [= default] [, @name2 type2 ...]  -- scalar variable(s)
+//	DECLARE @name TABLE (<col_defs>)                      -- table variable
+type DeclareStmt struct {
+	Vars []VarDecl
+}
+
+func (*DeclareStmt) statementNode() {}
+
 // UpdateSet is one col = expr assignment in an UPDATE SET clause.
 type UpdateSet struct {
 	Column string // column name, possibly qualified (e.g. "o.status")

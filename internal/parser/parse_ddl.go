@@ -1562,6 +1562,66 @@ func (p *parser) parseMergeSetClause() ([]UpdateSet, error) {
 	return sets, nil
 }
 
+// parseDeclare handles:
+//
+//	DECLARE @name type [= default] [, @name2 type2 ...]  -- scalar variable(s)
+//	DECLARE @name TABLE (<col_defs>)                      -- table variable
+func (p *parser) parseDeclare() (Statement, error) {
+	p.advance() // consume DECLARE
+	var vars []VarDecl
+	for {
+		nameTok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		name := nameTok.Value
+
+		if p.curKeyword("TABLE") {
+			p.advance() // consume TABLE
+			if _, err := p.expect(lexer.LParen); err != nil {
+				return nil, err
+			}
+			cols, _, err := p.parseColumnList()
+			if err != nil {
+				return nil, err
+			}
+			if _, err := p.expect(lexer.RParen); err != nil {
+				return nil, err
+			}
+			vars = append(vars, VarDecl{Name: name, Columns: cols})
+		} else {
+			dataType, err := p.parseDataType()
+			if err != nil {
+				return nil, err
+			}
+			v := VarDecl{Name: name, Type: dataType}
+			if p.curIs(lexer.Eq) {
+				p.advance() // consume =
+				tok := p.cur
+				switch tok.Type {
+				case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
+					v.Default = &RawExpr{Text: tok.Value}
+					p.advance()
+				default:
+					return nil, fmt.Errorf(
+						"expected default value after = at %d:%d, got %s %q",
+						tok.Line, tok.Column, tok.Type, tok.Value,
+					)
+				}
+			}
+			vars = append(vars, v)
+		}
+
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+	p.consumeSemicolon()
+	stmt := &DeclareStmt{Vars: vars}
+	return stmt, nil
+}
+
 // parseSet handles SET statement variants:
 //   - SET <option> <value>               (SetSimple)
 //   - SET TRANSACTION ISOLATION LEVEL …  (SetTransactionIsolation)

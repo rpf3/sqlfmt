@@ -703,3 +703,66 @@ func (f *formatter) formatSet(s *parser.SetStmt) string {
 	}
 	return b.String()
 }
+
+func (f *formatter) formatDeclare(s *parser.DeclareStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+
+	// Table variable — single var with a column list.
+	if len(s.Vars) == 1 && len(s.Vars[0].Columns) > 0 {
+		v := s.Vars[0]
+		b.WriteString(f.kw("declare "))
+		b.WriteString(v.Name)
+		b.WriteString(" " + f.kw("table"))
+		b.WriteString("\n(\n")
+		cols := v.Columns
+		for i, col := range cols {
+			if f.cfg.CommaStyle == config.CommaTrailing {
+				b.WriteString(ind)
+				f.writeColumnDef(&b, col)
+				if i < len(cols)-1 {
+					b.WriteString(",")
+				}
+			} else {
+				if i == 0 {
+					b.WriteString(ind)
+				} else {
+					b.WriteString("," + ind)
+				}
+				f.writeColumnDef(&b, col)
+			}
+			b.WriteString("\n")
+		}
+		b.WriteString(");")
+		return b.String()
+	}
+
+	// Single scalar variable — keep on one line.
+	if len(s.Vars) == 1 {
+		v := s.Vars[0]
+		b.WriteString(f.kw("declare "))
+		b.WriteString(v.Name)
+		b.WriteString(" ")
+		b.WriteString(strings.ToLower(v.Type))
+		if v.Default != nil {
+			b.WriteString(" = ")
+			b.WriteString(parser.Render(v.Default))
+		}
+		b.WriteString(";")
+		return b.String()
+	}
+
+	// Multiple scalar variables — one per line via comma list.
+	b.WriteString(f.kw("declare"))
+	items := make([]string, len(s.Vars))
+	for i, v := range s.Vars {
+		item := v.Name + " " + strings.ToLower(v.Type)
+		if v.Default != nil {
+			item += " = " + parser.Render(v.Default)
+		}
+		items[i] = item
+	}
+	f.writeCommaList(&b, items)
+	b.WriteString(";")
+	return b.String()
+}
