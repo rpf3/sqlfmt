@@ -409,6 +409,12 @@ type CTEDef struct {
 	Select *SelectStmt
 }
 
+// WindowDef is one named window definition in a WINDOW clause.
+type WindowDef struct {
+	Name string // window name
+	Spec string // raw window spec content (between the parens)
+}
+
 // SelectFromSource is the target of a FROM clause.
 // Exactly one of Name (a table name) or Subquery is non-zero.
 type SelectFromSource struct {
@@ -439,6 +445,7 @@ type SelectStmt struct {
 	WhereSubq     *SelectStmt  // structured WHERE subquery; nil if Where is set
 	GroupBy       []Expr       // GROUP BY expressions; nil if absent
 	Having        Expr         // HAVING predicate; nil if absent
+	Windows       []WindowDef  // WINDOW clause definitions; nil if absent
 	SetOps        []SetOp      // UNION/INTERSECT/EXCEPT branches; nil for a plain SELECT
 	OrderBy       []OrderItem  // ORDER BY items; nil if absent; applies to whole compound query when SetOps non-nil
 	Offset        string       // n from OFFSET n ROWS; empty if absent

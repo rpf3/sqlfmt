@@ -187,6 +187,16 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		f.writeExprPred(&b, s.Having)
 	}
 
+	// WINDOW clause
+	for i, w := range s.Windows {
+		if i == 0 {
+			b.WriteString("\n" + f.kw("window") + " " + f.ident(w.Name) + " " + f.kw("as"))
+		} else {
+			b.WriteString(",\n" + f.ident(w.Name) + " " + f.kw("as"))
+		}
+		b.WriteString("\n(\n" + ind + w.Spec + "\n)")
+	}
+
 	// Set operations: UNION [ALL] / INTERSECT / EXCEPT
 	for _, setOp := range s.SetOps {
 		b.WriteString("\n" + f.kw(setOpKeyword(setOp.Op)))

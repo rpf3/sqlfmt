@@ -78,6 +78,7 @@ func (p *parser) parseSelectBranch() (*SelectStmt, error) {
 		stopFn := func() bool {
 			return (p.curIs(lexer.LParen) && p.peekKeyword("SELECT")) ||
 				p.curKeyword("GROUP") || p.curKeyword("HAVING") ||
+				p.curKeyword("WINDOW") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
 				p.isSetOpKeyword() ||
@@ -113,11 +114,36 @@ func (p *parser) parseSelectBranch() (*SelectStmt, error) {
 	if p.curKeyword("HAVING") {
 		p.advance()
 		stmt.Having = p.parseAndChain(func() bool {
-			return p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
+			return p.curKeyword("WINDOW") ||
+				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
 				p.isSetOpKeyword() ||
 				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
 		})
+	}
+
+	// WINDOW clause: one or more named window definitions
+	if p.curKeyword("WINDOW") {
+		p.advance() // consume WINDOW
+		for {
+			nameTok, err := p.expectIdent()
+			if err != nil {
+				return nil, err
+			}
+			if err := p.expectKeyword("AS"); err != nil {
+				return nil, err
+			}
+			if _, err := p.expect(lexer.LParen); err != nil {
+				return nil, err
+			}
+			spec, _ := p.parseExprRaw(func() bool { return false })
+			p.advance() // consume closing )
+			stmt.Windows = append(stmt.Windows, WindowDef{Name: nameTok.Value, Spec: spec})
+			if !p.curIs(lexer.Comma) {
+				break
+			}
+			p.advance() // consume ',' between window definitions
+		}
 	}
 
 	return stmt, nil
@@ -332,6 +358,7 @@ func (p *parser) parseGroupByList() ([]Expr, error) {
 	for {
 		expr := p.parseExpr(func() bool {
 			return p.curIs(lexer.Comma) || p.curKeyword("HAVING") ||
+				p.curKeyword("WINDOW") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
 				p.isSetOpKeyword() ||
