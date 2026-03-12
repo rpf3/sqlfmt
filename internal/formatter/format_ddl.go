@@ -676,13 +676,30 @@ func (f *formatter) formatCreateType(s *parser.CreateTypeStmt) string {
 	return b.String()
 }
 
-// formatSet formats a SET statement as a single line: set <option> <value>;
+// formatSet formats a SET statement.
 func (f *formatter) formatSet(s *parser.SetStmt) string {
 	var b strings.Builder
-	b.WriteString(f.kw("set "))
-	b.WriteString(strings.ToLower(s.Option))
-	b.WriteString(" ")
-	b.WriteString(strings.ToLower(s.Value))
-	b.WriteString(";")
+	switch s.Kind {
+	case parser.SetTransactionIsolation:
+		b.WriteString(f.kw("set transaction isolation level "))
+		b.WriteString(strings.ToLower(s.IsolationLevel))
+		b.WriteString(";")
+	case parser.SetIdentityInsert:
+		b.WriteString(f.kw("set identity_insert "))
+		b.WriteString(s.Table)
+		b.WriteString(" ")
+		if s.Enabled {
+			b.WriteString(f.kw("on"))
+		} else {
+			b.WriteString(f.kw("off"))
+		}
+		b.WriteString(";")
+	default: // SetSimple
+		b.WriteString(f.kw("set "))
+		b.WriteString(strings.ToLower(s.Option))
+		b.WriteString(" ")
+		b.WriteString(strings.ToLower(s.Value))
+		b.WriteString(";")
+	}
 	return b.String()
 }

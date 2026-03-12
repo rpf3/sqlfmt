@@ -251,14 +251,29 @@ type InsertStmt struct {
 
 func (*InsertStmt) statementNode() {}
 
-// SetStmt represents: SET <option> <value>
-// Covers the common single-option, single-value form used in T-SQL session
-// configuration (e.g. SET NOCOUNT ON, SET XACT_ABORT ON, SET ROWCOUNT 100).
-// Multi-word variants (SET TRANSACTION ISOLATION LEVEL, SET IDENTITY_INSERT)
-// are handled separately in #92.
+// SetKind distinguishes the three forms of the SET statement.
+type SetKind int
+
+const (
+	SetSimple               SetKind = iota // SET <option> <value>
+	SetTransactionIsolation                // SET TRANSACTION ISOLATION LEVEL <level>
+	SetIdentityInsert                      // SET IDENTITY_INSERT <table> ON|OFF
+)
+
+// SetStmt represents a T-SQL SET statement.
 type SetStmt struct {
-	Option string // option name, uppercased (e.g. "NOCOUNT", "XACT_ABORT")
-	Value  string // option value verbatim (e.g. "ON", "OFF", "100")
+	Kind SetKind
+
+	// SetSimple fields:
+	Option string // option name, uppercased (e.g. "NOCOUNT")
+	Value  string // option value verbatim (e.g. "ON", "100")
+
+	// SetTransactionIsolation fields:
+	IsolationLevel string // e.g. "READ COMMITTED", "SERIALIZABLE"
+
+	// SetIdentityInsert fields:
+	Table   string // table name, possibly schema-qualified (e.g. "dbo.orders")
+	Enabled bool   // true = ON, false = OFF
 }
 
 func (*SetStmt) statementNode() {}
