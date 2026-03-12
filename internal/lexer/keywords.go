@@ -101,6 +101,11 @@ var keywords = map[string]bool{
 	"CHECK":      true,
 	"DEFAULT":    true,
 	"CONSTRAINT": true,
+	// GROUP BY extensions
+	"ROLLUP":   true,
+	"CUBE":     true,
+	"GROUPING": true,
+	"SETS":     true,
 	// Functions / misc
 	"TOP":       true,
 	"TIES":      true,

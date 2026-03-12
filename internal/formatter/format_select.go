@@ -187,11 +187,23 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	// GROUP BY
 	if len(s.GroupBy) > 0 {
 		b.WriteString("\n" + f.kw("group by"))
-		groupByStrs := make([]string, len(s.GroupBy))
-		for i, g := range s.GroupBy {
-			groupByStrs[i] = parser.Render(g)
+		// Single modifier with no other items: keyword on the "group by" line,
+		// arguments indented on the next line (e.g. "group by rollup\n\t(a, b)").
+		if len(s.GroupBy) == 1 && s.GroupBy[0].Modifier != parser.GroupBySimple && s.GroupBy[0].Modifier != parser.GroupByGrandTotal {
+			item := s.GroupBy[0]
+			b.WriteString(" " + f.kw(groupByModKeyword(item.Modifier)))
+			b.WriteString("\n" + ind + item.RawArgs)
+		} else {
+			groupByStrs := make([]string, len(s.GroupBy))
+			for i, item := range s.GroupBy {
+				if item.Modifier == parser.GroupBySimple {
+					groupByStrs[i] = parser.Render(item.Expr)
+				} else {
+					groupByStrs[i] = f.kw(groupByModKeyword(item.Modifier)) + item.RawArgs
+				}
+			}
+			f.writeCommaList(&b, groupByStrs)
 		}
-		f.writeCommaList(&b, groupByStrs)
 	}
 
 	// HAVING
@@ -270,6 +282,20 @@ func setOpKeyword(op parser.SetOpType) string {
 		return "except"
 	}
 	return "union"
+}
+
+// groupByModKeyword returns the canonical lowercase keyword phrase for a
+// GroupByModifier. GroupBySimple and GroupByGrandTotal have no keyword prefix.
+func groupByModKeyword(mod parser.GroupByModifier) string {
+	switch mod {
+	case parser.GroupByRollup:
+		return "rollup"
+	case parser.GroupByCube:
+		return "cube"
+	case parser.GroupBySets:
+		return "grouping sets"
+	}
+	return ""
 }
 
 // joinKeyword returns the canonical lowercase keyword phrase for a JoinType.

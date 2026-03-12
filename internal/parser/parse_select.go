@@ -352,25 +352,83 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 	return source, nil
 }
 
-// parseGroupByList parses a comma-separated list of GROUP BY expressions.
-func (p *parser) parseGroupByList() ([]Expr, error) {
-	var exprs []Expr
+// parseGroupByList parses a comma-separated list of GROUP BY items,
+// each of which may be a plain expression, ROLLUP(...), CUBE(...),
+// GROUPING SETS(...), or a grand-total ().
+func (p *parser) parseGroupByList() ([]GroupByItem, error) {
+	var items []GroupByItem
 	for {
-		expr := p.parseExpr(func() bool {
-			return p.curIs(lexer.Comma) || p.curKeyword("HAVING") ||
-				p.curKeyword("WINDOW") ||
-				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
-				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
-				p.isSetOpKeyword() ||
-				p.curIs(lexer.Semicolon)
-		})
-		exprs = append(exprs, expr)
+		item, err := p.parseGroupByItem()
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
 		if !p.curIs(lexer.Comma) {
 			break
 		}
 		p.advance() // consume ','
 	}
-	return exprs, nil
+	return items, nil
+}
+
+// parseGroupByItem parses one element of a GROUP BY list.
+func (p *parser) parseGroupByItem() (GroupByItem, error) {
+	// ROLLUP(...)
+	if p.curKeyword("ROLLUP") {
+		p.advance() // consume ROLLUP
+		raw, err := p.parseParenRaw()
+		if err != nil {
+			return GroupByItem{}, err
+		}
+		return GroupByItem{Modifier: GroupByRollup, RawArgs: raw}, nil
+	}
+	// CUBE(...)
+	if p.curKeyword("CUBE") {
+		p.advance() // consume CUBE
+		raw, err := p.parseParenRaw()
+		if err != nil {
+			return GroupByItem{}, err
+		}
+		return GroupByItem{Modifier: GroupByCube, RawArgs: raw}, nil
+	}
+	// GROUPING SETS(...)
+	if p.curKeyword("GROUPING") && p.peekKeyword("SETS") {
+		p.advance() // consume GROUPING
+		p.advance() // consume SETS
+		raw, err := p.parseParenRaw()
+		if err != nil {
+			return GroupByItem{}, err
+		}
+		return GroupByItem{Modifier: GroupBySets, RawArgs: raw}, nil
+	}
+	// () — grand total grouping set
+	if p.curIs(lexer.LParen) && p.peek.Type == lexer.RParen {
+		p.advance() // consume (
+		p.advance() // consume )
+		return GroupByItem{Modifier: GroupByGrandTotal, RawArgs: "()"}, nil
+	}
+	// Plain expression
+	stopFn := func() bool {
+		return p.curIs(lexer.Comma) || p.curKeyword("HAVING") ||
+			p.curKeyword("WINDOW") ||
+			p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
+			p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+			p.isSetOpKeyword() ||
+			p.curIs(lexer.Semicolon)
+	}
+	expr := p.parseExpr(stopFn)
+	return GroupByItem{Modifier: GroupBySimple, Expr: expr}, nil
+}
+
+// parseParenRaw consumes '(' <raw-content> ')' and returns the whole
+// thing including the surrounding parens as a normalised raw string.
+func (p *parser) parseParenRaw() (string, error) {
+	if _, err := p.expect(lexer.LParen); err != nil {
+		return "", err
+	}
+	raw, _ := p.parseExprRaw(func() bool { return false })
+	p.advance() // consume closing )
+	return "(" + raw + ")", nil
 }
 
 // parseOrderByList parses a comma-separated list of ORDER BY items.
