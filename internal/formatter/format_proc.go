@@ -7,30 +7,35 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+// writeProcParamList renders a parenthesised, comma-separated parameter list
+// into b. It is shared by formatCreateProc and formatCreateFunc.
+func (f *formatter) writeProcParamList(b *strings.Builder, params []parser.ProcParam) {
+	if len(params) == 0 {
+		return
+	}
+	rendered := make([]string, 0, len(params))
+	for _, p := range params {
+		var pb strings.Builder
+		pb.WriteString(p.Name)
+		pb.WriteString(" " + f.kw(strings.ToLower(p.DataType)))
+		if p.Default != nil {
+			pb.WriteString(" = " + parser.Render(p.Default))
+		}
+		if p.Direction == parser.ParamDirectionOut {
+			pb.WriteString(" " + f.kw("output"))
+		}
+		rendered = append(rendered, pb.String())
+	}
+	b.WriteString("\n(")
+	f.writeCommaList(b, rendered)
+	b.WriteString("\n)")
+}
+
 func (f *formatter) formatCreateProc(s *parser.CreateProcStmt) string {
 	var b strings.Builder
 	b.WriteString(f.kw("create procedure "))
 	b.WriteString(f.ident(s.Name))
-
-	// Parameter list — wrapped in ( ), one per line, same comma style as columns.
-	if len(s.Params) > 0 {
-		params := make([]string, 0, len(s.Params))
-		for _, p := range s.Params {
-			var pb strings.Builder
-			pb.WriteString(p.Name)
-			pb.WriteString(" " + f.kw(strings.ToLower(p.DataType)))
-			if p.Default != nil {
-				pb.WriteString(" = " + parser.Render(p.Default))
-			}
-			if p.Direction == parser.ParamDirectionOut {
-				pb.WriteString(" " + f.kw("output"))
-			}
-			params = append(params, pb.String())
-		}
-		b.WriteString("\n(")
-		f.writeCommaList(&b, params)
-		b.WriteString("\n)")
-	}
+	f.writeProcParamList(&b, s.Params)
 
 	b.WriteString("\n" + f.kw("as") + " " + f.kw("begin"))
 
@@ -51,25 +56,7 @@ func (f *formatter) formatCreateFunc(s *parser.CreateFuncStmt) string {
 	b.WriteString(f.kw("create function "))
 	b.WriteString(f.ident(s.Name))
 
-	// Parameter list — wrapped in ( ), one per line, same style as procedures.
-	if len(s.Params) > 0 {
-		params := make([]string, 0, len(s.Params))
-		for _, p := range s.Params {
-			var pb strings.Builder
-			pb.WriteString(p.Name)
-			pb.WriteString(" " + f.kw(strings.ToLower(p.DataType)))
-			if p.Default != nil {
-				pb.WriteString(" = " + parser.Render(p.Default))
-			}
-			if p.Direction == parser.ParamDirectionOut {
-				pb.WriteString(" " + f.kw("output"))
-			}
-			params = append(params, pb.String())
-		}
-		b.WriteString("\n(")
-		f.writeCommaList(&b, params)
-		b.WriteString("\n)")
-	}
+	f.writeProcParamList(&b, s.Params)
 
 	switch s.Kind {
 	case parser.CreateFuncScalar:
