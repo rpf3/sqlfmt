@@ -172,7 +172,7 @@ const (
 //	CREATE TYPE <name> FROM <base_type> [NULL|NOT NULL]          -- alias type
 //	CREATE TYPE <name> AS TABLE (<col_defs> [, <constraints>])   -- table type
 type CreateTypeStmt struct {
-	Name        string            // type name (may be schema-qualified, e.g. dbo.SSN)
+	Name        string // type name (may be schema-qualified, e.g. dbo.SSN)
 	Kind        CreateTypeKind
 	BaseType    string            // for CreateTypeAlias: base data type (e.g. "varchar(11)")
 	Nullability Nullability       // for CreateTypeAlias: optional nullability; NullabilityNone if absent
