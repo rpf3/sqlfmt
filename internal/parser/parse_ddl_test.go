@@ -403,3 +403,200 @@ func TestParseColumnDef(t *testing.T) {
 		}
 	})
 }
+
+// ─── parseTableConstraint tests ───────────────────────────────────────────────
+
+func mustParseTableConstraint(t *testing.T, sql string) TableConstraint {
+	t.Helper()
+	p := newTestParser(sql)
+	tc, err := p.parseTableConstraint()
+	if err != nil {
+		t.Fatalf("parseTableConstraint(%q): unexpected error: %v", sql, err)
+	}
+	return tc
+}
+
+func TestParseTableConstraint(t *testing.T) {
+	// ── PRIMARY KEY ───────────────────────────────────────────────────────────
+
+	t.Run("unnamed primary key single column", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "primary key (id)")
+		if tc.Name != "" {
+			t.Errorf("Name: got %q, want empty", tc.Name)
+		}
+		if tc.Type != ConstraintPrimaryKey {
+			t.Errorf("Type: got %v, want ConstraintPrimaryKey", tc.Type)
+		}
+		if len(tc.Columns) != 1 || tc.Columns[0] != "id" {
+			t.Errorf("Columns: got %v, want [id]", tc.Columns)
+		}
+	})
+
+	t.Run("named primary key single column", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "constraint pk_orders primary key (id)")
+		if tc.Name != "pk_orders" {
+			t.Errorf("Name: got %q, want %q", tc.Name, "pk_orders")
+		}
+		if tc.Type != ConstraintPrimaryKey {
+			t.Errorf("Type: got %v, want ConstraintPrimaryKey", tc.Type)
+		}
+		if len(tc.Columns) != 1 || tc.Columns[0] != "id" {
+			t.Errorf("Columns: got %v, want [id]", tc.Columns)
+		}
+	})
+
+	t.Run("named primary key composite", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "constraint pk_items primary key (order_id, product_id)")
+		if tc.Name != "pk_items" {
+			t.Errorf("Name: got %q, want %q", tc.Name, "pk_items")
+		}
+		if tc.Type != ConstraintPrimaryKey {
+			t.Errorf("Type: got %v, want ConstraintPrimaryKey", tc.Type)
+		}
+		wantCols := []string{"order_id", "product_id"}
+		if len(tc.Columns) != len(wantCols) {
+			t.Fatalf("Columns: got %v, want %v", tc.Columns, wantCols)
+		}
+		for i, c := range wantCols {
+			if tc.Columns[i] != c {
+				t.Errorf("Columns[%d]: got %q, want %q", i, tc.Columns[i], c)
+			}
+		}
+	})
+
+	// ── FOREIGN KEY ───────────────────────────────────────────────────────────
+
+	t.Run("unnamed foreign key with ref columns", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "foreign key (user_id) references users (id)")
+		if tc.Name != "" {
+			t.Errorf("Name: got %q, want empty", tc.Name)
+		}
+		if tc.Type != ConstraintForeignKey {
+			t.Errorf("Type: got %v, want ConstraintForeignKey", tc.Type)
+		}
+		if len(tc.Columns) != 1 || tc.Columns[0] != "user_id" {
+			t.Errorf("Columns: got %v, want [user_id]", tc.Columns)
+		}
+		if tc.RefTable != "users" {
+			t.Errorf("RefTable: got %q, want %q", tc.RefTable, "users")
+		}
+		if len(tc.RefColumns) != 1 || tc.RefColumns[0] != "id" {
+			t.Errorf("RefColumns: got %v, want [id]", tc.RefColumns)
+		}
+	})
+
+	t.Run("named foreign key with ref columns", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "constraint fk_orders_user foreign key (user_id) references users (id)")
+		if tc.Name != "fk_orders_user" {
+			t.Errorf("Name: got %q, want %q", tc.Name, "fk_orders_user")
+		}
+		if tc.Type != ConstraintForeignKey {
+			t.Errorf("Type: got %v, want ConstraintForeignKey", tc.Type)
+		}
+		if tc.RefTable != "users" {
+			t.Errorf("RefTable: got %q, want %q", tc.RefTable, "users")
+		}
+	})
+
+	t.Run("foreign key without ref column list", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "foreign key (user_id) references users")
+		if tc.RefTable != "users" {
+			t.Errorf("RefTable: got %q, want %q", tc.RefTable, "users")
+		}
+		if len(tc.RefColumns) != 0 {
+			t.Errorf("RefColumns: got %v, want empty", tc.RefColumns)
+		}
+	})
+
+	t.Run("foreign key composite columns", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "foreign key (order_id, product_id) references order_items (order_id, product_id)")
+		wantLocal := []string{"order_id", "product_id"}
+		wantRef := []string{"order_id", "product_id"}
+		if len(tc.Columns) != len(wantLocal) {
+			t.Fatalf("Columns: got %v, want %v", tc.Columns, wantLocal)
+		}
+		if len(tc.RefColumns) != len(wantRef) {
+			t.Fatalf("RefColumns: got %v, want %v", tc.RefColumns, wantRef)
+		}
+	})
+
+	// ── UNIQUE ────────────────────────────────────────────────────────────────
+
+	t.Run("unnamed unique", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "unique (email)")
+		if tc.Name != "" {
+			t.Errorf("Name: got %q, want empty", tc.Name)
+		}
+		if tc.Type != ConstraintUnique {
+			t.Errorf("Type: got %v, want ConstraintUnique", tc.Type)
+		}
+		if len(tc.Columns) != 1 || tc.Columns[0] != "email" {
+			t.Errorf("Columns: got %v, want [email]", tc.Columns)
+		}
+	})
+
+	t.Run("named unique", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "constraint uq_users_email unique (email)")
+		if tc.Name != "uq_users_email" {
+			t.Errorf("Name: got %q, want %q", tc.Name, "uq_users_email")
+		}
+		if tc.Type != ConstraintUnique {
+			t.Errorf("Type: got %v, want ConstraintUnique", tc.Type)
+		}
+	})
+
+	// ── CHECK ─────────────────────────────────────────────────────────────────
+
+	t.Run("unnamed check", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "check (qty > 0)")
+		if tc.Name != "" {
+			t.Errorf("Name: got %q, want empty", tc.Name)
+		}
+		if tc.Type != ConstraintCheck {
+			t.Errorf("Type: got %v, want ConstraintCheck", tc.Type)
+		}
+		if renderExpr(tc.Check) != "qty > 0" {
+			t.Errorf("Check: got %q, want %q", renderExpr(tc.Check), "qty > 0")
+		}
+	})
+
+	t.Run("named check", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "constraint chk_qty check (qty > 0)")
+		if tc.Name != "chk_qty" {
+			t.Errorf("Name: got %q, want %q", tc.Name, "chk_qty")
+		}
+		if tc.Type != ConstraintCheck {
+			t.Errorf("Type: got %v, want ConstraintCheck", tc.Type)
+		}
+		if renderExpr(tc.Check) != "qty > 0" {
+			t.Errorf("Check: got %q, want %q", renderExpr(tc.Check), "qty > 0")
+		}
+	})
+
+	t.Run("check with nested parens", func(t *testing.T) {
+		tc := mustParseTableConstraint(t, "check (status in ('active', 'pending'))")
+		// parseCheckExpr joins every token with a single space, so commas are
+		// surrounded by spaces: "( 'active' , 'pending' )"
+		if renderExpr(tc.Check) != "status in ( 'active' , 'pending' )" {
+			t.Errorf("Check: got %q, want %q", renderExpr(tc.Check), "status in ( 'active' , 'pending' )")
+		}
+	})
+
+	// ── Error cases ───────────────────────────────────────────────────────────
+
+	t.Run("unknown constraint keyword", func(t *testing.T) {
+		p := newTestParser("index (id)")
+		_, err := p.parseTableConstraint()
+		if err == nil {
+			t.Error("expected error for unknown constraint type, got nil")
+		}
+	})
+
+	t.Run("constraint name without constraint body", func(t *testing.T) {
+		p := newTestParser("constraint pk_foo index (id)")
+		_, err := p.parseTableConstraint()
+		if err == nil {
+			t.Error("expected error for CONSTRAINT name followed by unknown keyword, got nil")
+		}
+	})
+}
