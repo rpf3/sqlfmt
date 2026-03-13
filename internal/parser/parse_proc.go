@@ -115,6 +115,51 @@ func (p *parser) parseCreateProc() (Statement, error) {
 // Parameters may appear with or without surrounding parentheses.
 // Each parameter is: @name datatype [= default] [OUTPUT|OUT]
 // Returns nil (no error) when no parameters are present.
+// parseSingleProcParam parses one parameter entry: @name type [= default] [OUTPUT|OUT] [READONLY].
+func (p *parser) parseSingleProcParam() (ProcParam, error) {
+	nameTok := p.cur
+	if nameTok.Type != lexer.Ident {
+		return ProcParam{}, fmt.Errorf(
+			"expected parameter name at %d:%d, got %s %q",
+			nameTok.Line, nameTok.Column, nameTok.Type, nameTok.Value,
+		)
+	}
+	p.advance() // consume @name
+
+	dataType, err := p.parseDataType()
+	if err != nil {
+		return ProcParam{}, err
+	}
+
+	param := ProcParam{Name: nameTok.Value, DataType: dataType}
+
+	// Optional default: = <expr>
+	if p.curIs(lexer.Eq) {
+		p.advance() // consume =
+		param.Default = p.parseExpr(func() bool {
+			return p.cur.Type == lexer.Comma ||
+				p.cur.Type == lexer.RParen ||
+				p.curKeyword("AS") ||
+				p.curKeyword("BEGIN") ||
+				p.curValue("OUTPUT") ||
+				p.curValue("OUT") ||
+				p.curValue("READONLY")
+		})
+	}
+
+	// Optional direction: OUTPUT or OUT
+	if p.curValue("OUTPUT") || p.curValue("OUT") {
+		param.Direction = ParamDirectionOut
+		p.advance()
+	}
+	// Optional READONLY (input-only hint; treated as input direction)
+	if p.curValue("READONLY") {
+		p.advance()
+	}
+
+	return param, nil
+}
+
 func (p *parser) parseProcParams() ([]ProcParam, error) {
 	// Parenthesised form: (...)
 	hasParen := p.curIs(lexer.LParen)
@@ -130,47 +175,10 @@ func (p *parser) parseProcParams() ([]ProcParam, error) {
 			break
 		}
 
-		// Expect a @param name.
-		nameTok := p.cur
-		if nameTok.Type != lexer.Ident {
-			return nil, fmt.Errorf(
-				"expected parameter name at %d:%d, got %s %q",
-				nameTok.Line, nameTok.Column, nameTok.Type, nameTok.Value,
-			)
-		}
-		p.advance() // consume @name
-
-		dataType, err := p.parseDataType()
+		param, err := p.parseSingleProcParam()
 		if err != nil {
 			return nil, err
 		}
-
-		param := ProcParam{Name: nameTok.Value, DataType: dataType}
-
-		// Optional default: = <expr>
-		if p.curIs(lexer.Eq) {
-			p.advance() // consume =
-			param.Default = p.parseExpr(func() bool {
-				return p.cur.Type == lexer.Comma ||
-					p.cur.Type == lexer.RParen ||
-					p.curKeyword("AS") ||
-					p.curKeyword("BEGIN") ||
-					p.curValue("OUTPUT") ||
-					p.curValue("OUT") ||
-					p.curValue("READONLY")
-			})
-		}
-
-		// Optional direction: OUTPUT or OUT
-		if p.curValue("OUTPUT") || p.curValue("OUT") {
-			param.Direction = ParamDirectionOut
-			p.advance()
-		}
-		// Optional READONLY (input-only hint; treated as input direction)
-		if p.curValue("READONLY") {
-			p.advance()
-		}
-
 		params = append(params, param)
 
 		if p.curIs(lexer.Comma) {
