@@ -129,6 +129,71 @@ func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 	return b.String()
 }
 
+// writeMergeWhenClause renders a single WHEN … THEN … clause into b.
+func (f *formatter) writeMergeWhenClause(b *strings.Builder, clause parser.MergeWhenClause) {
+	ind := f.indent()
+
+	switch clause.MatchType {
+	case parser.MergeMatched:
+		b.WriteString(f.kw("when matched"))
+	case parser.MergeNotMatchedByTarget:
+		b.WriteString(f.kw("when not matched"))
+	case parser.MergeNotMatchedBySource:
+		b.WriteString(f.kw("when not matched by source"))
+	}
+
+	if clause.Condition != nil {
+		// AND condition in a paren block; "then" on its own line.
+		b.WriteString(f.kw(" and"))
+		b.WriteString("\n(")
+		b.WriteString("\n" + ind + parser.Render(clause.Condition))
+		b.WriteString("\n)")
+		b.WriteString("\n" + f.kw("then"))
+	} else {
+		b.WriteString(f.kw(" then"))
+	}
+
+	switch clause.Action {
+	case parser.MergeActionDelete:
+		b.WriteString(f.kw(" delete"))
+
+	case parser.MergeActionUpdate:
+		b.WriteString(f.kw(" update set"))
+		for i, set := range clause.Sets {
+			item := set.Column + " = " + parser.Render(set.Value)
+			if i == 0 {
+				b.WriteString("\n" + ind + item)
+			} else {
+				b.WriteString("\n,\t" + item)
+			}
+		}
+
+	case parser.MergeActionInsert:
+		b.WriteString(f.kw(" insert"))
+		if len(clause.Columns) > 0 {
+			b.WriteString("\n(")
+			for i, col := range clause.Columns {
+				if i == 0 {
+					b.WriteString("\n" + ind + col)
+				} else {
+					b.WriteString("\n,\t" + col)
+				}
+			}
+			b.WriteString("\n)")
+		}
+		b.WriteString("\n" + f.kw("values"))
+		b.WriteString("\n(")
+		for i, val := range clause.Values {
+			if i == 0 {
+				b.WriteString("\n" + ind + parser.Render(val))
+			} else {
+				b.WriteString("\n,\t" + parser.Render(val))
+			}
+		}
+		b.WriteString("\n)")
+	}
+}
+
 func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 	ind := f.indent()
 	var b strings.Builder
@@ -165,65 +230,7 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 
 	for _, clause := range s.Clauses {
 		b.WriteString("\n")
-		switch clause.MatchType {
-		case parser.MergeMatched:
-			b.WriteString(f.kw("when matched"))
-		case parser.MergeNotMatchedByTarget:
-			b.WriteString(f.kw("when not matched"))
-		case parser.MergeNotMatchedBySource:
-			b.WriteString(f.kw("when not matched by source"))
-		}
-
-		if clause.Condition != nil {
-			// AND condition in a paren block; "then" on its own line.
-			b.WriteString(f.kw(" and"))
-			b.WriteString("\n(")
-			b.WriteString("\n" + ind + parser.Render(clause.Condition))
-			b.WriteString("\n)")
-			b.WriteString("\n" + f.kw("then"))
-		} else {
-			b.WriteString(f.kw(" then"))
-		}
-
-		switch clause.Action {
-		case parser.MergeActionDelete:
-			b.WriteString(f.kw(" delete"))
-
-		case parser.MergeActionUpdate:
-			b.WriteString(f.kw(" update set"))
-			for i, set := range clause.Sets {
-				item := set.Column + " = " + parser.Render(set.Value)
-				if i == 0 {
-					b.WriteString("\n" + ind + item)
-				} else {
-					b.WriteString("\n,\t" + item)
-				}
-			}
-
-		case parser.MergeActionInsert:
-			b.WriteString(f.kw(" insert"))
-			if len(clause.Columns) > 0 {
-				b.WriteString("\n(")
-				for i, col := range clause.Columns {
-					if i == 0 {
-						b.WriteString("\n" + ind + col)
-					} else {
-						b.WriteString("\n,\t" + col)
-					}
-				}
-				b.WriteString("\n)")
-			}
-			b.WriteString("\n" + f.kw("values"))
-			b.WriteString("\n(")
-			for i, val := range clause.Values {
-				if i == 0 {
-					b.WriteString("\n" + ind + parser.Render(val))
-				} else {
-					b.WriteString("\n,\t" + parser.Render(val))
-				}
-			}
-			b.WriteString("\n)")
-		}
+		f.writeMergeWhenClause(&b, clause)
 	}
 
 	b.WriteString(";")
