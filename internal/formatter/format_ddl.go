@@ -181,53 +181,66 @@ func (f *formatter) writeTableConstraint(b *strings.Builder, tc parser.TableCons
 	}
 }
 
-func (f *formatter) formatCreateTable(s *parser.CreateTableStmt) string {
+// writeColumnDefList writes cols into b with comma-style handling.
+// itemIdx is the position of the first item in the global list (may be non-zero
+// when columns are followed by constraints); totalItems is the combined count.
+// Returns the updated itemIdx after all cols are written.
+func (f *formatter) writeColumnDefList(b *strings.Builder, cols []parser.ColumnDef, itemIdx, totalItems int) int {
 	ind := f.indent()
+	for _, col := range cols {
+		if f.cfg.CommaStyle == config.CommaTrailing {
+			b.WriteString(ind)
+			f.writeColumnDef(b, col)
+			if itemIdx < totalItems-1 {
+				b.WriteString(",")
+			}
+		} else {
+			if itemIdx == 0 {
+				b.WriteString(ind)
+			} else {
+				b.WriteString("," + ind)
+			}
+			f.writeColumnDef(b, col)
+		}
+		b.WriteString("\n")
+		itemIdx++
+	}
+	return itemIdx
+}
+
+// writeTableConstraintList writes constraints into b with comma-style handling.
+// itemIdx is the position of the first constraint in the global list (after any
+// preceding columns); totalItems is the combined count. Returns the updated itemIdx.
+func (f *formatter) writeTableConstraintList(b *strings.Builder, constraints []parser.TableConstraint, itemIdx, totalItems int) int {
+	ind := f.indent()
+	for _, tc := range constraints {
+		if f.cfg.CommaStyle == config.CommaTrailing {
+			b.WriteString(ind)
+			f.writeTableConstraint(b, tc)
+			if itemIdx < totalItems-1 {
+				b.WriteString(",")
+			}
+		} else {
+			b.WriteString("," + ind)
+			f.writeTableConstraint(b, tc)
+		}
+		b.WriteString("\n")
+		itemIdx++
+	}
+	return itemIdx
+}
+
+func (f *formatter) formatCreateTable(s *parser.CreateTableStmt) string {
 	var b strings.Builder
 	b.WriteString(f.kw("create table "))
 	b.WriteString(f.ident(s.Name))
 	b.WriteString("\n(\n")
 
 	totalItems := len(s.Columns) + len(s.Constraints)
-	itemIdx := 0
-
-	for _, col := range s.Columns {
-		if f.cfg.CommaStyle == config.CommaTrailing {
-			b.WriteString(ind)
-			f.writeColumnDef(&b, col)
-			if itemIdx < totalItems-1 {
-				b.WriteString(",")
-			}
-		} else {
-			// leading comma style
-			if itemIdx == 0 {
-				b.WriteString(ind)
-			} else {
-				b.WriteString("," + ind)
-			}
-			f.writeColumnDef(&b, col)
-		}
-		b.WriteString("\n")
-		itemIdx++
-	}
-
+	itemIdx := f.writeColumnDefList(&b, s.Columns, 0, totalItems)
 	if len(s.Constraints) > 0 {
 		b.WriteString("\n") // blank line separates columns from constraints
-	}
-	for _, tc := range s.Constraints {
-		if f.cfg.CommaStyle == config.CommaTrailing {
-			b.WriteString(ind)
-			f.writeTableConstraint(&b, tc)
-			if itemIdx < totalItems-1 {
-				b.WriteString(",")
-			}
-		} else {
-			// leading comma style
-			b.WriteString("," + ind)
-			f.writeTableConstraint(&b, tc)
-		}
-		b.WriteString("\n")
-		itemIdx++
+		f.writeTableConstraintList(&b, s.Constraints, itemIdx, totalItems)
 	}
 
 	b.WriteString(");")
