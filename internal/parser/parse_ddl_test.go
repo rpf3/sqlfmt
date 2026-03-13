@@ -600,3 +600,198 @@ func TestParseTableConstraint(t *testing.T) {
 		}
 	})
 }
+
+// ─── parseCreateTable tests ───────────────────────────────────────────────────
+
+func mustParseCreateTable(t *testing.T, sql string) *CreateTableStmt {
+	t.Helper()
+	result := Parse(sql)
+	if len(result.Errors) > 0 {
+		t.Fatalf("Parse(%q): unexpected errors: %v", sql, result.Errors)
+	}
+	if len(result.Statements) != 1 {
+		t.Fatalf("Parse(%q): expected 1 statement, got %d", sql, len(result.Statements))
+	}
+	stmt, ok := result.Statements[0].(*CreateTableStmt)
+	if !ok {
+		t.Fatalf("Parse(%q): expected *CreateTableStmt, got %T", sql, result.Statements[0])
+	}
+	return stmt
+}
+
+func TestParseCreateTable(t *testing.T) {
+	// ── Name forms ────────────────────────────────────────────────────────────
+
+	t.Run("simple name", func(t *testing.T) {
+		stmt := mustParseCreateTable(t, "create table orders (id int);")
+		if stmt.Name != "orders" {
+			t.Errorf("Name: got %q, want %q", stmt.Name, "orders")
+		}
+	})
+
+	t.Run("schema-qualified name", func(t *testing.T) {
+		stmt := mustParseCreateTable(t, "create table dbo.orders (id int);")
+		if stmt.Name != "dbo.orders" {
+			t.Errorf("Name: got %q, want %q", stmt.Name, "dbo.orders")
+		}
+	})
+
+	t.Run("temp table", func(t *testing.T) {
+		stmt := mustParseCreateTable(t, "create table #staging (id int);")
+		if stmt.Name != "#staging" {
+			t.Errorf("Name: got %q, want %q", stmt.Name, "#staging")
+		}
+	})
+
+	// ── Column counts ─────────────────────────────────────────────────────────
+
+	t.Run("single column", func(t *testing.T) {
+		stmt := mustParseCreateTable(t, "create table t (id int);")
+		if len(stmt.Columns) != 1 {
+			t.Fatalf("Columns: got %d, want 1", len(stmt.Columns))
+		}
+		if stmt.Columns[0].Name != "id" {
+			t.Errorf("Columns[0].Name: got %q, want %q", stmt.Columns[0].Name, "id")
+		}
+		if stmt.Columns[0].DataType != "INT" {
+			t.Errorf("Columns[0].DataType: got %q, want %q", stmt.Columns[0].DataType, "INT")
+		}
+	})
+
+	t.Run("multiple columns", func(t *testing.T) {
+		stmt := mustParseCreateTable(t, "create table t (id int not null, name varchar(255) not null, active bit null);")
+		if len(stmt.Columns) != 3 {
+			t.Fatalf("Columns: got %d, want 3", len(stmt.Columns))
+		}
+		wantNames := []string{"id", "name", "active"}
+		for i, n := range wantNames {
+			if stmt.Columns[i].Name != n {
+				t.Errorf("Columns[%d].Name: got %q, want %q", i, stmt.Columns[i].Name, n)
+			}
+		}
+	})
+
+	// ── Columns and constraints separated ─────────────────────────────────────
+
+	t.Run("columns then table pk", func(t *testing.T) {
+		stmt := mustParseCreateTable(t,
+			"create table t (id int not null, name varchar(255) not null, constraint pk_t primary key (id));",
+		)
+		if len(stmt.Columns) != 2 {
+			t.Fatalf("Columns: got %d, want 2", len(stmt.Columns))
+		}
+		if len(stmt.Constraints) != 1 {
+			t.Fatalf("Constraints: got %d, want 1", len(stmt.Constraints))
+		}
+		pk := stmt.Constraints[0]
+		if pk.Type != ConstraintPrimaryKey {
+			t.Errorf("Constraints[0].Type: got %v, want ConstraintPrimaryKey", pk.Type)
+		}
+		if pk.Name != "pk_t" {
+			t.Errorf("Constraints[0].Name: got %q, want %q", pk.Name, "pk_t")
+		}
+		if len(pk.Columns) != 1 || pk.Columns[0] != "id" {
+			t.Errorf("Constraints[0].Columns: got %v, want [id]", pk.Columns)
+		}
+	})
+
+	t.Run("columns then table fk", func(t *testing.T) {
+		stmt := mustParseCreateTable(t,
+			"create table t (id int not null, user_id int not null, constraint fk_t_user foreign key (user_id) references users (id));",
+		)
+		if len(stmt.Columns) != 2 {
+			t.Fatalf("Columns: got %d, want 2", len(stmt.Columns))
+		}
+		if len(stmt.Constraints) != 1 {
+			t.Fatalf("Constraints: got %d, want 1", len(stmt.Constraints))
+		}
+		fk := stmt.Constraints[0]
+		if fk.Type != ConstraintForeignKey {
+			t.Errorf("Constraints[0].Type: got %v, want ConstraintForeignKey", fk.Type)
+		}
+		if fk.RefTable != "users" {
+			t.Errorf("Constraints[0].RefTable: got %q, want %q", fk.RefTable, "users")
+		}
+	})
+
+	t.Run("constraint listed before column in source", func(t *testing.T) {
+		// parseColumnList dispatches on keyword — constraint-first order must still
+		// produce the correct Columns/Constraints split.
+		stmt := mustParseCreateTable(t,
+			"create table t (constraint pk_t primary key (id), id int not null);",
+		)
+		if len(stmt.Columns) != 1 {
+			t.Fatalf("Columns: got %d, want 1", len(stmt.Columns))
+		}
+		if len(stmt.Constraints) != 1 {
+			t.Fatalf("Constraints: got %d, want 1", len(stmt.Constraints))
+		}
+		if stmt.Columns[0].Name != "id" {
+			t.Errorf("Columns[0].Name: got %q, want %q", stmt.Columns[0].Name, "id")
+		}
+	})
+
+	t.Run("multiple table constraints", func(t *testing.T) {
+		stmt := mustParseCreateTable(t,
+			"create table t ("+
+				"id int not null, user_id int not null, email varchar(255) not null, "+
+				"constraint pk_t primary key (id), "+
+				"constraint fk_t_user foreign key (user_id) references users (id), "+
+				"constraint uq_t_email unique (email)"+
+				");",
+		)
+		if len(stmt.Columns) != 3 {
+			t.Fatalf("Columns: got %d, want 3", len(stmt.Columns))
+		}
+		if len(stmt.Constraints) != 3 {
+			t.Fatalf("Constraints: got %d, want 3", len(stmt.Constraints))
+		}
+		wantTypes := []TableConstraintType{ConstraintPrimaryKey, ConstraintForeignKey, ConstraintUnique}
+		for i, wt := range wantTypes {
+			if stmt.Constraints[i].Type != wt {
+				t.Errorf("Constraints[%d].Type: got %v, want %v", i, stmt.Constraints[i].Type, wt)
+			}
+		}
+	})
+
+	// ── Inline column attributes survive round-trip through parseColumnList ───
+
+	t.Run("inline identity and nullability preserved", func(t *testing.T) {
+		stmt := mustParseCreateTable(t,
+			"create table t (id int identity(1,1) not null, name nvarchar(max) null);",
+		)
+		id := stmt.Columns[0]
+		if id.Identity == nil {
+			t.Fatal("Columns[0].Identity: got nil, want non-nil")
+		}
+		if id.Identity.Seed != "1" || id.Identity.Increment != "1" {
+			t.Errorf("Columns[0].Identity: got {%q,%q}, want {1,1}", id.Identity.Seed, id.Identity.Increment)
+		}
+		if id.Nullability != NullabilityNotNull {
+			t.Errorf("Columns[0].Nullability: got %v, want NullabilityNotNull", id.Nullability)
+		}
+		name := stmt.Columns[1]
+		if name.DataType != "NVARCHAR(MAX)" {
+			t.Errorf("Columns[1].DataType: got %q, want %q", name.DataType, "NVARCHAR(MAX)")
+		}
+		if name.Nullability != NullabilityNull {
+			t.Errorf("Columns[1].Nullability: got %v, want NullabilityNull", name.Nullability)
+		}
+	})
+
+	// ── Error cases ───────────────────────────────────────────────────────────
+
+	t.Run("missing opening paren", func(t *testing.T) {
+		result := Parse("create table t id int;")
+		if len(result.Errors) == 0 {
+			t.Error("expected parse errors, got none")
+		}
+	})
+
+	t.Run("empty column list", func(t *testing.T) {
+		result := Parse("create table t ();")
+		if len(result.Errors) == 0 {
+			t.Error("expected parse errors for empty column list, got none")
+		}
+	})
+}
