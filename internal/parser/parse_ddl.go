@@ -1015,13 +1015,17 @@ func (p *parser) parseDataType() (string, error) {
 	var params []string
 	for {
 		tok = p.cur
-		if tok.Type != lexer.IntLit && tok.Type != lexer.FloatLit {
+		switch tok.Type {
+		case lexer.IntLit, lexer.FloatLit:
+			params = append(params, tok.Value)
+		case lexer.Ident, lexer.Keyword:
+			params = append(params, strings.ToUpper(tok.Value))
+		default:
 			return "", fmt.Errorf(
 				"expected type parameter at %d:%d, got %s %q",
 				tok.Line, tok.Column, tok.Type, tok.Value,
 			)
 		}
-		params = append(params, tok.Value)
 		p.advance()
 		if !p.curIs(lexer.Comma) {
 			break

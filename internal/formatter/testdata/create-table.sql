@@ -37,3 +37,15 @@ create table recipe_ingredients
 ,	constraint chk_recipe_ingredients_quantity
 		check (quantity > 0)
 );
+
+create table documents
+(
+	id int not null
+,	title nvarchar(255) not null
+,	body nvarchar(max) null
+,	content varbinary(max) null
+,	summary varchar(max) null
+
+,	constraint pk_documents
+		primary key (id)
+);
