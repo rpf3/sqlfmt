@@ -523,10 +523,19 @@ func (*SelectStmt) statementNode() {}
 
 // ─── CREATE TABLE ─────────────────────────────────────────────────────────────
 
+// IdentitySpec holds the optional IDENTITY column attribute.
+// Seed and Increment are the raw token values (e.g. "1").
+// Both are empty when IDENTITY was written without explicit arguments.
+type IdentitySpec struct {
+	Seed      string
+	Increment string
+}
+
 // ColumnDef is one column in a CREATE TABLE column list.
 type ColumnDef struct {
 	Name              string           // column name
 	DataType          string           // e.g. "INTEGER", "TEXT", "VARCHAR(255)", "NUMERIC(10, 2)"
+	Identity          *IdentitySpec    // optional IDENTITY attribute; nil if absent
 	PrimaryKey        bool             // PRIMARY KEY inline constraint
 	DefaultConstraint string           // optional CONSTRAINT name preceding DEFAULT; empty if unnamed
 	Default           Expr             // DEFAULT expression; nil means no DEFAULT clause

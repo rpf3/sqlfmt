@@ -49,3 +49,12 @@ create table documents
 ,	constraint pk_documents
 		primary key (id)
 );
+
+create table orders
+(
+	id int identity not null
+,	code int identity(100, 10) not null
+
+,	constraint pk_orders
+		primary key (id)
+);
