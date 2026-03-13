@@ -135,47 +135,12 @@ func (f *formatter) formatCreateType(s *parser.CreateTypeStmt) string {
 	case parser.CreateTypeTable:
 		b.WriteString(" " + f.kw("as table"))
 		b.WriteString("\n(\n")
-
 		totalItems := len(s.Columns) + len(s.Constraints)
-		itemIdx := 0
-
-		for _, col := range s.Columns {
-			if f.cfg.CommaStyle == config.CommaTrailing {
-				b.WriteString(ind)
-				f.writeColumnDef(&b, col)
-				if itemIdx < totalItems-1 {
-					b.WriteString(",")
-				}
-			} else {
-				if itemIdx == 0 {
-					b.WriteString(ind)
-				} else {
-					b.WriteString("," + ind)
-				}
-				f.writeColumnDef(&b, col)
-			}
-			b.WriteString("\n")
-			itemIdx++
-		}
-
+		itemIdx := f.writeColumnDefList(&b, s.Columns, 0, totalItems)
 		if len(s.Constraints) > 0 {
 			b.WriteString("\n")
+			f.writeTableConstraintList(&b, s.Constraints, itemIdx, totalItems)
 		}
-		for _, tc := range s.Constraints {
-			if f.cfg.CommaStyle == config.CommaTrailing {
-				b.WriteString(ind)
-				f.writeTableConstraint(&b, tc)
-				if itemIdx < totalItems-1 {
-					b.WriteString(",")
-				}
-			} else {
-				b.WriteString("," + ind)
-				f.writeTableConstraint(&b, tc)
-			}
-			b.WriteString("\n")
-			itemIdx++
-		}
-
 		b.WriteString(")")
 	}
 
@@ -212,7 +177,6 @@ func (f *formatter) formatSet(s *parser.SetStmt) string {
 }
 
 func (f *formatter) formatDeclare(s *parser.DeclareStmt) string {
-	ind := f.indent()
 	var b strings.Builder
 
 	// Table variable — single var with a column list.
@@ -222,24 +186,7 @@ func (f *formatter) formatDeclare(s *parser.DeclareStmt) string {
 		b.WriteString(v.Name)
 		b.WriteString(" " + f.kw("table"))
 		b.WriteString("\n(\n")
-		cols := v.Columns
-		for i, col := range cols {
-			if f.cfg.CommaStyle == config.CommaTrailing {
-				b.WriteString(ind)
-				f.writeColumnDef(&b, col)
-				if i < len(cols)-1 {
-					b.WriteString(",")
-				}
-			} else {
-				if i == 0 {
-					b.WriteString(ind)
-				} else {
-					b.WriteString("," + ind)
-				}
-				f.writeColumnDef(&b, col)
-			}
-			b.WriteString("\n")
-		}
+		f.writeColumnDefList(&b, v.Columns, 0, len(v.Columns))
 		b.WriteString(");")
 		return b.String()
 	}
