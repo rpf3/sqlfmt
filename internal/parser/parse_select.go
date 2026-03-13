@@ -532,87 +532,98 @@ func (p *parser) isNextJoin() bool {
 
 // parseJoinClauses consumes zero or more JOIN clauses following a FROM source.
 // Each clause is: <join-type> <table> [AS <alias>] (ON <expr> | USING (<cols>)).
-func (p *parser) parseJoinClauses() ([]JoinClause, error) {
-	var joins []JoinClause
-	for p.isNextJoin() {
-		var joinType JoinType
+// parseJoinType consumes the join-keyword sequence and returns the
+// corresponding JoinType constant. It is called once per iteration of the
+// parseJoinClauses loop, with p.cur already positioned at the first keyword
+// of the join (INNER, LEFT, JOIN, CROSS, OUTER, NATURAL, etc.).
+func (p *parser) parseJoinType() (JoinType, error) {
+	switch {
+	case p.curKeyword("INNER"):
+		p.advance() // consume INNER
+		p.advance() // consume JOIN
+		return JoinInner, nil
+	case p.curKeyword("JOIN"):
+		p.advance() // consume JOIN (bare, means INNER)
+		return JoinInner, nil
+	case p.curKeyword("LEFT"):
+		p.advance() // consume LEFT
+		if p.curKeyword("OUTER") {
+			p.advance() // consume optional OUTER
+		}
+		if err := p.expectKeyword("JOIN"); err != nil {
+			return 0, err
+		}
+		return JoinLeft, nil
+	case p.curKeyword("RIGHT"):
+		p.advance() // consume RIGHT
+		if p.curKeyword("OUTER") {
+			p.advance() // consume optional OUTER
+		}
+		if err := p.expectKeyword("JOIN"); err != nil {
+			return 0, err
+		}
+		return JoinRight, nil
+	case p.curKeyword("FULL"):
+		p.advance() // consume FULL
+		if p.curKeyword("OUTER") {
+			p.advance() // consume optional OUTER
+		}
+		if err := p.expectKeyword("JOIN"); err != nil {
+			return 0, err
+		}
+		return JoinFullOuter, nil
+	case p.curKeyword("CROSS"):
+		p.advance() // consume CROSS
+		if p.curKeyword("APPLY") {
+			p.advance() // consume APPLY
+			return JoinCrossApply, nil
+		}
+		p.advance() // consume JOIN
+		return JoinCross, nil
+	case p.curKeyword("OUTER"):
+		p.advance() // consume OUTER
+		if err := p.expectKeyword("APPLY"); err != nil {
+			return 0, err
+		}
+		return JoinOuterApply, nil
+	case p.curKeyword("NATURAL"):
+		p.advance() // consume NATURAL
 		switch {
-		case p.curKeyword("INNER"):
-			p.advance() // consume INNER
-			p.advance() // consume JOIN
-			joinType = JoinInner
-		case p.curKeyword("JOIN"):
-			p.advance() // consume JOIN (bare, means INNER)
-			joinType = JoinInner
 		case p.curKeyword("LEFT"):
 			p.advance() // consume LEFT
 			if p.curKeyword("OUTER") {
 				p.advance() // consume optional OUTER
 			}
 			if err := p.expectKeyword("JOIN"); err != nil {
-				return nil, err
+				return 0, err
 			}
-			joinType = JoinLeft
+			return JoinNaturalLeft, nil
 		case p.curKeyword("RIGHT"):
 			p.advance() // consume RIGHT
 			if p.curKeyword("OUTER") {
 				p.advance() // consume optional OUTER
 			}
 			if err := p.expectKeyword("JOIN"); err != nil {
-				return nil, err
+				return 0, err
 			}
-			joinType = JoinRight
-		case p.curKeyword("FULL"):
-			p.advance() // consume FULL
-			if p.curKeyword("OUTER") {
-				p.advance() // consume optional OUTER
-			}
+			return JoinNaturalRight, nil
+		default:
 			if err := p.expectKeyword("JOIN"); err != nil {
-				return nil, err
+				return 0, err
 			}
-			joinType = JoinFullOuter
-		case p.curKeyword("CROSS"):
-			p.advance() // consume CROSS
-			if p.curKeyword("APPLY") {
-				p.advance() // consume APPLY
-				joinType = JoinCrossApply
-			} else {
-				p.advance() // consume JOIN
-				joinType = JoinCross
-			}
-		case p.curKeyword("OUTER"):
-			p.advance() // consume OUTER
-			if err := p.expectKeyword("APPLY"); err != nil {
-				return nil, err
-			}
-			joinType = JoinOuterApply
-		case p.curKeyword("NATURAL"):
-			p.advance() // consume NATURAL
-			switch {
-			case p.curKeyword("LEFT"):
-				p.advance() // consume LEFT
-				if p.curKeyword("OUTER") {
-					p.advance() // consume optional OUTER
-				}
-				if err := p.expectKeyword("JOIN"); err != nil {
-					return nil, err
-				}
-				joinType = JoinNaturalLeft
-			case p.curKeyword("RIGHT"):
-				p.advance() // consume RIGHT
-				if p.curKeyword("OUTER") {
-					p.advance() // consume optional OUTER
-				}
-				if err := p.expectKeyword("JOIN"); err != nil {
-					return nil, err
-				}
-				joinType = JoinNaturalRight
-			default:
-				if err := p.expectKeyword("JOIN"); err != nil {
-					return nil, err
-				}
-				joinType = JoinNatural
-			}
+			return JoinNatural, nil
+		}
+	}
+	return 0, fmt.Errorf("unexpected join keyword at %d:%d: %s %q",
+		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value)
+}
+
+func (p *parser) parseJoinClauses() ([]JoinClause, error) {
+	var joins []JoinClause
+	for p.isNextJoin() {
+		joinType, err := p.parseJoinType()
+		if err != nil {
+			return nil, err
 		}
 
 		// APPLY joins (CROSS APPLY / OUTER APPLY) have a different source syntax:
