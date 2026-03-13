@@ -328,22 +328,18 @@ func (p *parser) parseMerge() (Statement, error) {
 	return stmt, nil
 }
 
-// parseMergeWhenClause parses one WHEN … THEN … clause.
-func (p *parser) parseMergeWhenClause() (MergeWhenClause, error) {
-	p.advance() // consume WHEN
-
-	var clause MergeWhenClause
-
-	// MATCHED, SOURCE, TARGET are non-reserved SQL words — they may appear as
-	// identifiers elsewhere, so they are not in the keywords list. Use curValue
-	// for case-insensitive value matching that works on both Ident and Keyword.
+// parseMergeMatchType parses the MATCHED / NOT MATCHED [BY SOURCE|TARGET]
+// portion of a WHEN clause. MATCHED, SOURCE, and TARGET are non-reserved SQL
+// words — curValue is used so they are recognised regardless of token type.
+func (p *parser) parseMergeMatchType() (MergeMatchType, error) {
 	if p.curValue("MATCHED") {
 		p.advance()
-		clause.MatchType = MergeMatched
-	} else if p.curKeyword("NOT") {
+		return MergeMatched, nil
+	}
+	if p.curKeyword("NOT") {
 		p.advance()
 		if !p.curValue("MATCHED") {
-			return MergeWhenClause{}, fmt.Errorf(
+			return 0, fmt.Errorf(
 				"expected MATCHED after WHEN NOT at %d:%d, got %s %q",
 				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 			)
@@ -353,25 +349,77 @@ func (p *parser) parseMergeWhenClause() (MergeWhenClause, error) {
 			p.advance()
 			if p.curValue("SOURCE") {
 				p.advance()
-				clause.MatchType = MergeNotMatchedBySource
-			} else if p.curValue("TARGET") {
-				p.advance()
-				clause.MatchType = MergeNotMatchedByTarget
-			} else {
-				return MergeWhenClause{}, fmt.Errorf(
-					"expected SOURCE or TARGET after WHEN NOT MATCHED BY at %d:%d, got %s %q",
-					p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
-				)
+				return MergeNotMatchedBySource, nil
 			}
-		} else {
-			clause.MatchType = MergeNotMatchedByTarget
+			if p.curValue("TARGET") {
+				p.advance()
+				return MergeNotMatchedByTarget, nil
+			}
+			return 0, fmt.Errorf(
+				"expected SOURCE or TARGET after WHEN NOT MATCHED BY at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
 		}
-	} else {
-		return MergeWhenClause{}, fmt.Errorf(
-			"expected MATCHED or NOT after WHEN at %d:%d, got %s %q",
+		return MergeNotMatchedByTarget, nil
+	}
+	return 0, fmt.Errorf(
+		"expected MATCHED or NOT after WHEN at %d:%d, got %s %q",
+		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+	)
+}
+
+// parseMergeAction parses the UPDATE SET … | DELETE | INSERT … portion that
+// follows THEN in a WHEN clause, writing results directly into clause.
+func (p *parser) parseMergeAction(clause *MergeWhenClause) error {
+	switch {
+	case p.curKeyword("UPDATE"):
+		p.advance()
+		sets, err := p.parseMergeSetClause()
+		if err != nil {
+			return err
+		}
+		clause.Action = MergeActionUpdate
+		clause.Sets = sets
+	case p.curKeyword("DELETE"):
+		p.advance()
+		clause.Action = MergeActionDelete
+	case p.curKeyword("INSERT"):
+		p.advance()
+		if p.curIs(lexer.LParen) {
+			cols, err := p.parseIdentList()
+			if err != nil {
+				return err
+			}
+			clause.Columns = cols
+		}
+		if err := p.expectKeyword("VALUES"); err != nil {
+			return err
+		}
+		row, err := p.parseValueRow()
+		if err != nil {
+			return err
+		}
+		clause.Action = MergeActionInsert
+		clause.Values = row
+	default:
+		return fmt.Errorf(
+			"expected UPDATE, DELETE, or INSERT after THEN at %d:%d, got %s %q",
 			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 		)
 	}
+	return nil
+}
+
+// parseMergeWhenClause parses one WHEN … THEN … clause.
+func (p *parser) parseMergeWhenClause() (MergeWhenClause, error) {
+	p.advance() // consume WHEN
+
+	var clause MergeWhenClause
+	matchType, err := p.parseMergeMatchType()
+	if err != nil {
+		return MergeWhenClause{}, err
+	}
+	clause.MatchType = matchType
 
 	if p.curKeyword("AND") {
 		p.advance()
@@ -397,41 +445,8 @@ func (p *parser) parseMergeWhenClause() (MergeWhenClause, error) {
 		return MergeWhenClause{}, err
 	}
 
-	switch {
-	case p.curKeyword("UPDATE"):
-		p.advance()
-		sets, err := p.parseMergeSetClause()
-		if err != nil {
-			return MergeWhenClause{}, err
-		}
-		clause.Action = MergeActionUpdate
-		clause.Sets = sets
-	case p.curKeyword("DELETE"):
-		p.advance()
-		clause.Action = MergeActionDelete
-	case p.curKeyword("INSERT"):
-		p.advance()
-		if p.curIs(lexer.LParen) {
-			cols, err := p.parseIdentList()
-			if err != nil {
-				return MergeWhenClause{}, err
-			}
-			clause.Columns = cols
-		}
-		if err := p.expectKeyword("VALUES"); err != nil {
-			return MergeWhenClause{}, err
-		}
-		row, err := p.parseValueRow()
-		if err != nil {
-			return MergeWhenClause{}, err
-		}
-		clause.Action = MergeActionInsert
-		clause.Values = row
-	default:
-		return MergeWhenClause{}, fmt.Errorf(
-			"expected UPDATE, DELETE, or INSERT after THEN at %d:%d, got %s %q",
-			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
-		)
+	if err := p.parseMergeAction(&clause); err != nil {
+		return MergeWhenClause{}, err
 	}
 
 	return clause, nil
