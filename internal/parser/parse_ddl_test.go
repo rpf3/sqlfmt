@@ -1108,3 +1108,165 @@ func TestParseAlterTableAction(t *testing.T) {
 		}
 	})
 }
+
+// ─── parseDeclare tests ───────────────────────────────────────────────────────
+
+func mustParseDeclare(t *testing.T, sql string) *DeclareStmt {
+	t.Helper()
+	result := Parse(sql)
+	if len(result.Errors) > 0 {
+		t.Fatalf("Parse(%q): unexpected errors: %v", sql, result.Errors)
+	}
+	if len(result.Statements) != 1 {
+		t.Fatalf("Parse(%q): expected 1 statement, got %d", sql, len(result.Statements))
+	}
+	stmt, ok := result.Statements[0].(*DeclareStmt)
+	if !ok {
+		t.Fatalf("Parse(%q): expected *DeclareStmt, got %T", sql, result.Statements[0])
+	}
+	return stmt
+}
+
+func TestParseDeclare(t *testing.T) {
+	// ── Scalar variables ──────────────────────────────────────────────────────
+
+	t.Run("single scalar no default", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @count int;")
+		if len(stmt.Vars) != 1 {
+			t.Fatalf("Vars: got %d, want 1", len(stmt.Vars))
+		}
+		v := stmt.Vars[0]
+		if v.Name != "@count" {
+			t.Errorf("Vars[0].Name: got %q, want %q", v.Name, "@count")
+		}
+		if v.Type != "INT" {
+			t.Errorf("Vars[0].Type: got %q, want %q", v.Type, "INT")
+		}
+		if v.Default != nil {
+			t.Errorf("Vars[0].Default: got %q, want nil", renderExpr(v.Default))
+		}
+		if v.Columns != nil {
+			t.Errorf("Vars[0].Columns: got %v, want nil", v.Columns)
+		}
+	})
+
+	t.Run("single scalar with int default", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @count int = 0;")
+		v := stmt.Vars[0]
+		if renderExpr(v.Default) != "0" {
+			t.Errorf("Vars[0].Default: got %q, want %q", renderExpr(v.Default), "0")
+		}
+	})
+
+	t.Run("single scalar with string default", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @status varchar(20) = 'active';")
+		v := stmt.Vars[0]
+		if v.Type != "VARCHAR(20)" {
+			t.Errorf("Vars[0].Type: got %q, want %q", v.Type, "VARCHAR(20)")
+		}
+		if renderExpr(v.Default) != "'active'" {
+			t.Errorf("Vars[0].Default: got %q, want %q", renderExpr(v.Default), "'active'")
+		}
+	})
+
+	t.Run("single scalar with null default", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @val int = null;")
+		if renderExpr(stmt.Vars[0].Default) != "null" {
+			t.Errorf("Vars[0].Default: got %q, want %q", renderExpr(stmt.Vars[0].Default), "null")
+		}
+	})
+
+	t.Run("single scalar with MAX type", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @body nvarchar(max);")
+		if stmt.Vars[0].Type != "NVARCHAR(MAX)" {
+			t.Errorf("Vars[0].Type: got %q, want %q", stmt.Vars[0].Type, "NVARCHAR(MAX)")
+		}
+	})
+
+	// ── Multiple scalar variables ─────────────────────────────────────────────
+
+	t.Run("multiple scalars no defaults", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @a int, @b varchar(10), @c bit;")
+		if len(stmt.Vars) != 3 {
+			t.Fatalf("Vars: got %d, want 3", len(stmt.Vars))
+		}
+		wantNames := []string{"@a", "@b", "@c"}
+		wantTypes := []string{"INT", "VARCHAR(10)", "BIT"}
+		for i, n := range wantNames {
+			if stmt.Vars[i].Name != n {
+				t.Errorf("Vars[%d].Name: got %q, want %q", i, stmt.Vars[i].Name, n)
+			}
+			if stmt.Vars[i].Type != wantTypes[i] {
+				t.Errorf("Vars[%d].Type: got %q, want %q", i, stmt.Vars[i].Type, wantTypes[i])
+			}
+		}
+	})
+
+	t.Run("multiple scalars mixed defaults", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @a int = 1, @b varchar(10), @c bit = 0;")
+		if len(stmt.Vars) != 3 {
+			t.Fatalf("Vars: got %d, want 3", len(stmt.Vars))
+		}
+		if renderExpr(stmt.Vars[0].Default) != "1" {
+			t.Errorf("Vars[0].Default: got %q, want %q", renderExpr(stmt.Vars[0].Default), "1")
+		}
+		if stmt.Vars[1].Default != nil {
+			t.Errorf("Vars[1].Default: got %q, want nil", renderExpr(stmt.Vars[1].Default))
+		}
+		if renderExpr(stmt.Vars[2].Default) != "0" {
+			t.Errorf("Vars[2].Default: got %q, want %q", renderExpr(stmt.Vars[2].Default), "0")
+		}
+	})
+
+	// ── Table variables ───────────────────────────────────────────────────────
+
+	t.Run("table variable single column", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @t table (id int not null);")
+		if len(stmt.Vars) != 1 {
+			t.Fatalf("Vars: got %d, want 1", len(stmt.Vars))
+		}
+		v := stmt.Vars[0]
+		if v.Name != "@t" {
+			t.Errorf("Vars[0].Name: got %q, want %q", v.Name, "@t")
+		}
+		if v.Type != "" {
+			t.Errorf("Vars[0].Type: got %q, want empty (table variable)", v.Type)
+		}
+		if len(v.Columns) != 1 {
+			t.Fatalf("Vars[0].Columns: got %d, want 1", len(v.Columns))
+		}
+		if v.Columns[0].Name != "id" {
+			t.Errorf("Columns[0].Name: got %q, want %q", v.Columns[0].Name, "id")
+		}
+		if v.Columns[0].DataType != "INT" {
+			t.Errorf("Columns[0].DataType: got %q, want %q", v.Columns[0].DataType, "INT")
+		}
+	})
+
+	t.Run("table variable multiple columns", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @staging table (id int not null, name nvarchar(max) null, active bit not null);")
+		v := stmt.Vars[0]
+		if len(v.Columns) != 3 {
+			t.Fatalf("Columns: got %d, want 3", len(v.Columns))
+		}
+		if v.Columns[1].DataType != "NVARCHAR(MAX)" {
+			t.Errorf("Columns[1].DataType: got %q, want %q", v.Columns[1].DataType, "NVARCHAR(MAX)")
+		}
+	})
+
+	// ── Error cases ───────────────────────────────────────────────────────────
+
+	t.Run("missing variable name", func(t *testing.T) {
+		result := Parse("declare int;")
+		if len(result.Errors) == 0 {
+			t.Error("expected parse errors for missing variable name, got none")
+		}
+	})
+
+	t.Run("invalid default value", func(t *testing.T) {
+		result := Parse("declare @x int = (select 1);")
+		if len(result.Errors) == 0 {
+			t.Error("expected parse errors for subquery default value, got none")
+		}
+	})
+}
