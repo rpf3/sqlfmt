@@ -795,3 +795,138 @@ func TestParseCreateTable(t *testing.T) {
 		}
 	})
 }
+
+// ─── parseCreateIndex tests ───────────────────────────────────────────────────
+
+func mustParseCreateIndex(t *testing.T, sql string) *CreateIndexStmt {
+	t.Helper()
+	result := Parse(sql)
+	if len(result.Errors) > 0 {
+		t.Fatalf("Parse(%q): unexpected errors: %v", sql, result.Errors)
+	}
+	if len(result.Statements) != 1 {
+		t.Fatalf("Parse(%q): expected 1 statement, got %d", sql, len(result.Statements))
+	}
+	stmt, ok := result.Statements[0].(*CreateIndexStmt)
+	if !ok {
+		t.Fatalf("Parse(%q): expected *CreateIndexStmt, got %T", sql, result.Statements[0])
+	}
+	return stmt
+}
+
+func TestParseCreateIndex(t *testing.T) {
+	// ── Unique flag ───────────────────────────────────────────────────────────
+
+	t.Run("non-unique index", func(t *testing.T) {
+		stmt := mustParseCreateIndex(t, "create index ix_orders_user on orders (user_id);")
+		if stmt.Unique {
+			t.Error("Unique: got true, want false")
+		}
+		if stmt.Name != "ix_orders_user" {
+			t.Errorf("Name: got %q, want %q", stmt.Name, "ix_orders_user")
+		}
+		if stmt.Table != "orders" {
+			t.Errorf("Table: got %q, want %q", stmt.Table, "orders")
+		}
+	})
+
+	t.Run("unique index", func(t *testing.T) {
+		stmt := mustParseCreateIndex(t, "create unique index uq_users_email on users (email);")
+		if !stmt.Unique {
+			t.Error("Unique: got false, want true")
+		}
+	})
+
+	// ── IF NOT EXISTS ─────────────────────────────────────────────────────────
+
+	t.Run("if not exists", func(t *testing.T) {
+		stmt := mustParseCreateIndex(t, "create index if not exists ix_orders_user on orders (user_id);")
+		if !stmt.IfNotExists {
+			t.Error("IfNotExists: got false, want true")
+		}
+		if stmt.Name != "ix_orders_user" {
+			t.Errorf("Name: got %q, want %q", stmt.Name, "ix_orders_user")
+		}
+	})
+
+	t.Run("unique if not exists", func(t *testing.T) {
+		stmt := mustParseCreateIndex(t, "create unique index if not exists uq_col on t (col);")
+		if !stmt.Unique {
+			t.Error("Unique: got false, want true")
+		}
+		if !stmt.IfNotExists {
+			t.Error("IfNotExists: got false, want true")
+		}
+	})
+
+	// ── Table name forms ──────────────────────────────────────────────────────
+
+	t.Run("schema-qualified table", func(t *testing.T) {
+		stmt := mustParseCreateIndex(t, "create index ix_name on dbo.orders (id);")
+		if stmt.Table != "dbo.orders" {
+			t.Errorf("Table: got %q, want %q", stmt.Table, "dbo.orders")
+		}
+	})
+
+	// ── Column directions ─────────────────────────────────────────────────────
+
+	t.Run("single column no direction", func(t *testing.T) {
+		stmt := mustParseCreateIndex(t, "create index ix on t (col);")
+		if len(stmt.Columns) != 1 {
+			t.Fatalf("Columns: got %d, want 1", len(stmt.Columns))
+		}
+		if stmt.Columns[0].Name != "col" {
+			t.Errorf("Columns[0].Name: got %q, want %q", stmt.Columns[0].Name, "col")
+		}
+		if stmt.Columns[0].Direction != DirectionNone {
+			t.Errorf("Columns[0].Direction: got %v, want DirectionNone", stmt.Columns[0].Direction)
+		}
+	})
+
+	t.Run("single column asc", func(t *testing.T) {
+		stmt := mustParseCreateIndex(t, "create index ix on t (col asc);")
+		if stmt.Columns[0].Direction != DirectionAsc {
+			t.Errorf("Columns[0].Direction: got %v, want DirectionAsc", stmt.Columns[0].Direction)
+		}
+	})
+
+	t.Run("single column desc", func(t *testing.T) {
+		stmt := mustParseCreateIndex(t, "create index ix on t (col desc);")
+		if stmt.Columns[0].Direction != DirectionDesc {
+			t.Errorf("Columns[0].Direction: got %v, want DirectionDesc", stmt.Columns[0].Direction)
+		}
+	})
+
+	t.Run("multiple columns mixed directions", func(t *testing.T) {
+		stmt := mustParseCreateIndex(t, "create index ix on t (a asc, b desc, c);")
+		if len(stmt.Columns) != 3 {
+			t.Fatalf("Columns: got %d, want 3", len(stmt.Columns))
+		}
+		wantDirs := []Direction{DirectionAsc, DirectionDesc, DirectionNone}
+		wantNames := []string{"a", "b", "c"}
+		for i, d := range wantDirs {
+			if stmt.Columns[i].Direction != d {
+				t.Errorf("Columns[%d].Direction: got %v, want %v", i, stmt.Columns[i].Direction, d)
+			}
+			if stmt.Columns[i].Name != wantNames[i] {
+				t.Errorf("Columns[%d].Name: got %q, want %q", i, stmt.Columns[i].Name, wantNames[i])
+			}
+		}
+	})
+
+	// ── Error cases ───────────────────────────────────────────────────────────
+
+	t.Run("missing on keyword", func(t *testing.T) {
+		result := Parse("create index ix_name orders (id);")
+		if len(result.Errors) == 0 {
+			t.Error("expected parse errors for missing ON keyword, got none")
+		}
+	})
+
+	t.Run("empty column list", func(t *testing.T) {
+		result := Parse("create index ix on t ();")
+		if len(result.Errors) == 0 {
+			t.Error("expected parse errors for empty column list, got none")
+		}
+	})
+}
