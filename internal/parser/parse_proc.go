@@ -281,6 +281,47 @@ func peekIsTableKeyword(p *parser) bool {
 	return p.peek.Type == lexer.Keyword && strings.EqualFold(p.peek.Value, "TABLE")
 }
 
+// parseFuncReturnsClause parses the RETURNS clause of a CREATE FUNCTION
+// statement, setting Kind, ReturnsType, ReturnsVar, and ReturnsTable on stmt.
+// RETURNS is consumed on entry.
+func (p *parser) parseFuncReturnsClause(stmt *CreateFuncStmt) error {
+	switch {
+	case p.curKeyword("TABLE"):
+		// Inline TVF: RETURNS TABLE
+		stmt.Kind = CreateFuncInlineTable
+		stmt.ReturnsType = "TABLE"
+		p.advance() // consume TABLE
+
+	case p.cur.Type == lexer.Ident && peekIsTableKeyword(p):
+		// Multi-statement TVF: RETURNS @var TABLE (col_defs)
+		stmt.Kind = CreateFuncMultiTable
+		stmt.ReturnsVar = p.cur.Value
+		p.advance() // consume @var
+		p.advance() // consume TABLE
+		if _, err := p.expect(lexer.LParen); err != nil {
+			return err
+		}
+		cols, _, err := p.parseColumnList()
+		if err != nil {
+			return err
+		}
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return err
+		}
+		stmt.ReturnsTable = cols
+
+	default:
+		// Scalar: RETURNS <data_type>
+		stmt.Kind = CreateFuncScalar
+		dataType, err := p.parseDataType()
+		if err != nil {
+			return err
+		}
+		stmt.ReturnsType = dataType
+	}
+	return nil
+}
+
 // parseCreateFunc handles:
 //
 //	CREATE FUNCTION <name> (<params>) RETURNS <type> AS BEGIN <body> END        -- scalar
@@ -302,7 +343,6 @@ func (p *parser) parseCreateFunc() (Statement, error) {
 	}
 	stmt.Params = params
 
-	// RETURNS clause
 	if !p.curValue("RETURNS") {
 		return nil, fmt.Errorf(
 			"expected RETURNS in CREATE FUNCTION at %d:%d, got %s %q",
@@ -311,42 +351,10 @@ func (p *parser) parseCreateFunc() (Statement, error) {
 	}
 	p.advance() // consume RETURNS
 
-	switch {
-	case p.curKeyword("TABLE"):
-		// Inline TVF: RETURNS TABLE
-		stmt.Kind = CreateFuncInlineTable
-		stmt.ReturnsType = "TABLE"
-		p.advance() // consume TABLE
-
-	case p.cur.Type == lexer.Ident && peekIsTableKeyword(p):
-		// Multi-statement TVF: RETURNS @var TABLE (col_defs)
-		stmt.Kind = CreateFuncMultiTable
-		stmt.ReturnsVar = p.cur.Value
-		p.advance() // consume @var
-		p.advance() // consume TABLE
-		if _, err := p.expect(lexer.LParen); err != nil {
-			return nil, err
-		}
-		cols, _, err := p.parseColumnList()
-		if err != nil {
-			return nil, err
-		}
-		if _, err := p.expect(lexer.RParen); err != nil {
-			return nil, err
-		}
-		stmt.ReturnsTable = cols
-
-	default:
-		// Scalar: RETURNS <data_type>
-		stmt.Kind = CreateFuncScalar
-		dataType, err := p.parseDataType()
-		if err != nil {
-			return nil, err
-		}
-		stmt.ReturnsType = dataType
+	if err := p.parseFuncReturnsClause(stmt); err != nil {
+		return nil, err
 	}
 
-	// AS keyword
 	if p.curKeyword("AS") {
 		p.advance() // consume AS
 	}
