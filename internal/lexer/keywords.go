@@ -94,6 +94,7 @@ var keywords = map[string]bool{
 	"SNAPSHOT":     true,
 	// Type-related
 	"CAST":       true,
+	"IDENTITY":   true,
 	"PRIMARY":    true,
 	"KEY":        true,
 	"FOREIGN":    true,

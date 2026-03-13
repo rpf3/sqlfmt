@@ -203,6 +203,12 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 	b.WriteString(f.ident(col.Name))
 	b.WriteString(" ")
 	b.WriteString(f.kw(strings.ToLower(col.DataType)))
+	if col.Identity != nil {
+		b.WriteString(" " + f.kw("identity"))
+		if col.Identity.Seed != "" {
+			b.WriteString("(" + col.Identity.Seed + ", " + col.Identity.Increment + ")")
+		}
+	}
 	if col.PrimaryKey {
 		b.WriteString(" " + f.kw("primary key"))
 	}

@@ -893,6 +893,31 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		DataType: dataType,
 	}
 
+	if p.curKeyword("IDENTITY") {
+		p.advance() // consume IDENTITY
+		spec := &IdentitySpec{}
+		if p.curIs(lexer.LParen) {
+			p.advance() // consume (
+			seedTok, err := p.expect(lexer.IntLit)
+			if err != nil {
+				return ColumnDef{}, err
+			}
+			if _, err := p.expect(lexer.Comma); err != nil {
+				return ColumnDef{}, err
+			}
+			incrTok, err := p.expect(lexer.IntLit)
+			if err != nil {
+				return ColumnDef{}, err
+			}
+			if _, err := p.expect(lexer.RParen); err != nil {
+				return ColumnDef{}, err
+			}
+			spec.Seed = seedTok.Value
+			spec.Increment = incrTok.Value
+		}
+		col.Identity = spec
+	}
+
 	if p.curKeyword("PRIMARY") && p.peekKeyword("KEY") {
 		p.advance() // consume PRIMARY
 		p.advance() // consume KEY
