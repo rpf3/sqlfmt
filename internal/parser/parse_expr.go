@@ -221,11 +221,21 @@ func (p *parser) parseWindowSpec() *WindowSpec {
 // At depth 0, reading stops when stopFn returns true, when an unmatched
 // RParen is reached, or at EOF. Keywords are lowercased; spacing follows
 // SQL conventions via needsSelectSpace.
+//
+// Two additional depth counters suppress premature AND-chain splitting:
+//   - betweenPending: set by BETWEEN, cleared when its range AND is consumed.
+//   - caseDepth: incremented by CASE, decremented by END.
+//
+// The stopFn is only consulted when depth == 0, caseDepth == 0, and
+// betweenPending is false, ensuring AND inside BETWEEN…AND and CASE…END
+// is never mistaken for a top-level chain separator.
 func (p *parser) parseExprRaw(stopFn func() bool) (string, error) {
 	var b strings.Builder
 	var prevType lexer.TokenType
 	hasToken := false
 	depth := 0
+	caseDepth := 0
+	betweenPending := false
 
 	for {
 		tok := p.cur
@@ -234,7 +244,7 @@ func (p *parser) parseExprRaw(stopFn func() bool) (string, error) {
 			return b.String(), nil
 		case tok.Type == lexer.RParen && depth == 0:
 			return b.String(), nil // unmatched close-paren; leave for caller
-		case depth == 0 && stopFn():
+		case depth == 0 && caseDepth == 0 && !betweenPending && stopFn():
 			return b.String(), nil
 		}
 
@@ -242,6 +252,25 @@ func (p *parser) parseExprRaw(stopFn func() bool) (string, error) {
 			depth++
 		} else if tok.Type == lexer.RParen {
 			depth-- // depth was > 0 here
+		}
+
+		// Track BETWEEN…AND and CASE…END to suppress AND-chain splitting
+		// on range-separator and intra-CASE ANDs.
+		if tok.Type == lexer.Keyword {
+			switch strings.ToUpper(tok.Value) {
+			case "BETWEEN":
+				betweenPending = true
+			case "AND":
+				if betweenPending {
+					betweenPending = false // this AND is the range separator; reset
+				}
+			case "CASE":
+				caseDepth++
+			case "END":
+				if caseDepth > 0 {
+					caseDepth--
+				}
+			}
 		}
 
 		if hasToken && needsSelectSpace(prevType, tok.Type) {

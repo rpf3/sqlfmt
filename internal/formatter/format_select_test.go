@@ -455,3 +455,72 @@ func TestFormatSelectWindowFunctionIdempotent(t *testing.T) {
 		})
 	}
 }
+
+// TestFormatSelectBetween verifies that BETWEEN x AND y is treated as a single
+// predicate term and not split by the AND-chain formatter.
+func TestFormatSelectBetween(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "simple BETWEEN",
+			input: "SELECT id FROM orders WHERE price BETWEEN 10 AND 100;",
+			want:  "select\n\tid\nfrom\n\torders\nwhere\n\tprice between 10 and 100;\n",
+		},
+		{
+			name:  "BETWEEN with second AND-term",
+			input: "SELECT id FROM orders WHERE price BETWEEN 10 AND 100 AND status = 'active';",
+			want:  "select\n\tid\nfrom\n\torders\nwhere\n\tprice between 10 and 100\n\tand status = 'active';\n",
+		},
+		{
+			name:  "NOT BETWEEN",
+			input: "SELECT id FROM orders WHERE price NOT BETWEEN 10 AND 100;",
+			want:  "select\n\tid\nfrom\n\torders\nwhere\n\tprice not between 10 and 100;\n",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Format(tc.input, config.Default())
+			if err != nil {
+				t.Fatalf("Format() error: %v", err)
+			}
+			if got != tc.want {
+				t.Errorf("Format() mismatch:\ngot:\n%s\nwant:\n%s", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestFormatSelectCaseAnd verifies that AND inside a CASE WHEN condition is
+// not split as a top-level AND-chain separator.
+func TestFormatSelectCaseAnd(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "AND inside CASE WHEN",
+			input: "SELECT id FROM orders WHERE CASE WHEN a = 1 AND b = 2 THEN 1 ELSE 0 END = 1;",
+			want:  "select\n\tid\nfrom\n\torders\nwhere\n\tcase when a = 1 and b = 2 then 1 else 0 end = 1;\n",
+		},
+		{
+			name:  "CASE AND followed by real AND-chain",
+			input: "SELECT id FROM orders WHERE CASE WHEN a = 1 AND b = 2 THEN 1 ELSE 0 END = 1 AND status = 'active';",
+			want:  "select\n\tid\nfrom\n\torders\nwhere\n\tcase when a = 1 and b = 2 then 1 else 0 end = 1\n\tand status = 'active';\n",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Format(tc.input, config.Default())
+			if err != nil {
+				t.Fatalf("Format() error: %v", err)
+			}
+			if got != tc.want {
+				t.Errorf("Format() mismatch:\ngot:\n%s\nwant:\n%s", got, tc.want)
+			}
+		})
+	}
+}
