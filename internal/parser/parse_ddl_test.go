@@ -930,3 +930,181 @@ func TestParseCreateIndex(t *testing.T) {
 		}
 	})
 }
+
+// ─── parseAlterTableAction tests ─────────────────────────────────────────────
+
+func mustParseAlterTable(t *testing.T, sql string) *AlterTableStmt {
+	t.Helper()
+	result := Parse(sql)
+	if len(result.Errors) > 0 {
+		t.Fatalf("Parse(%q): unexpected errors: %v", sql, result.Errors)
+	}
+	if len(result.Statements) != 1 {
+		t.Fatalf("Parse(%q): expected 1 statement, got %d", sql, len(result.Statements))
+	}
+	stmt, ok := result.Statements[0].(*AlterTableStmt)
+	if !ok {
+		t.Fatalf("Parse(%q): expected *AlterTableStmt, got %T", sql, result.Statements[0])
+	}
+	return stmt
+}
+
+func TestParseAlterTableAction(t *testing.T) {
+	// ── ADD COLUMN ────────────────────────────────────────────────────────────
+
+	t.Run("add column basic", func(t *testing.T) {
+		stmt := mustParseAlterTable(t, "alter table orders add column status varchar(20) not null;")
+		if stmt.Name != "orders" {
+			t.Errorf("Name: got %q, want %q", stmt.Name, "orders")
+		}
+		if stmt.Action.Type != AlterAddColumn {
+			t.Fatalf("Action.Type: got %v, want AlterAddColumn", stmt.Action.Type)
+		}
+		col := stmt.Action.Column
+		if col == nil {
+			t.Fatal("Action.Column: got nil")
+		}
+		if col.Name != "status" {
+			t.Errorf("Column.Name: got %q, want %q", col.Name, "status")
+		}
+		if col.DataType != "VARCHAR(20)" {
+			t.Errorf("Column.DataType: got %q, want %q", col.DataType, "VARCHAR(20)")
+		}
+		if col.Nullability != NullabilityNotNull {
+			t.Errorf("Column.Nullability: got %v, want NullabilityNotNull", col.Nullability)
+		}
+	})
+
+	t.Run("add column with identity", func(t *testing.T) {
+		stmt := mustParseAlterTable(t, "alter table t add column id int identity(1,1) not null;")
+		col := stmt.Action.Column
+		if col == nil {
+			t.Fatal("Action.Column: got nil")
+		}
+		if col.Identity == nil {
+			t.Fatal("Column.Identity: got nil, want non-nil")
+		}
+		if col.Identity.Seed != "1" || col.Identity.Increment != "1" {
+			t.Errorf("Column.Identity: got {%q,%q}, want {1,1}", col.Identity.Seed, col.Identity.Increment)
+		}
+	})
+
+	t.Run("add column with default", func(t *testing.T) {
+		stmt := mustParseAlterTable(t, "alter table t add column active bit not null default 1;")
+		col := stmt.Action.Column
+		if col == nil {
+			t.Fatal("Action.Column: got nil")
+		}
+		if renderExpr(col.Default) != "1" {
+			t.Errorf("Column.Default: got %q, want %q", renderExpr(col.Default), "1")
+		}
+	})
+
+	// ── ADD CONSTRAINT ────────────────────────────────────────────────────────
+
+	t.Run("add named primary key constraint", func(t *testing.T) {
+		stmt := mustParseAlterTable(t, "alter table t add constraint pk_t primary key (id);")
+		if stmt.Action.Type != AlterAddConstraint {
+			t.Fatalf("Action.Type: got %v, want AlterAddConstraint", stmt.Action.Type)
+		}
+		tc := stmt.Action.Constraint
+		if tc == nil {
+			t.Fatal("Action.Constraint: got nil")
+		}
+		if tc.Name != "pk_t" {
+			t.Errorf("Constraint.Name: got %q, want %q", tc.Name, "pk_t")
+		}
+		if tc.Type != ConstraintPrimaryKey {
+			t.Errorf("Constraint.Type: got %v, want ConstraintPrimaryKey", tc.Type)
+		}
+	})
+
+	t.Run("add unnamed foreign key constraint", func(t *testing.T) {
+		stmt := mustParseAlterTable(t, "alter table t add foreign key (user_id) references users (id);")
+		if stmt.Action.Type != AlterAddConstraint {
+			t.Fatalf("Action.Type: got %v, want AlterAddConstraint", stmt.Action.Type)
+		}
+		tc := stmt.Action.Constraint
+		if tc == nil {
+			t.Fatal("Action.Constraint: got nil")
+		}
+		if tc.Type != ConstraintForeignKey {
+			t.Errorf("Constraint.Type: got %v, want ConstraintForeignKey", tc.Type)
+		}
+		if tc.RefTable != "users" {
+			t.Errorf("Constraint.RefTable: got %q, want %q", tc.RefTable, "users")
+		}
+	})
+
+	// ── DROP COLUMN ───────────────────────────────────────────────────────────
+
+	t.Run("drop column", func(t *testing.T) {
+		stmt := mustParseAlterTable(t, "alter table orders drop column status;")
+		if stmt.Action.Type != AlterDropColumn {
+			t.Fatalf("Action.Type: got %v, want AlterDropColumn", stmt.Action.Type)
+		}
+		if stmt.Action.ColumnName != "status" {
+			t.Errorf("Action.ColumnName: got %q, want %q", stmt.Action.ColumnName, "status")
+		}
+	})
+
+	// ── DROP CONSTRAINT ───────────────────────────────────────────────────────
+
+	t.Run("drop constraint", func(t *testing.T) {
+		stmt := mustParseAlterTable(t, "alter table orders drop constraint pk_orders;")
+		if stmt.Action.Type != AlterDropConstraint {
+			t.Fatalf("Action.Type: got %v, want AlterDropConstraint", stmt.Action.Type)
+		}
+		if stmt.Action.ConstraintName != "pk_orders" {
+			t.Errorf("Action.ConstraintName: got %q, want %q", stmt.Action.ConstraintName, "pk_orders")
+		}
+	})
+
+	// ── RENAME ────────────────────────────────────────────────────────────────
+
+	t.Run("rename table", func(t *testing.T) {
+		stmt := mustParseAlterTable(t, "alter table orders rename to purchases;")
+		if stmt.Action.Type != AlterRenameTable {
+			t.Fatalf("Action.Type: got %v, want AlterRenameTable", stmt.Action.Type)
+		}
+		if stmt.Action.NewName != "purchases" {
+			t.Errorf("Action.NewName: got %q, want %q", stmt.Action.NewName, "purchases")
+		}
+	})
+
+	t.Run("rename column", func(t *testing.T) {
+		stmt := mustParseAlterTable(t, "alter table orders rename column status to order_status;")
+		if stmt.Action.Type != AlterRenameColumn {
+			t.Fatalf("Action.Type: got %v, want AlterRenameColumn", stmt.Action.Type)
+		}
+		if stmt.Action.ColumnName != "status" {
+			t.Errorf("Action.ColumnName: got %q, want %q", stmt.Action.ColumnName, "status")
+		}
+		if stmt.Action.NewName != "order_status" {
+			t.Errorf("Action.NewName: got %q, want %q", stmt.Action.NewName, "order_status")
+		}
+	})
+
+	// ── Error cases ───────────────────────────────────────────────────────────
+
+	t.Run("unknown action keyword", func(t *testing.T) {
+		result := Parse("alter table t modify column id int;")
+		if len(result.Errors) == 0 {
+			t.Error("expected parse errors for unknown action keyword, got none")
+		}
+	})
+
+	t.Run("drop without column or constraint", func(t *testing.T) {
+		result := Parse("alter table t drop index ix;")
+		if len(result.Errors) == 0 {
+			t.Error("expected parse errors for DROP without COLUMN or CONSTRAINT, got none")
+		}
+	})
+
+	t.Run("rename without to or column", func(t *testing.T) {
+		result := Parse("alter table t rename id to user_id;")
+		if len(result.Errors) == 0 {
+			t.Error("expected parse errors for RENAME without TO or COLUMN, got none")
+		}
+	})
+}
