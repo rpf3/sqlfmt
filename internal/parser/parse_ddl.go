@@ -504,6 +504,93 @@ func (p *parser) parseReferences() (string, []string, error) {
 	return refTable, columns, nil
 }
 
+// parseIdentitySpec parses: IDENTITY [(seed, increment)]
+// The IDENTITY keyword must already be the current token; this function
+// consumes it and returns the parsed spec.
+func (p *parser) parseIdentitySpec() (*IdentitySpec, error) {
+	p.advance() // consume IDENTITY
+	spec := &IdentitySpec{}
+	if p.curIs(lexer.LParen) {
+		p.advance() // consume (
+		seedTok, err := p.expect(lexer.IntLit)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(lexer.Comma); err != nil {
+			return nil, err
+		}
+		incrTok, err := p.expect(lexer.IntLit)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return nil, err
+		}
+		spec.Seed = seedTok.Value
+		spec.Increment = incrTok.Value
+	}
+	return spec, nil
+}
+
+// parseDefaultLiteral parses a single literal token as a column default.
+func (p *parser) parseDefaultLiteral() (*RawExpr, error) {
+	tok := p.cur
+	switch tok.Type {
+	case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
+		p.advance()
+		return &RawExpr{Text: tok.Value}, nil
+	default:
+		return nil, fmt.Errorf(
+			"expected default value at %d:%d, got %s %q",
+			tok.Line, tok.Column, tok.Type, tok.Value,
+		)
+	}
+}
+
+// parseDefaultClause parses an optional [CONSTRAINT <name>] DEFAULT <value>
+// block, writing results directly into col. Called twice in parseColumnDef
+// because DEFAULT may precede or follow the nullability qualifier in source SQL.
+func (p *parser) parseDefaultClause(col *ColumnDef) error {
+	if p.curKeyword("CONSTRAINT") {
+		p.advance() // consume CONSTRAINT
+		nameTok, err := p.expectIdent()
+		if err != nil {
+			return err
+		}
+		if !p.curKeyword("DEFAULT") {
+			return fmt.Errorf(
+				"expected DEFAULT after column CONSTRAINT name at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		col.DefaultConstraint = nameTok.Value
+	}
+	if p.curKeyword("DEFAULT") {
+		p.advance() // consume DEFAULT
+		expr, err := p.parseDefaultLiteral()
+		if err != nil {
+			return err
+		}
+		col.Default = expr
+	}
+	return nil
+}
+
+// parseColNullability reads an optional NOT NULL or NULL qualifier.
+func (p *parser) parseColNullability() Nullability {
+	switch {
+	case p.curKeyword("NOT") && p.peekKeyword("NULL"):
+		p.advance() // consume NOT
+		p.advance() // consume NULL
+		return NullabilityNotNull
+	case p.curKeyword("NULL"):
+		p.advance() // consume NULL
+		return NullabilityNull
+	default:
+		return NullabilityNone
+	}
+}
+
 // parseColumnDef parses a column definition: <name> <datatype> [constraints...].
 func (p *parser) parseColumnDef() (ColumnDef, error) {
 	nameTok, err := p.expectIdent()
@@ -522,26 +609,9 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 	}
 
 	if p.curKeyword("IDENTITY") {
-		p.advance() // consume IDENTITY
-		spec := &IdentitySpec{}
-		if p.curIs(lexer.LParen) {
-			p.advance() // consume (
-			seedTok, err := p.expect(lexer.IntLit)
-			if err != nil {
-				return ColumnDef{}, err
-			}
-			if _, err := p.expect(lexer.Comma); err != nil {
-				return ColumnDef{}, err
-			}
-			incrTok, err := p.expect(lexer.IntLit)
-			if err != nil {
-				return ColumnDef{}, err
-			}
-			if _, err := p.expect(lexer.RParen); err != nil {
-				return ColumnDef{}, err
-			}
-			spec.Seed = seedTok.Value
-			spec.Increment = incrTok.Value
+		spec, err := p.parseIdentitySpec()
+		if err != nil {
+			return ColumnDef{}, err
 		}
 		col.Identity = spec
 	}
@@ -552,75 +622,16 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 		col.PrimaryKey = true
 	}
 
-	if p.curKeyword("CONSTRAINT") {
-		p.advance() // consume CONSTRAINT
-		nameTok, err := p.expectIdent()
-		if err != nil {
-			return ColumnDef{}, err
-		}
-		if !p.curKeyword("DEFAULT") {
-			return ColumnDef{}, fmt.Errorf(
-				"expected DEFAULT after column CONSTRAINT name at %d:%d, got %s %q",
-				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
-			)
-		}
-		col.DefaultConstraint = nameTok.Value
+	// DEFAULT may precede nullability in source SQL.
+	if err := p.parseDefaultClause(&col); err != nil {
+		return ColumnDef{}, err
 	}
 
-	if p.curKeyword("DEFAULT") {
-		p.advance() // consume DEFAULT
-		tok := p.cur
-		switch tok.Type {
-		case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
-			col.Default = &RawExpr{Text: tok.Value}
-			p.advance()
-		default:
-			return ColumnDef{}, fmt.Errorf(
-				"expected default value at %d:%d, got %s %q",
-				tok.Line, tok.Column, tok.Type, tok.Value,
-			)
-		}
-	}
+	col.Nullability = p.parseColNullability()
 
-	switch {
-	case p.curKeyword("NOT") && p.peekKeyword("NULL"):
-		p.advance() // consume NOT
-		p.advance() // consume NULL
-		col.Nullability = NullabilityNotNull
-	case p.curKeyword("NULL"):
-		p.advance() // consume NULL
-		col.Nullability = NullabilityNull
-	}
-
-	// CONSTRAINT <name> DEFAULT may also follow nullability (canonical formatter output).
-	if p.curKeyword("CONSTRAINT") {
-		p.advance() // consume CONSTRAINT
-		constrTok, err := p.expectIdent()
-		if err != nil {
-			return ColumnDef{}, err
-		}
-		if !p.curKeyword("DEFAULT") {
-			return ColumnDef{}, fmt.Errorf(
-				"expected DEFAULT after column CONSTRAINT name at %d:%d, got %s %q",
-				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
-			)
-		}
-		col.DefaultConstraint = constrTok.Value
-	}
-
-	if p.curKeyword("DEFAULT") {
-		p.advance() // consume DEFAULT
-		tok := p.cur
-		switch tok.Type {
-		case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
-			col.Default = &RawExpr{Text: tok.Value}
-			p.advance()
-		default:
-			return ColumnDef{}, fmt.Errorf(
-				"expected default value at %d:%d, got %s %q",
-				tok.Line, tok.Column, tok.Type, tok.Value,
-			)
-		}
+	// DEFAULT may also follow nullability in canonical formatter output.
+	if err := p.parseDefaultClause(&col); err != nil {
+		return ColumnDef{}, err
 	}
 
 	if p.curKeyword("UNIQUE") {
