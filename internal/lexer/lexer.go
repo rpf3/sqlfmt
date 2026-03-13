@@ -33,6 +33,13 @@ func (l *Lexer) Next() Token {
 
 	ch := l.input[l.pos]
 
+	// N'...' Unicode string literals must be detected before the generic ident
+	// reader, because readIdent would consume 'N' as an identifier token and
+	// leave the following string for a separate call.
+	if (ch == 'N' || ch == 'n') && l.peekAt(1) == '\'' {
+		return l.readNString()
+	}
+
 	// Identifiers and keywords
 	if isIdentStart(ch) {
 		return l.readIdent()
@@ -384,6 +391,17 @@ func (l *Lexer) readString() Token {
 func (l *Lexer) readNumber() Token {
 	line, col := l.line, l.column
 	start := l.pos
+
+	// Hex literal: 0x[0-9A-Fa-f]* — must be checked before the decimal path.
+	if l.peek() == '0' && (l.peekAt(1) == 'x' || l.peekAt(1) == 'X') {
+		l.advance() // consume '0'
+		l.advance() // consume 'x'/'X'
+		for l.pos < len(l.input) && isHexDigit(l.input[l.pos]) {
+			l.advance()
+		}
+		return l.makeTokenAt(IntLit, l.input[start:l.pos], line, col)
+	}
+
 	isFloat := false
 
 	// Optional leading-dot (.5)
@@ -423,6 +441,30 @@ func (l *Lexer) readNumber() Token {
 		tokenType = FloatLit
 	}
 	return l.makeTokenAt(tokenType, l.input[start:l.pos], line, col)
+}
+
+// readNString scans a T-SQL Unicode string literal of the form N'...'.
+// The entire N'...' sequence is returned as a single StringLit token, with
+// the N prefix included in Token.Value so the formatter emits it verbatim.
+// Called only when the current byte is N/n and the next byte is a single quote.
+func (l *Lexer) readNString() Token {
+	line, col := l.line, l.column
+	start := l.pos
+	l.advance() // consume 'N' prefix
+	l.advance() // consume opening '\''
+	for l.pos < len(l.input) {
+		ch := l.input[l.pos]
+		if ch == '\'' {
+			l.advance() // consume closing '\'' (or first '\'' of '' escape)
+			if l.pos < len(l.input) && l.input[l.pos] == '\'' {
+				l.advance() // consume second '\'' of '' escape
+				continue
+			}
+			return l.makeTokenAt(StringLit, l.input[start:l.pos], line, col)
+		}
+		l.advance()
+	}
+	return l.makeTokenAt(Illegal, l.input[start:l.pos], line, col)
 }
 
 // readLineComment scans from -- to end-of-line (or EOF).
@@ -475,6 +517,10 @@ func isIdentStart(ch byte) bool {
 // isIdentContinue matches subsequent characters of an unquoted identifier.
 func isIdentContinue(ch byte) bool {
 	return isLetter(ch) || isDigit(ch) || ch == '_'
+}
+
+func isHexDigit(ch byte) bool {
+	return isDigit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')
 }
 
 func isWhitespace(ch byte) bool {

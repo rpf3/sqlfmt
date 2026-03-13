@@ -593,3 +593,57 @@ func TestTokenizeTempTableNames(t *testing.T) {
 		}
 	})
 }
+
+func TestLexNStringLiteral(t *testing.T) {
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{`N'hello'`, `N'hello'`},
+		{`N'résumé'`, `N'résumé'`},
+		{`N'O''Brien'`, `N'O''Brien'`}, // embedded '' escape
+		{`n'lowercase prefix'`, `n'lowercase prefix'`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			tok := New(tc.input).Next()
+			if tok.Type != StringLit {
+				t.Fatalf("got type %v, want StringLit", tok.Type)
+			}
+			if tok.Value != tc.want {
+				t.Errorf("got value %q, want %q", tok.Value, tc.want)
+			}
+		})
+	}
+
+	// N followed by a regular identifier character should still be an Ident.
+	t.Run("N without quote stays Ident", func(t *testing.T) {
+		tok := New("NVARCHAR").Next()
+		if tok.Type != Ident {
+			t.Errorf("NVARCHAR: got %v, want Ident", tok.Type)
+		}
+	})
+}
+
+func TestLexHexLiteral(t *testing.T) {
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{"0x0A1B2C3D", "0x0A1B2C3D"},
+		{"0xFF00", "0xFF00"},
+		{"0X1a2b", "0X1a2b"}, // uppercase X
+		{"0x0", "0x0"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			tok := New(tc.input).Next()
+			if tok.Type != IntLit {
+				t.Fatalf("got type %v, want IntLit", tok.Type)
+			}
+			if tok.Value != tc.want {
+				t.Errorf("got value %q, want %q", tok.Value, tc.want)
+			}
+		})
+	}
+}
