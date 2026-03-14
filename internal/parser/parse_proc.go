@@ -395,6 +395,64 @@ func (p *parser) parseCreateFunc() (Statement, error) {
 	return stmt, nil
 }
 
+// parseControlFlowCondition parses the condition of an IF or WHILE statement
+// as a raw expression string. Reading stops at any keyword that could begin a
+// body statement (BEGIN, SELECT, INSERT, …) at parenthesis depth 0. This
+// allows complex conditions like EXISTS (SELECT …) to pass through unharmed
+// because the depth guard in parseExprRaw suppresses the stopFn inside parens.
+func (p *parser) parseControlFlowCondition() string {
+	cond, _ := p.parseExprRaw(func() bool {
+		if p.cur.Type != lexer.Keyword {
+			return false
+		}
+		switch strings.ToUpper(p.cur.Value) {
+		case "BEGIN", "SELECT", "WITH", "INSERT", "UPDATE", "DELETE",
+			"SET", "DECLARE", "IF", "WHILE", "RETURN", "EXEC", "EXECUTE",
+			"TRUNCATE", "CREATE", "ALTER", "DROP", "MERGE", "PRINT",
+			"BREAK", "CONTINUE":
+			return true
+		}
+		return false
+	})
+	return strings.TrimSpace(cond)
+}
+
+// parseIf handles:
+//
+//	IF <condition> BEGIN <stmts> END [ELSE BEGIN <stmts> END]
+//	IF <condition> <single-stmt>       [ELSE <single-stmt>]
+func (p *parser) parseIf() (Statement, error) {
+	p.advance() // consume IF
+
+	cond := p.parseControlFlowCondition()
+
+	then, hasThenBeginEnd, err := p.parseProcBody()
+	if err != nil {
+		return nil, err
+	}
+	// Single-statement bodies leave the trailing ';' unconsumed; advance past
+	// it so we can detect an optional ELSE that follows.
+	if !hasThenBeginEnd {
+		p.consumeSemicolon()
+	}
+
+	var elseBranch []Statement
+	if p.curKeyword("ELSE") {
+		p.advance() // consume ELSE
+		var hasElseBeginEnd bool
+		elseBranch, hasElseBeginEnd, err = p.parseProcBody()
+		if err != nil {
+			return nil, err
+		}
+		if !hasElseBeginEnd {
+			p.consumeSemicolon()
+		}
+	}
+
+	p.consumeSemicolon()
+	return &IfStmt{Condition: cond, Then: then, Else: elseBranch}, nil
+}
+
 // parseDeclare handles:
 //
 //	DECLARE @name type [= default] [, @name2 type2 ...]  -- scalar variable(s)

@@ -214,6 +214,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("DECLARE") {
 		return p.parseDeclare()
 	}
+	if p.curKeyword("IF") {
+		return p.parseIf()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,

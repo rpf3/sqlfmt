@@ -124,3 +124,20 @@ type DeclareStmt struct {
 }
 
 func (*DeclareStmt) statementNode() {}
+
+// ─── IF / ELSE ────────────────────────────────────────────────────────────────
+
+// IfStmt represents a T-SQL IF [ELSE] statement.
+//
+//	IF <condition> BEGIN <then> END [ELSE BEGIN <else> END]
+//	IF <condition> <single-then-stmt> [ELSE <single-else-stmt>]
+//
+// The formatter always normalises both branches to BEGIN...END form.
+type IfStmt struct {
+	Condition string      // raw condition expression (e.g. "@count > 0")
+	Then      []Statement // body of the IF branch
+	Else      []Statement // body of the ELSE branch; nil if no ELSE
+}
+
+func (*IfStmt) statementNode() {}
+

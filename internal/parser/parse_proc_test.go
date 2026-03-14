@@ -337,3 +337,76 @@ func TestParseProcParams(t *testing.T) {
 		}
 	})
 }
+
+func TestParseIf(t *testing.T) {
+	t.Run("IF with BEGIN END", func(t *testing.T) {
+		result := Parse("IF @count > 0 BEGIN SELECT @count; END;")
+		if len(result.Errors) > 0 {
+			t.Fatalf("unexpected errors: %v", result.Errors)
+		}
+		if len(result.Statements) != 1 {
+			t.Fatalf("expected 1 statement, got %d", len(result.Statements))
+		}
+		stmt, ok := result.Statements[0].(*IfStmt)
+		if !ok {
+			t.Fatalf("expected *IfStmt, got %T", result.Statements[0])
+		}
+		if stmt.Condition != "@count > 0" {
+			t.Errorf("condition: got %q, want %q", stmt.Condition, "@count > 0")
+		}
+		if len(stmt.Then) != 1 {
+			t.Errorf("then branch: got %d stmts, want 1", len(stmt.Then))
+		}
+		if len(stmt.Else) != 0 {
+			t.Errorf("else branch: got %d stmts, want 0", len(stmt.Else))
+		}
+	})
+
+	t.Run("IF ELSE with BEGIN END", func(t *testing.T) {
+		result := Parse("IF @x > 0 BEGIN SELECT 1; END ELSE BEGIN SELECT 0; END;")
+		if len(result.Errors) > 0 {
+			t.Fatalf("unexpected errors: %v", result.Errors)
+		}
+		stmt, ok := result.Statements[0].(*IfStmt)
+		if !ok {
+			t.Fatalf("expected *IfStmt, got %T", result.Statements[0])
+		}
+		if len(stmt.Then) != 1 {
+			t.Errorf("then: got %d stmts, want 1", len(stmt.Then))
+		}
+		if len(stmt.Else) != 1 {
+			t.Errorf("else: got %d stmts, want 1", len(stmt.Else))
+		}
+	})
+
+	t.Run("IF with single statement (no BEGIN END)", func(t *testing.T) {
+		result := Parse("IF @x > 0 SELECT 1;")
+		if len(result.Errors) > 0 {
+			t.Fatalf("unexpected errors: %v", result.Errors)
+		}
+		stmt, ok := result.Statements[0].(*IfStmt)
+		if !ok {
+			t.Fatalf("expected *IfStmt, got %T", result.Statements[0])
+		}
+		if stmt.Condition != "@x > 0" {
+			t.Errorf("condition: got %q, want %q", stmt.Condition, "@x > 0")
+		}
+		if len(stmt.Then) != 1 {
+			t.Errorf("then: got %d stmts, want 1", len(stmt.Then))
+		}
+	})
+
+	t.Run("EXISTS condition passes through", func(t *testing.T) {
+		result := Parse("IF EXISTS (SELECT 1 FROM orders WHERE id = 1) BEGIN SELECT 1; END;")
+		if len(result.Errors) > 0 {
+			t.Fatalf("unexpected errors: %v", result.Errors)
+		}
+		stmt, ok := result.Statements[0].(*IfStmt)
+		if !ok {
+			t.Fatalf("expected *IfStmt, got %T", result.Statements[0])
+		}
+		if stmt.Condition != "exists (select 1 from orders where id = 1)" {
+			t.Errorf("condition: got %q", stmt.Condition)
+		}
+	})
+}

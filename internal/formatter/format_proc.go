@@ -220,3 +220,36 @@ func (f *formatter) formatDeclare(s *parser.DeclareStmt) string {
 	b.WriteString(";")
 	return b.String()
 }
+
+// writeBodyStmts writes a slice of body statements into b with blank-line
+// separation between them, each indented by one level via indentBodyStmt.
+func (f *formatter) writeBodyStmts(b *strings.Builder, stmts []parser.Statement) {
+	for i, stmt := range stmts {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString("\n")
+		b.WriteString(f.indentBodyStmt(stmt))
+	}
+}
+
+// formatIf formats an IF [ELSE] statement. Both branches are always emitted
+// as BEGIN...END blocks regardless of how the source was written, for
+// consistency with the rest of the codebase's proc-body style.
+func (f *formatter) formatIf(s *parser.IfStmt) string {
+	var b strings.Builder
+	b.WriteString(f.kw("if ") + s.Condition)
+	b.WriteString("\n" + f.kw("begin"))
+	f.writeBodyStmts(&b, s.Then)
+	if len(s.Else) == 0 {
+		b.WriteString("\n" + f.kw("end") + ";")
+	} else {
+		b.WriteString("\n" + f.kw("end"))
+		b.WriteString("\n" + f.kw("else"))
+		b.WriteString("\n" + f.kw("begin"))
+		f.writeBodyStmts(&b, s.Else)
+		b.WriteString("\n" + f.kw("end") + ";")
+	}
+	return b.String()
+}
+
