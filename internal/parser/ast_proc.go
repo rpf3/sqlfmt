@@ -155,4 +155,3 @@ type WhileStmt struct {
 }
 
 func (*WhileStmt) statementNode() {}
-

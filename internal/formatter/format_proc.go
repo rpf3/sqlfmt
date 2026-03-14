@@ -263,4 +263,3 @@ func (f *formatter) formatWhile(s *parser.WhileStmt) string {
 	b.WriteString("\n" + f.kw("end") + ";")
 	return b.String()
 }
-
