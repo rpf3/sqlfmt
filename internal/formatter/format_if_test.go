@@ -16,7 +16,7 @@ func TestFormatIf(t *testing.T) {
 		{
 			name:  "IF with BEGIN END",
 			input: "IF @count > 0 BEGIN UPDATE orders SET status = 'active'; END;",
-			want: "if @count > 0\nbegin\n\tupdate\n\t\torders\n\tset\n\t\tstatus = 'active';\nend;\n",
+			want:  "if @count > 0\nbegin\n\tupdate\n\t\torders\n\tset\n\t\tstatus = 'active';\nend;\n",
 		},
 		{
 			name:  "IF ELSE",
