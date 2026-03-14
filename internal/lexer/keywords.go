@@ -89,6 +89,7 @@ var keywords = map[string]bool{
 	"TRY":          true,
 	"CATCH":        true,
 	"THROW":        true,
+	"PRINT":        true,
 	"TRANSACTION":  true,
 	"ISOLATION":    true,
 	"LEVEL":        true,

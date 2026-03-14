@@ -187,3 +187,17 @@ type ThrowStmt struct {
 }
 
 func (*ThrowStmt) statementNode() {}
+
+// ─── PRINT ────────────────────────────────────────────────────────────────────
+
+// PrintStmt represents a T-SQL PRINT statement.
+//
+//	PRINT <expr>
+//
+// Value is stored as a raw expression string — the argument may be a string
+// literal, a variable, a concatenation, or any scalar expression.
+type PrintStmt struct {
+	Value string // raw expression, e.g. "'Hello'", "@msg", "'Count: ' + cast(@n as varchar)"
+}
+
+func (*PrintStmt) statementNode() {}

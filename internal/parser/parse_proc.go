@@ -398,6 +398,24 @@ func (p *parser) parseThrow() (Statement, error) {
 	return stmt, nil
 }
 
+// parsePrint handles:
+//
+//	PRINT <expr>
+//
+// On entry p.cur is PRINT. The argument is captured as a raw expression string
+// (everything up to the terminating semicolon or EOF).
+func (p *parser) parsePrint() (Statement, error) {
+	p.advance() // consume PRINT
+
+	var tokBuf []lexer.Token
+	for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
+		tokBuf = append(tokBuf, p.cur)
+		p.advance()
+	}
+	p.consumeSemicolon()
+	return &PrintStmt{Value: joinBodyTokens(tokBuf)}, nil
+}
+
 // joinBodyTokens joins a slice of tokens into a whitespace-normalised string,
 // lowercasing keywords and applying SQL spacing conventions.
 func joinBodyTokens(tokens []lexer.Token) string {
