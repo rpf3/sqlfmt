@@ -475,12 +475,14 @@ func (p *parser) parseExec() (Statement, error) {
 func joinBodyTokens(tokens []lexer.Token) string {
 	var b strings.Builder
 	var prevType lexer.TokenType
+	var prevValue string
 	for i, tok := range tokens {
-		if i > 0 && needsSelectSpace(prevType, tok.Type) {
+		if i > 0 && needsSelectSpace(prevType, tok.Type, prevValue) {
 			b.WriteByte(' ')
 		}
 		b.WriteString(exprToken(tok))
 		prevType = tok.Type
+		prevValue = tok.Value
 	}
 	return strings.TrimSpace(b.String())
 }
