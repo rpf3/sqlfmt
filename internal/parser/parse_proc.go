@@ -260,6 +260,144 @@ func (p *parser) parseProcBody() (stmts []Statement, hasBeginEnd bool, err error
 	return stmts, hasBeginEnd, nil
 }
 
+// parseTryCatchBody collects the body statements of a BEGIN TRY…END TRY or
+// BEGIN CATCH…END CATCH block. On entry p.cur is the first token of the body
+// (the opening BEGIN TRY / BEGIN CATCH has already been consumed). On exit
+// p.cur is positioned after the closing END TRY / END CATCH.
+//
+// endKeyword is "TRY" or "CATCH". Statement chunks are split on semicolons at
+// depth 0 and re-parsed via Parse — falling back to *RawStmt on failure —
+// exactly as parseProcBody does. Depth is tracked by BEGIN (+1) and END (-1)
+// so nested BEGIN/END blocks inside the body are balanced correctly, and the
+// entire chunk is re-parsed recursively by Parse, which dispatches to
+// parseTryCatch for nested TRY/CATCH blocks.
+func (p *parser) parseTryCatchBody(endKeyword string) ([]Statement, error) {
+	var stmts []Statement
+
+	appendStmt := func(buf []lexer.Token) {
+		if len(buf) == 0 {
+			return
+		}
+		raw := joinBodyTokens(buf)
+		result := Parse(raw + ";")
+		if len(result.Errors) == 0 && len(result.Statements) == 1 {
+			stmts = append(stmts, result.Statements[0])
+		} else {
+			stmts = append(stmts, &RawStmt{Text: raw})
+		}
+	}
+
+	var tokBuf []lexer.Token
+	depth := 0
+
+	for p.cur.Type != lexer.EOF {
+		// Closing END <endKeyword> at depth 0 terminates this block.
+		if p.curKeyword("END") && depth == 0 && p.peekKeyword(endKeyword) {
+			appendStmt(tokBuf)
+			p.advance() // consume END
+			p.advance() // consume TRY or CATCH
+			break
+		}
+
+		if p.curKeyword("BEGIN") {
+			depth++
+		} else if p.curKeyword("END") {
+			depth--
+		}
+
+		// Statement boundary: semicolon at depth 0.
+		if p.curIs(lexer.Semicolon) && depth == 0 {
+			appendStmt(tokBuf)
+			tokBuf = nil
+			p.advance() // consume ;
+			continue
+		}
+
+		tokBuf = append(tokBuf, p.cur)
+		p.advance()
+	}
+
+	return stmts, nil
+}
+
+// parseTryCatch handles:
+//
+//	BEGIN TRY
+//	    <try_body>
+//	END TRY
+//	BEGIN CATCH
+//	    <catch_body>
+//	END CATCH
+//
+// On entry p.cur is BEGIN (peeked as TRY by the caller).
+func (p *parser) parseTryCatch() (Statement, error) {
+	p.advance() // consume BEGIN
+	if err := p.expectKeyword("TRY"); err != nil {
+		return nil, err
+	}
+
+	tryBody, err := p.parseTryCatchBody("TRY")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.expectKeyword("BEGIN"); err != nil {
+		return nil, err
+	}
+	if err := p.expectKeyword("CATCH"); err != nil {
+		return nil, err
+	}
+
+	catchBody, err := p.parseTryCatchBody("CATCH")
+	if err != nil {
+		return nil, err
+	}
+
+	p.consumeSemicolon()
+	stmt := &TryCatchStmt{TryBody: tryBody, CatchBody: catchBody}
+	return stmt, nil
+}
+
+// parseThrow handles:
+//
+//	THROW;                                    -- bare re-raise
+//	THROW <error_number>, <message>, <state>; -- raise with arguments
+//
+// On entry p.cur is THROW.
+func (p *parser) parseThrow() (Statement, error) {
+	p.advance() // consume THROW
+
+	stmt := &ThrowStmt{}
+
+	// Bare THROW: next token is ; or EOF.
+	if p.curIs(lexer.Semicolon) || p.cur.Type == lexer.EOF {
+		p.consumeSemicolon()
+		return stmt, nil
+	}
+
+	// THROW with three arguments: error_number, message, state.
+	args := make([]string, 0, 3)
+	for i := 0; i < 3; i++ {
+		if i > 0 {
+			if _, err := p.expect(lexer.Comma); err != nil {
+				return nil, err
+			}
+		}
+		tok := p.cur
+		if tok.Type == lexer.EOF || tok.Type == lexer.Semicolon {
+			return nil, fmt.Errorf(
+				"expected THROW argument %d at %d:%d", i+1, tok.Line, tok.Column,
+			)
+		}
+		args = append(args, tok.Value)
+		p.advance()
+	}
+
+	stmt.Args = args
+	p.consumeSemicolon()
+	return stmt, nil
+}
+
 // joinBodyTokens joins a slice of tokens into a whitespace-normalised string,
 // lowercasing keywords and applying SQL spacing conventions.
 func joinBodyTokens(tokens []lexer.Token) string {
@@ -409,7 +547,7 @@ func (p *parser) parseControlFlowCondition() string {
 		case "BEGIN", "SELECT", "WITH", "INSERT", "UPDATE", "DELETE",
 			"SET", "DECLARE", "IF", "WHILE", "RETURN", "EXEC", "EXECUTE",
 			"TRUNCATE", "CREATE", "ALTER", "DROP", "MERGE", "PRINT",
-			"BREAK", "CONTINUE":
+			"BREAK", "CONTINUE", "THROW":
 			return true
 		}
 		return false
