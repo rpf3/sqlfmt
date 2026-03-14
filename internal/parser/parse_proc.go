@@ -416,6 +416,60 @@ func (p *parser) parsePrint() (Statement, error) {
 	return &PrintStmt{Value: joinBodyTokens(tokBuf)}, nil
 }
 
+// parseExec handles:
+//
+//	EXEC  [[@retvar =] <proc_name>] [<args>]
+//	EXEC  (<dynamic_sql_expr>)
+//	EXECUTE is accepted as an alias.
+//
+// On entry p.cur is EXEC or EXECUTE.
+func (p *parser) parseExec() (Statement, error) {
+	p.advance() // consume EXEC or EXECUTE
+
+	stmt := &ExecStmt{}
+
+	// Optional return-value capture: @var = <proc_name> …
+	if p.cur.Type == lexer.Ident &&
+		strings.HasPrefix(p.cur.Value, "@") &&
+		p.peek.Type == lexer.Eq {
+		stmt.ReturnVar = p.cur.Value
+		p.advance() // consume @var
+		p.advance() // consume =
+	}
+
+	// Dynamic SQL: EXEC (@expr) — no proc name, the paren expression is Args.
+	if p.curIs(lexer.LParen) {
+		var tokBuf []lexer.Token
+		for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
+			tokBuf = append(tokBuf, p.cur)
+			p.advance()
+		}
+		stmt.Args = joinBodyTokens(tokBuf)
+		p.consumeSemicolon()
+		return stmt, nil
+	}
+
+	// Normal call: qualified procedure name followed by optional arguments.
+	procName, err := p.parseQualifiedName()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Proc = procName
+
+	// Remaining tokens up to ; are the raw argument list.
+	var tokBuf []lexer.Token
+	for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
+		tokBuf = append(tokBuf, p.cur)
+		p.advance()
+	}
+	if len(tokBuf) > 0 {
+		stmt.Args = joinBodyTokens(tokBuf)
+	}
+
+	p.consumeSemicolon()
+	return stmt, nil
+}
+
 // joinBodyTokens joins a slice of tokens into a whitespace-normalised string,
 // lowercasing keywords and applying SQL spacing conventions.
 func joinBodyTokens(tokens []lexer.Token) string {

@@ -201,3 +201,25 @@ type PrintStmt struct {
 }
 
 func (*PrintStmt) statementNode() {}
+
+// ─── EXEC ─────────────────────────────────────────────────────────────────────
+
+// ExecStmt represents a T-SQL EXEC / EXECUTE statement.
+//
+//	EXEC [[@retvar =] <proc_name>] [<args>]
+//	EXEC (<dynamic_sql_expr>)
+//
+// For a normal procedure call Proc holds the (schema-qualified) name and Args
+// holds the raw argument list (everything between the proc name and the
+// terminating semicolon). For a dynamic-SQL EXEC (e.g. EXEC (@sql)) Proc is
+// empty and Args holds the full parenthesised expression.
+//
+// Argument parsing is kept as a raw string to avoid combinatorial complexity;
+// a future issue can add structured argument nodes.
+type ExecStmt struct {
+	ReturnVar string // optional capture: @var in "@var = proc_name …"; empty if absent
+	Proc      string // procedure name, possibly schema-qualified; empty for dynamic SQL
+	Args      string // raw argument list; empty if no arguments
+}
+
+func (*ExecStmt) statementNode() {}

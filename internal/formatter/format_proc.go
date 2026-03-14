@@ -292,3 +292,38 @@ func (f *formatter) formatThrow(s *parser.ThrowStmt) string {
 func (f *formatter) formatPrint(s *parser.PrintStmt) string {
 	return f.kw("print") + " " + s.Value + ";"
 }
+
+// formatExec formats an EXEC / EXECUTE statement. A single argument stays on
+// the same line as the procedure name; multiple arguments are written one per
+// line using the configured comma style.
+func (f *formatter) formatExec(s *parser.ExecStmt) string {
+	var b strings.Builder
+	b.WriteString(f.kw("exec"))
+
+	if s.ReturnVar != "" {
+		b.WriteString(" " + s.ReturnVar + " =")
+	}
+
+	// Dynamic SQL: EXEC (@expr)
+	if s.Proc == "" {
+		b.WriteString(" " + s.Args + ";")
+		return b.String()
+	}
+
+	b.WriteString(" " + f.ident(s.Proc))
+
+	if s.Args == "" {
+		b.WriteString(";")
+		return b.String()
+	}
+
+	args := splitDepthZeroCommas(s.Args)
+	if len(args) == 1 {
+		b.WriteString(" " + args[0] + ";")
+	} else {
+		f.writeCommaList(&b, args)
+		b.WriteString(";")
+	}
+
+	return b.String()
+}
