@@ -453,6 +453,27 @@ func (p *parser) parseIf() (Statement, error) {
 	return &IfStmt{Condition: cond, Then: then, Else: elseBranch}, nil
 }
 
+// parseWhile handles:
+//
+//	WHILE <condition> BEGIN <stmts> END
+//	WHILE <condition> <single-stmt>
+func (p *parser) parseWhile() (Statement, error) {
+	p.advance() // consume WHILE
+
+	cond := p.parseControlFlowCondition()
+
+	body, hasBeginEnd, err := p.parseProcBody()
+	if err != nil {
+		return nil, err
+	}
+	if !hasBeginEnd {
+		p.consumeSemicolon()
+	}
+
+	p.consumeSemicolon()
+	return &WhileStmt{Condition: cond, Body: body}, nil
+}
+
 // parseDeclare handles:
 //
 //	DECLARE @name type [= default] [, @name2 type2 ...]  -- scalar variable(s)

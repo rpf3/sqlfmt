@@ -410,3 +410,39 @@ func TestParseIf(t *testing.T) {
 		}
 	})
 }
+
+func TestParseWhile(t *testing.T) {
+	t.Run("WHILE with BEGIN END", func(t *testing.T) {
+		result := Parse("WHILE @i < 10 BEGIN SET @i = @i + 1; END;")
+		if len(result.Errors) > 0 {
+			t.Fatalf("unexpected errors: %v", result.Errors)
+		}
+		if len(result.Statements) != 1 {
+			t.Fatalf("expected 1 statement, got %d", len(result.Statements))
+		}
+		stmt, ok := result.Statements[0].(*WhileStmt)
+		if !ok {
+			t.Fatalf("expected *WhileStmt, got %T", result.Statements[0])
+		}
+		if stmt.Condition != "@i < 10" {
+			t.Errorf("condition: got %q, want %q", stmt.Condition, "@i < 10")
+		}
+		if len(stmt.Body) != 1 {
+			t.Errorf("body: got %d stmts, want 1", len(stmt.Body))
+		}
+	})
+
+	t.Run("WHILE with single statement", func(t *testing.T) {
+		result := Parse("WHILE @i < 10 SET @i = @i + 1;")
+		if len(result.Errors) > 0 {
+			t.Fatalf("unexpected errors: %v", result.Errors)
+		}
+		stmt, ok := result.Statements[0].(*WhileStmt)
+		if !ok {
+			t.Fatalf("expected *WhileStmt, got %T", result.Statements[0])
+		}
+		if len(stmt.Body) != 1 {
+			t.Errorf("body: got %d stmts, want 1", len(stmt.Body))
+		}
+	})
+}

@@ -141,3 +141,18 @@ type IfStmt struct {
 
 func (*IfStmt) statementNode() {}
 
+// ─── WHILE ────────────────────────────────────────────────────────────────────
+
+// WhileStmt represents a T-SQL WHILE loop.
+//
+//	WHILE <condition> BEGIN <body> END
+//	WHILE <condition> <single-stmt>
+//
+// The formatter always normalises the body to BEGIN...END form.
+type WhileStmt struct {
+	Condition string      // raw condition expression (e.g. "@i < 10")
+	Body      []Statement // loop body statements
+}
+
+func (*WhileStmt) statementNode() {}
+
