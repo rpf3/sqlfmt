@@ -96,6 +96,10 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatIf(s)
 	case *parser.WhileStmt:
 		return f.formatWhile(s)
+	case *parser.TryCatchStmt:
+		return f.formatTryCatch(s)
+	case *parser.ThrowStmt:
+		return f.formatThrow(s)
 	case *parser.RawStmt:
 		return s.Text + ";"
 	}

@@ -263,3 +263,27 @@ func (f *formatter) formatWhile(s *parser.WhileStmt) string {
 	b.WriteString("\n" + f.kw("end") + ";")
 	return b.String()
 }
+
+// formatTryCatch formats a TRY/CATCH block. The try and catch bodies are
+// emitted as indented statement lists. end try and begin catch appear on
+// consecutive lines with no blank line between them — they are structurally
+// paired delimiters, not independent statements.
+func (f *formatter) formatTryCatch(s *parser.TryCatchStmt) string {
+	var b strings.Builder
+	b.WriteString(f.kw("begin try"))
+	f.writeBodyStmts(&b, s.TryBody)
+	b.WriteString("\n" + f.kw("end try"))
+	b.WriteString("\n" + f.kw("begin catch"))
+	f.writeBodyStmts(&b, s.CatchBody)
+	b.WriteString("\n" + f.kw("end catch") + ";")
+	return b.String()
+}
+
+// formatThrow formats a THROW statement. A bare THROW (re-raise) produces
+// "throw;". A THROW with arguments produces "throw <n>, '<msg>', <state>;".
+func (f *formatter) formatThrow(s *parser.ThrowStmt) string {
+	if len(s.Args) == 0 {
+		return f.kw("throw") + ";"
+	}
+	return f.kw("throw") + " " + s.Args[0] + ", " + s.Args[1] + ", " + s.Args[2] + ";"
+}

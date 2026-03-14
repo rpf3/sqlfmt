@@ -155,3 +155,35 @@ type WhileStmt struct {
 }
 
 func (*WhileStmt) statementNode() {}
+
+// ─── TRY / CATCH ──────────────────────────────────────────────────────────────
+
+// TryCatchStmt represents a T-SQL TRY/CATCH block.
+//
+//	BEGIN TRY
+//	    <try_body>
+//	END TRY
+//	BEGIN CATCH
+//	    <catch_body>
+//	END CATCH
+type TryCatchStmt struct {
+	TryBody   []Statement // statements inside BEGIN TRY ... END TRY
+	CatchBody []Statement // statements inside BEGIN CATCH ... END CATCH
+}
+
+func (*TryCatchStmt) statementNode() {}
+
+// ─── THROW ────────────────────────────────────────────────────────────────────
+
+// ThrowStmt represents a T-SQL THROW statement.
+//
+//	THROW;                                    -- re-raise current exception
+//	THROW <error_number>, <message>, <state>; -- raise new exception
+//
+// Args is nil for a bare re-raise; len==3 for a raise with arguments
+// [error_number, message, state] stored as raw token values.
+type ThrowStmt struct {
+	Args []string // nil = bare re-raise; len==3 = [error_number, message, state]
+}
+
+func (*ThrowStmt) statementNode() {}
