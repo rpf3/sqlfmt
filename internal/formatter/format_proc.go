@@ -287,3 +287,8 @@ func (f *formatter) formatThrow(s *parser.ThrowStmt) string {
 	}
 	return f.kw("throw") + " " + s.Args[0] + ", " + s.Args[1] + ", " + s.Args[2] + ";"
 }
+
+// formatPrint formats a PRINT statement.
+func (f *formatter) formatPrint(s *parser.PrintStmt) string {
+	return f.kw("print") + " " + s.Value + ";"
+}
