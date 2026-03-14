@@ -253,3 +253,14 @@ func (f *formatter) formatIf(s *parser.IfStmt) string {
 	return b.String()
 }
 
+// formatWhile formats a WHILE loop. The body is always emitted as a
+// BEGIN...END block for consistency.
+func (f *formatter) formatWhile(s *parser.WhileStmt) string {
+	var b strings.Builder
+	b.WriteString(f.kw("while ") + s.Condition)
+	b.WriteString("\n" + f.kw("begin"))
+	f.writeBodyStmts(&b, s.Body)
+	b.WriteString("\n" + f.kw("end") + ";")
+	return b.String()
+}
+
