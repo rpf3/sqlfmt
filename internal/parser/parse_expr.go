@@ -49,22 +49,44 @@ func exprToken(tok lexer.Token) string {
 	return tok.Value
 }
 
+// isFunctionKeyword reports whether a keyword acts as a function call and
+// should therefore not have a space inserted between it and an opening
+// parenthesis. CAST(x AS t) is the canonical example.
+// Clause/operator keywords such as OVER, IN, and EXISTS keep their spaces.
+func isFunctionKeyword(kw string) bool {
+	switch strings.ToUpper(kw) {
+	case "CAST", "CONVERT", "COALESCE", "NULLIF", "ISNULL",
+		"TRY_CAST", "TRY_CONVERT":
+		return true
+	}
+	return false
+}
+
 // needsSelectSpace reports whether a space should be written between two
 // consecutive tokens when building a normalised expression string.
 // It applies SQL conventions: no space around dots, no space between an
 // identifier and its opening paren (function call), no space before a
 // closing paren or comma.
-func needsSelectSpace(prev, cur lexer.TokenType) bool {
+// prevValue is the raw value of the previous token; it is used to
+// distinguish function-call keywords (CAST, COALESCE, …) from clause
+// keywords (OVER, IN, EXISTS, …) when prev is Keyword and cur is LParen.
+func needsSelectSpace(prev, cur lexer.TokenType, prevValue string) bool {
 	if prev == lexer.LParen || prev == lexer.Dot {
 		return false
 	}
 	if cur == lexer.RParen || cur == lexer.Dot || cur == lexer.Comma {
 		return false
 	}
-	// No space between bare identifier and open-paren (function call).
-	// Keyword-before-paren (e.g. OVER (...), IN (...)) keeps the space.
-	if cur == lexer.LParen && (prev == lexer.Ident || prev == lexer.QuotedIdent) {
-		return false
+	// No space between an identifier or function-call keyword and the
+	// following open-paren.  Clause/operator keywords (OVER, IN, EXISTS)
+	// keep their space.
+	if cur == lexer.LParen {
+		if prev == lexer.Ident || prev == lexer.QuotedIdent {
+			return false
+		}
+		if prev == lexer.Keyword && isFunctionKeyword(prevValue) {
+			return false
+		}
 	}
 	return true
 }
@@ -232,6 +254,7 @@ func (p *parser) parseWindowSpec() *WindowSpec {
 func (p *parser) parseExprRaw(stopFn func() bool) (string, error) {
 	var b strings.Builder
 	var prevType lexer.TokenType
+	var prevValue string
 	hasToken := false
 	depth := 0
 	caseDepth := 0
@@ -273,11 +296,12 @@ func (p *parser) parseExprRaw(stopFn func() bool) (string, error) {
 			}
 		}
 
-		if hasToken && needsSelectSpace(prevType, tok.Type) {
+		if hasToken && needsSelectSpace(prevType, tok.Type, prevValue) {
 			b.WriteByte(' ')
 		}
 		b.WriteString(exprToken(tok))
 		prevType = tok.Type
+		prevValue = tok.Value
 		hasToken = true
 		p.advance()
 	}
