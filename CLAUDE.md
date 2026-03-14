@@ -33,6 +33,7 @@ task fmt && task test && task vet && task lint
 - **Always create a branch before starting any work** — never commit feature or fix work directly to `main`. Name branches `feat/issue-N-short-desc` or `refactor/issue-N-short-desc` etc.
 - Prefer rebase + fast-forward; always open a PR, never merge locally
 - One issue per commit maximum — a large feature may span multiple commits, but a single commit must not touch more than one issue
+- **Work on one issue at a time** — fully implement, test, and commit one issue before starting the next. Never implement multiple issues in parallel even when they touch the same files; doing so requires backing out changes to split commits, which is error-prone and wastes effort
 - No parenthetical scopes in conventional commit types (`feat:` not `feat(pkg):`)
 - Reference issues with `Closes #N` after a blank line in the commit body
 - Commit message bodies should explain interesting technical decisions — why a particular approach was chosen, what alternatives were considered, or any non-obvious constraints that shaped the implementation
