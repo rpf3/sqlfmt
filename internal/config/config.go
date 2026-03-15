@@ -67,6 +67,7 @@ const (
 	RuleMissingBeginEnd             = "missing-begin-end"
 	RuleMustBeOnlyStatement         = "must-be-only-statement-in-batch"
 	RuleEmptyCatch                  = "empty-catch"
+	RuleCatchWithoutThrow           = "catch-without-throw"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -95,6 +96,7 @@ var knownRules = map[string]bool{
 	RuleMissingBeginEnd:             true,
 	RuleMustBeOnlyStatement:         true,
 	RuleEmptyCatch:                  true,
+	RuleCatchWithoutThrow:           true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.

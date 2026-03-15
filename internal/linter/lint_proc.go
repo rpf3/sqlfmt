@@ -15,10 +15,38 @@ func (l *linter) checkCreateProc(s *parser.CreateProcStmt) {
 	}
 }
 
+// containsThrow reports whether any ThrowStmt is reachable within stmts,
+// recursing into IfStmt, WhileStmt, and TryCatchStmt bodies.
+func containsThrow(stmts []parser.Statement) bool {
+	for _, stmt := range stmts {
+		switch s := stmt.(type) {
+		case *parser.ThrowStmt:
+			return true
+		case *parser.IfStmt:
+			if containsThrow(s.Then) || containsThrow(s.Else) {
+				return true
+			}
+		case *parser.WhileStmt:
+			if containsThrow(s.Body) {
+				return true
+			}
+		case *parser.TryCatchStmt:
+			if containsThrow(s.TryBody) || containsThrow(s.CatchBody) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // checkTryCatch applies lint rules to a TRY/CATCH block.
 func (l *linter) checkTryCatch(s *parser.TryCatchStmt) {
 	if len(s.CatchBody) == 0 {
 		l.warn(config.RuleEmptyCatch, "CATCH block is empty; errors will be silently swallowed")
+		return
+	}
+	if !containsThrow(s.CatchBody) {
+		l.warn(config.RuleCatchWithoutThrow, "CATCH block does not contain THROW; the error will not be re-raised to the caller")
 	}
 }
 
