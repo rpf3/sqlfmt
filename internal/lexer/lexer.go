@@ -69,6 +69,12 @@ func (l *Lexer) Next() Token {
 		}
 	}
 
+	// T-SQL pseudo-column $action (used in MERGE OUTPUT clauses).
+	// A bare '$' with no following identifier is left to fall through to Illegal.
+	if ch == '$' && isIdentStart(l.peekAt(1)) {
+		return l.readDollarIdent()
+	}
+
 	// Numbers: digit or leading-dot float (.5)
 	if isDigit(ch) {
 		return l.readNumber()
@@ -286,6 +292,19 @@ func (l *Lexer) readAtVar() Token {
 	if l.peek() == '@' {
 		l.advance() // consume second '@' for @@system
 	}
+	for l.pos < len(l.input) && isIdentContinue(l.input[l.pos]) {
+		l.advance()
+	}
+	return l.makeTokenAt(Ident, l.input[start:l.pos], line, col)
+}
+
+// readDollarIdent scans a T-SQL pseudo-column name such as $action.
+// The leading $ is included in the token value, returned as an Ident.
+// Called only when the '$' is followed by a valid identifier start character.
+func (l *Lexer) readDollarIdent() Token {
+	line, col := l.line, l.column
+	start := l.pos
+	l.advance() // consume '$'
 	for l.pos < len(l.input) && isIdentContinue(l.input[l.pos]) {
 		l.advance()
 	}

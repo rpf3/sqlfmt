@@ -6,6 +6,35 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+// writeOutputClause writes an OUTPUT clause into b.
+// The keyword sits on its own line; columns are indented one level via
+// writeCommaList — matching the style used for SELECT column lists.
+// An optional INTO <var> [(cols)] follows on its own line.
+func (f *formatter) writeOutputClause(b *strings.Builder, out *parser.OutputClause) {
+	if out == nil {
+		return
+	}
+	ind := f.indent()
+	b.WriteString("\n" + f.kw("output"))
+	cols := make([]string, len(out.Columns))
+	for i, col := range out.Columns {
+		s := parser.Render(col.Value)
+		if col.Alias != "" {
+			s += " " + f.kw("as") + " " + col.Alias
+		}
+		cols[i] = s
+	}
+	f.writeCommaList(b, cols)
+	if out.Into != "" {
+		b.WriteString("\n" + ind + f.kw("into") + " " + out.Into)
+		if len(out.IntoCols) > 0 {
+			b.WriteString("\n(")
+			f.writeCommaList(b, out.IntoCols)
+			b.WriteString("\n)")
+		}
+	}
+}
+
 func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 	var b strings.Builder
 	b.WriteString(f.kw("insert into "))
@@ -17,6 +46,8 @@ func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 		f.writeCommaList(&b, s.Columns)
 		b.WriteString("\n)")
 	}
+
+	f.writeOutputClause(&b, s.Output)
 
 	if s.Select != nil {
 		b.WriteString("\n")
@@ -89,6 +120,8 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 		}
 	}
 
+	f.writeOutputClause(&b, s.Output)
+
 	if s.Where != nil {
 		b.WriteString("\n" + f.kw("where"))
 		f.writeExprPred(&b, s.Where)
@@ -128,6 +161,8 @@ func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 		b.WriteString(f.kw("delete") + topClause + " " + f.kw("from "))
 		b.WriteString(f.ident(s.Table))
 	}
+	f.writeOutputClause(&b, s.Output)
+
 	if s.Where != nil {
 		b.WriteString("\n" + f.kw("where"))
 		f.writeExprPred(&b, s.Where)
@@ -239,6 +274,8 @@ func (f *formatter) formatMerge(s *parser.MergeStmt) string {
 		b.WriteString("\n")
 		f.writeMergeWhenClause(&b, clause)
 	}
+
+	f.writeOutputClause(&b, s.Output)
 
 	b.WriteString(";")
 	return b.String()
