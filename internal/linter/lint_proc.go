@@ -15,6 +15,13 @@ func (l *linter) checkCreateProc(s *parser.CreateProcStmt) {
 	}
 }
 
+// checkTryCatch applies lint rules to a TRY/CATCH block.
+func (l *linter) checkTryCatch(s *parser.TryCatchStmt) {
+	if len(s.CatchBody) == 0 {
+		l.warn(config.RuleEmptyCatch, "CATCH block is empty; errors will be silently swallowed")
+	}
+}
+
 // checkCreateFunc applies lint rules to a CREATE FUNCTION statement.
 func (l *linter) checkCreateFunc(s *parser.CreateFuncStmt) {
 	// Inline TVFs use RETURN (...) — BEGIN/END does not apply.
