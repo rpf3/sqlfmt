@@ -11,8 +11,32 @@ func (p *parser) parseAlter() (Statement, error) {
 	if p.curKeyword("TABLE") {
 		return p.parseAlterTable()
 	}
+	if p.curValue("PROCEDURE") || p.curValue("PROC") {
+		raw, err := p.parseCreateProc()
+		if err != nil {
+			return nil, err
+		}
+		raw.(*CreateProcStmt).IsAlter = true
+		return raw, nil
+	}
+	if p.curValue("FUNCTION") {
+		raw, err := p.parseCreateFunc()
+		if err != nil {
+			return nil, err
+		}
+		raw.(*CreateFuncStmt).IsAlter = true
+		return raw, nil
+	}
+	if p.curKeyword("VIEW") {
+		raw, err := p.parseCreateView()
+		if err != nil {
+			return nil, err
+		}
+		raw.(*CreateViewStmt).IsAlter = true
+		return raw, nil
+	}
 	return nil, fmt.Errorf(
-		"expected TABLE after ALTER at %d:%d, got %s %q",
+		"expected TABLE, PROCEDURE, FUNCTION, or VIEW after ALTER at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
 }
