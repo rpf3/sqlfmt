@@ -159,6 +159,8 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkCreateProc(s)
 	case *parser.CreateFuncStmt:
 		l.checkCreateFunc(s)
+	case *parser.TryCatchStmt:
+		l.checkTryCatch(s)
 	}
 	l.checkSchemaQualification(stmt)
 	l.checkIdentsWithSpaces(stmt)
