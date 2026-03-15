@@ -6,6 +6,27 @@ import (
 	"github.com/rpf3/sqlfmt/internal/lexer"
 )
 
+// sqlDataTypes is the set of SQL data type names that sqlfmt normalises to
+// lowercase regardless of how they appear in the source. These tokenize as
+// Ident (not Keyword) so they are not covered by the keyword lowercasing path.
+var sqlDataTypes = map[string]bool{
+	// Exact numerics
+	"BIGINT": true, "INT": true, "INTEGER": true, "SMALLINT": true, "TINYINT": true,
+	"DECIMAL": true, "NUMERIC": true, "MONEY": true, "SMALLMONEY": true, "BIT": true,
+	// Approximate numerics
+	"FLOAT": true, "REAL": true,
+	// Character strings
+	"CHAR": true, "VARCHAR": true, "TEXT": true,
+	"NCHAR": true, "NVARCHAR": true, "NTEXT": true,
+	// Binary
+	"BINARY": true, "VARBINARY": true, "IMAGE": true,
+	// Date / time
+	"DATE": true, "TIME": true, "DATETIME": true, "DATETIME2": true,
+	"DATETIMEOFFSET": true, "SMALLDATETIME": true,
+	// Other
+	"UNIQUEIDENTIFIER": true, "XML": true, "SQL_VARIANT": true,
+}
+
 // builtinFunctions is the set of SQL built-in function names that sqlfmt
 // normalises to lowercase regardless of how they appear in the source.
 var builtinFunctions = map[string]bool{
@@ -37,14 +58,21 @@ var builtinFunctions = map[string]bool{
 }
 
 // exprToken returns the normalised string for a single expression token:
-// keywords are lowercased; known built-in function names are lowercased;
-// everything else is preserved verbatim.
+// keywords are lowercased; known built-in function names and SQL data type
+// names are lowercased; @@system variables are lowercased; everything else
+// is preserved verbatim (user-defined names).
 func exprToken(tok lexer.Token) string {
 	if tok.Type == lexer.Keyword {
 		return strings.ToLower(tok.Value)
 	}
-	if tok.Type == lexer.Ident && builtinFunctions[strings.ToUpper(tok.Value)] {
-		return strings.ToLower(tok.Value)
+	if tok.Type == lexer.Ident {
+		upper := strings.ToUpper(tok.Value)
+		if builtinFunctions[upper] || sqlDataTypes[upper] {
+			return strings.ToLower(tok.Value)
+		}
+		if strings.HasPrefix(tok.Value, "@@") {
+			return strings.ToLower(tok.Value)
+		}
 	}
 	return tok.Value
 }
