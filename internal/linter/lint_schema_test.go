@@ -140,3 +140,49 @@ func TestLintMissingSchemaName(t *testing.T) {
 		checkRuleOff(t, `select o.id from orders as o;`, rule)
 	})
 }
+
+func TestLintNoCascadeFk(t *testing.T) {
+	rule := config.RuleNoCascadeFk
+
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "table-level FK with ON DELETE CASCADE warns",
+			input:    `create table orders (customer_id int not null, constraint fk_orders_customer foreign key (customer_id) references customers (id) on delete cascade);`,
+			wantRule: rule,
+		},
+		{
+			name:     "table-level FK with ON UPDATE CASCADE warns",
+			input:    `create table orders (customer_id int not null, constraint fk_orders_customer foreign key (customer_id) references customers (id) on update cascade);`,
+			wantRule: rule,
+		},
+		{
+			name:     "inline REFERENCES with ON DELETE CASCADE warns",
+			input:    `create table orders (customer_id int not null references customers (id) on delete cascade);`,
+			wantRule: rule,
+		},
+		{
+			name:     "inline REFERENCES with ON DELETE SET NULL is clean",
+			input:    `create table dbo.orders (customer_id int not null references dbo.customers (id) on delete set null);`,
+			wantRule: "",
+		},
+		{
+			name:     "table-level FK with ON DELETE NO ACTION is clean",
+			input:    `create table dbo.orders (customer_id int not null, constraint fk_orders_customer foreign key (customer_id) references dbo.customers (id) on delete no action);`,
+			wantRule: "",
+		},
+		{
+			name:     "FK with no action specified is clean",
+			input:    `create table dbo.orders (customer_id int not null references dbo.customers (id));`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+}

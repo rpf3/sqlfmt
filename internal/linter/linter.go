@@ -213,5 +213,47 @@ func (l *linter) checkCreateTable(s *parser.CreateTableStmt) {
 				),
 			)
 		}
+		if tc.Type == parser.ConstraintForeignKey {
+			if tc.OnDelete == parser.RefActionCascade {
+				l.warn(
+					config.RuleNoCascadeFk,
+					fmt.Sprintf(
+						"table %q: foreign key %q uses ON DELETE CASCADE; prefer an explicit action (SET NULL, SET DEFAULT, NO ACTION)",
+						s.Name, tc.Name,
+					),
+				)
+			}
+			if tc.OnUpdate == parser.RefActionCascade {
+				l.warn(
+					config.RuleNoCascadeFk,
+					fmt.Sprintf(
+						"table %q: foreign key %q uses ON UPDATE CASCADE; prefer an explicit action (SET NULL, SET DEFAULT, NO ACTION)",
+						s.Name, tc.Name,
+					),
+				)
+			}
+		}
+	}
+	for _, col := range s.Columns {
+		if col.References != nil {
+			if col.References.OnDelete == parser.RefActionCascade {
+				l.warn(
+					config.RuleNoCascadeFk,
+					fmt.Sprintf(
+						"table %q: column %q uses ON DELETE CASCADE; prefer an explicit action (SET NULL, SET DEFAULT, NO ACTION)",
+						s.Name, col.Name,
+					),
+				)
+			}
+			if col.References.OnUpdate == parser.RefActionCascade {
+				l.warn(
+					config.RuleNoCascadeFk,
+					fmt.Sprintf(
+						"table %q: column %q uses ON UPDATE CASCADE; prefer an explicit action (SET NULL, SET DEFAULT, NO ACTION)",
+						s.Name, col.Name,
+					),
+				)
+			}
+		}
 	}
 }
