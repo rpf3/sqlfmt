@@ -20,7 +20,6 @@ const (
 	RefActionSetNull                     // SET NULL
 	RefActionSetDefault                  // SET DEFAULT
 	RefActionNoAction                    // NO ACTION
-	RefActionRestrict                    // RESTRICT
 )
 
 // ColumnReference holds the target of an inline REFERENCES clause.

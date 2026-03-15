@@ -224,9 +224,6 @@ func (p *parser) parseRefAction() (RefAction, error) {
 	case p.curKeyword("CASCADE"):
 		p.advance()
 		return RefActionCascade, nil
-	case p.curKeyword("RESTRICT"):
-		p.advance()
-		return RefActionRestrict, nil
 	case p.curValue("NO"):
 		p.advance() // consume NO
 		if !p.curValue("ACTION") {

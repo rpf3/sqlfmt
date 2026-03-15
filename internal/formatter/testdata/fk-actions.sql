@@ -5,7 +5,7 @@ create table orders
 ,	product_id int references products (id)
 		on delete set null
 ,	category_id int references categories (id)
-		on delete set default on update restrict
+		on delete set default
 );
 
 create table order_lines
