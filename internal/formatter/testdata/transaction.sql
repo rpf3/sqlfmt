@@ -4,15 +4,15 @@ begin transaction;
 
 begin transaction MyTxn;
 
-commit;
+commit transaction;
 
-commit;
+commit transaction;
 
-commit;
+commit transaction;
 
-rollback;
+rollback transaction;
 
-rollback;
+rollback transaction;
 
 rollback transaction MyTxn;
 

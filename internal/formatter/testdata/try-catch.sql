@@ -8,10 +8,10 @@ begin try
 		42
 	);
 
-	commit;
+	commit transaction;
 end try
 begin catch
-	rollback;
+	rollback transaction;
 
 	throw;
 end catch;
@@ -36,7 +36,7 @@ as begin
 		);
 	end try
 	begin catch
-		rollback;
+		rollback transaction;
 
 		throw;
 	end catch;
