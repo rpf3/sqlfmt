@@ -2,10 +2,57 @@ package linter
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/rpf3/sqlfmt/internal/config"
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
+
+// splitArgs splits a raw EXEC argument string on depth-0 commas (commas not
+// inside parentheses). Returns nil when s is empty.
+func splitArgs(s string) []string {
+	if s == "" {
+		return nil
+	}
+	var parts []string
+	depth := 0
+	start := 0
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+		case ',':
+			if depth == 0 {
+				parts = append(parts, strings.TrimSpace(s[start:i]))
+				start = i + 1
+			}
+		}
+	}
+	parts = append(parts, strings.TrimSpace(s[start:]))
+	return parts
+}
+
+// checkExecStmt applies lint rules to an EXEC statement.
+func (l *linter) checkExecStmt(s *parser.ExecStmt) {
+	// Dynamic SQL and no-arg calls are exempt.
+	if s.Proc == "" || s.Args == "" {
+		return
+	}
+	args := splitArgs(s.Args)
+	// Single positional arg is a common convention with no ordering ambiguity.
+	if len(args) <= 1 {
+		return
+	}
+	for _, arg := range args {
+		if !strings.Contains(arg, "=") {
+			l.warn(config.RuleExecNamedParams,
+				fmt.Sprintf("exec %s: use named parameters (@param = value) instead of positional arguments", s.Proc))
+			return
+		}
+	}
+}
 
 // checkCreateProc applies lint rules to a CREATE PROCEDURE statement.
 func (l *linter) checkCreateProc(s *parser.CreateProcStmt) {
