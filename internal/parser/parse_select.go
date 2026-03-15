@@ -765,19 +765,45 @@ func (p *parser) parseWithSelect() (Statement, error) {
 		return nil, err
 	}
 
-	if !p.curKeyword("SELECT") {
+	switch {
+	case p.curKeyword("SELECT"):
+		stmt, err := p.parseSelectCore()
+		if err != nil {
+			return nil, err
+		}
+		stmt.CTEs = ctes
+		stmt.Recursive = recursive
+		p.consumeSemicolon()
+		return stmt, nil
+
+	case p.curKeyword("INSERT"):
+		raw, err := p.parseInsert()
+		if err != nil {
+			return nil, err
+		}
+		raw.(*InsertStmt).CTEs = ctes
+		return raw, nil
+
+	case p.curKeyword("UPDATE"):
+		raw, err := p.parseUpdate()
+		if err != nil {
+			return nil, err
+		}
+		raw.(*UpdateStmt).CTEs = ctes
+		return raw, nil
+
+	case p.curKeyword("DELETE"):
+		raw, err := p.parseDelete()
+		if err != nil {
+			return nil, err
+		}
+		raw.(*DeleteStmt).CTEs = ctes
+		return raw, nil
+
+	default:
 		return nil, fmt.Errorf(
-			"expected SELECT after WITH clause at %d:%d, got %s %q",
+			"expected SELECT, INSERT, UPDATE, or DELETE after WITH clause at %d:%d, got %s %q",
 			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 		)
 	}
-	stmt, err := p.parseSelectCore()
-	if err != nil {
-		return nil, err
-	}
-	stmt.CTEs = ctes
-	stmt.Recursive = recursive
-
-	p.consumeSemicolon()
-	return stmt, nil
 }

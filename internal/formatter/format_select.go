@@ -66,33 +66,37 @@ func (f *formatter) indentSubquery(s *parser.SelectStmt) string {
 	return b.String()
 }
 
-func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
-	ind := f.indent()
-	var b strings.Builder
-
-	// WITH clause (CTEs)
-	for i, cte := range s.CTEs {
+// writeCTEList renders a WITH clause (one or more CTEs) into b.
+// recursive is only meaningful for SELECT; DML callers pass false.
+func (f *formatter) writeCTEList(b *strings.Builder, ctes []parser.CTEDef, recursive bool) {
+	for i, cte := range ctes {
 		if i == 0 {
 			withKw := f.kw("with")
-			if s.Recursive {
+			if recursive {
 				withKw = f.kw("with recursive")
 			}
 			b.WriteString(withKw + " " + f.ident(cte.Name) + " " + f.kw("as"))
 		} else if f.cfg.CommaStyle == config.CommaTrailing {
 			b.WriteString(f.ident(cte.Name) + " " + f.kw("as"))
 		} else {
-			// leading comma: ", name as"
 			b.WriteString(", " + f.ident(cte.Name) + " " + f.kw("as"))
 		}
 		b.WriteString("\n(\n")
 		b.WriteString(f.indentCTE(cte.Select))
-		// close paren with comma separator between CTEs
-		if i < len(s.CTEs)-1 && f.cfg.CommaStyle == config.CommaTrailing {
+		if i < len(ctes)-1 && f.cfg.CommaStyle == config.CommaTrailing {
 			b.WriteString("\n),\n")
 		} else {
 			b.WriteString("\n)\n")
 		}
 	}
+}
+
+func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+
+	// WITH clause (CTEs)
+	f.writeCTEList(&b, s.CTEs, s.Recursive)
 
 	// SELECT [DISTINCT] [TOP (...) [PERCENT] [WITH TIES]]
 	if s.Distinct {
