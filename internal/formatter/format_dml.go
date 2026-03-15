@@ -14,7 +14,6 @@ func (f *formatter) writeOutputClause(b *strings.Builder, out *parser.OutputClau
 	if out == nil {
 		return
 	}
-	ind := f.indent()
 	b.WriteString("\n" + f.kw("output"))
 	cols := make([]string, len(out.Columns))
 	for i, col := range out.Columns {
@@ -26,7 +25,7 @@ func (f *formatter) writeOutputClause(b *strings.Builder, out *parser.OutputClau
 	}
 	f.writeCommaList(b, cols)
 	if out.Into != "" {
-		b.WriteString("\n" + ind + f.kw("into") + " " + out.Into)
+		b.WriteString("\n" + f.kw("into") + " " + out.Into)
 		if len(out.IntoCols) > 0 {
 			b.WriteString("\n(")
 			f.writeCommaList(b, out.IntoCols)

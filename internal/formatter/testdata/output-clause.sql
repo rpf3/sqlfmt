@@ -19,7 +19,7 @@ insert into orders
 )
 output
 	inserted.order_id
-	into @new_ids
+into @new_ids
 (
 	order_id
 )
