@@ -29,6 +29,10 @@ func (f *formatter) formatDrop(s *parser.DropStmt) string {
 		b.WriteString(f.kw("view "))
 	case parser.DropIndex:
 		b.WriteString(f.kw("index "))
+	case parser.DropProcedure:
+		b.WriteString(f.kw("procedure "))
+	case parser.DropFunction:
+		b.WriteString(f.kw("function "))
 	}
 	if s.IfExists {
 		b.WriteString(f.kw("if exists "))

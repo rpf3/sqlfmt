@@ -204,13 +204,17 @@ func (p *parser) parseDrop() (Statement, error) {
 		objType = DropView
 	case p.curKeyword("INDEX"):
 		objType = DropIndex
+	case p.curValue("PROCEDURE") || p.curValue("PROC"):
+		objType = DropProcedure
+	case p.curValue("FUNCTION"):
+		objType = DropFunction
 	default:
 		return nil, fmt.Errorf(
-			"expected TABLE, VIEW, or INDEX after DROP at %d:%d, got %s %q",
+			"expected TABLE, VIEW, INDEX, PROCEDURE, or FUNCTION after DROP at %d:%d, got %s %q",
 			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 		)
 	}
-	p.advance() // consume TABLE/VIEW/INDEX
+	p.advance() // consume TABLE/VIEW/INDEX/PROCEDURE/FUNCTION
 
 	stmt := &DropStmt{Type: objType}
 
@@ -222,11 +226,11 @@ func (p *parser) parseDrop() (Statement, error) {
 		stmt.IfExists = true
 	}
 
-	nameTok, err := p.expectIdent()
+	name, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	stmt.Name = nameTok.Value
+	stmt.Name = name
 
 	p.consumeSemicolon()
 
