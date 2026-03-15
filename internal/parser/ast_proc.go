@@ -204,6 +204,26 @@ type PrintStmt struct {
 
 func (*PrintStmt) statementNode() {}
 
+// ─── TRANSACTION ──────────────────────────────────────────────────────────────
+
+// TransactionStmtKind identifies the kind of transaction control statement.
+type TransactionStmtKind int
+
+const (
+	TxnBegin    TransactionStmtKind = iota // BEGIN TRANSACTION
+	TxnCommit                              // COMMIT [TRANSACTION]
+	TxnRollback                            // ROLLBACK [TRANSACTION] [name]
+	TxnSave                                // SAVE TRANSACTION name
+)
+
+// TransactionStmt represents a transaction control statement.
+type TransactionStmt struct {
+	Kind TransactionStmtKind
+	Name string // optional transaction/savepoint name; empty if absent
+}
+
+func (*TransactionStmt) statementNode() {}
+
 // ─── EXEC ─────────────────────────────────────────────────────────────────────
 
 // ExecStmt represents a T-SQL EXEC / EXECUTE statement.

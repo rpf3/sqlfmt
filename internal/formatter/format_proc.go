@@ -287,6 +287,29 @@ func (f *formatter) formatTryCatch(s *parser.TryCatchStmt) string {
 	return b.String()
 }
 
+// formatTransaction formats a transaction control statement.
+// Canonical output: "begin transaction [name]", "commit", "rollback [name]",
+// "save transaction name". TRAN abbreviations and WORK are normalised away.
+func (f *formatter) formatTransaction(s *parser.TransactionStmt) string {
+	switch s.Kind {
+	case parser.TxnBegin:
+		if s.Name != "" {
+			return f.kw("begin transaction") + " " + s.Name + ";"
+		}
+		return f.kw("begin transaction") + ";"
+	case parser.TxnCommit:
+		return f.kw("commit") + ";"
+	case parser.TxnRollback:
+		if s.Name != "" {
+			return f.kw("rollback transaction") + " " + s.Name + ";"
+		}
+		return f.kw("rollback") + ";"
+	case parser.TxnSave:
+		return f.kw("save transaction") + " " + s.Name + ";"
+	}
+	return ""
+}
+
 // formatThrow formats a THROW statement. A bare THROW (re-raise) produces
 // "throw;". A THROW with arguments produces "throw <n>, '<msg>', <state>;".
 func (f *formatter) formatThrow(s *parser.ThrowStmt) string {
