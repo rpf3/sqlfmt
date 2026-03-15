@@ -112,7 +112,6 @@ var keywords = map[string]bool{
 	"FOREIGN":    true,
 	"REFERENCES": true,
 	"CASCADE":    true,
-	"RESTRICT":   true,
 	"UNIQUE":     true,
 	"CHECK":      true,
 	"DEFAULT":    true,

@@ -101,8 +101,6 @@ func (f *formatter) refActionStr(a parser.RefAction) string {
 		return f.kw("set default")
 	case parser.RefActionNoAction:
 		return f.kw("no action")
-	case parser.RefActionRestrict:
-		return f.kw("restrict")
 	}
 	return ""
 }

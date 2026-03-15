@@ -1,7 +1,7 @@
 CREATE TABLE orders (
     customer_id INT NOT NULL REFERENCES customers (id) ON DELETE CASCADE ON UPDATE NO ACTION,
     product_id INT REFERENCES products (id) ON DELETE SET NULL,
-    category_id INT REFERENCES categories (id) ON DELETE SET DEFAULT ON UPDATE RESTRICT
+    category_id INT REFERENCES categories (id) ON DELETE SET DEFAULT
 );
 
 CREATE TABLE order_lines (
