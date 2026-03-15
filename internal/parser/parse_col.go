@@ -103,14 +103,16 @@ func (p *parser) parseTableConstraint() (TableConstraint, error) {
 		if err != nil {
 			return TableConstraint{}, err
 		}
-		refTable, refCols, err := p.parseReferences()
+		ref, err := p.parseReferences()
 		if err != nil {
 			return TableConstraint{}, err
 		}
 		tc.Type = ConstraintForeignKey
 		tc.Columns = localCols
-		tc.RefTable = refTable
-		tc.RefColumns = refCols
+		tc.RefTable = ref.Table
+		tc.RefColumns = ref.Columns
+		tc.OnDelete = ref.OnDelete
+		tc.OnUpdate = ref.OnUpdate
 		return tc, nil
 	}
 
@@ -176,23 +178,84 @@ func (p *parser) parseCheckExpr() (Expr, error) {
 	return &RawExpr{Text: strings.Join(parts, " ")}, nil
 }
 
-// parseReferences parses: REFERENCES <table> [( <columns> )]
-func (p *parser) parseReferences() (string, []string, error) {
+// parseReferences parses: REFERENCES <table> [( <columns> )] [ON DELETE <action>] [ON UPDATE <action>]
+func (p *parser) parseReferences() (*ColumnReference, error) {
 	if err := p.expectKeyword("REFERENCES"); err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	refTable, err := p.parseQualifiedName()
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
-	var columns []string
+	ref := &ColumnReference{Table: refTable}
 	if p.curIs(lexer.LParen) {
-		columns, err = p.parseIdentList()
+		ref.Columns, err = p.parseIdentList()
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 	}
-	return refTable, columns, nil
+	for p.curKeyword("ON") {
+		p.advance() // consume ON
+		var target *RefAction
+		if p.curKeyword("DELETE") {
+			p.advance() // consume DELETE
+			target = &ref.OnDelete
+		} else if p.curKeyword("UPDATE") {
+			p.advance() // consume UPDATE
+			target = &ref.OnUpdate
+		} else {
+			return nil, fmt.Errorf(
+				"expected DELETE or UPDATE after ON at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		action, err := p.parseRefAction()
+		if err != nil {
+			return nil, err
+		}
+		*target = action
+	}
+	return ref, nil
+}
+
+// parseRefAction parses a single referential action keyword (or two-word phrase).
+func (p *parser) parseRefAction() (RefAction, error) {
+	switch {
+	case p.curKeyword("CASCADE"):
+		p.advance()
+		return RefActionCascade, nil
+	case p.curKeyword("RESTRICT"):
+		p.advance()
+		return RefActionRestrict, nil
+	case p.curValue("NO"):
+		p.advance() // consume NO
+		if !p.curValue("ACTION") {
+			return RefActionNone, fmt.Errorf(
+				"expected ACTION after NO at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance() // consume ACTION
+		return RefActionNoAction, nil
+	case p.curKeyword("SET"):
+		p.advance() // consume SET
+		if p.curKeyword("NULL") {
+			p.advance()
+			return RefActionSetNull, nil
+		}
+		if p.curKeyword("DEFAULT") {
+			p.advance()
+			return RefActionSetDefault, nil
+		}
+		return RefActionNone, fmt.Errorf(
+			"expected NULL or DEFAULT after SET at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+	return RefActionNone, fmt.Errorf(
+		"expected referential action at %d:%d, got %s %q",
+		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+	)
 }
 
 // parseIdentitySpec parses: IDENTITY [(seed, increment)]
@@ -339,11 +402,11 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 	}
 
 	if p.curKeyword("REFERENCES") {
-		refTable, refCols, err := p.parseReferences()
+		ref, err := p.parseReferences()
 		if err != nil {
 			return ColumnDef{}, err
 		}
-		col.References = &ColumnReference{Table: refTable, Columns: refCols}
+		col.References = ref
 	}
 
 	return col, nil

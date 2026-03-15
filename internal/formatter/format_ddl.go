@@ -89,6 +89,45 @@ func (f *formatter) normalizeDefaultExpr(v string) string {
 	return f.kw(strings.ToLower(v))
 }
 
+// refActionStr returns the canonical keyword string for a referential action.
+// Returns "" for RefActionNone so callers can skip unset actions.
+func (f *formatter) refActionStr(a parser.RefAction) string {
+	switch a {
+	case parser.RefActionCascade:
+		return f.kw("cascade")
+	case parser.RefActionSetNull:
+		return f.kw("set null")
+	case parser.RefActionSetDefault:
+		return f.kw("set default")
+	case parser.RefActionNoAction:
+		return f.kw("no action")
+	case parser.RefActionRestrict:
+		return f.kw("restrict")
+	}
+	return ""
+}
+
+// writeRefActions appends ON DELETE / ON UPDATE clauses to b, wrapped onto a
+// new line at the given indent. Both actions are written on the same
+// continuation line. No output is produced when neither action is set.
+func (f *formatter) writeRefActions(b *strings.Builder, ind string, onDelete, onUpdate parser.RefAction) {
+	deleteStr := f.refActionStr(onDelete)
+	updateStr := f.refActionStr(onUpdate)
+	if deleteStr == "" && updateStr == "" {
+		return
+	}
+	b.WriteString("\n" + ind)
+	if deleteStr != "" {
+		b.WriteString(f.kw("on delete") + " " + deleteStr)
+	}
+	if updateStr != "" {
+		if deleteStr != "" {
+			b.WriteString(" ")
+		}
+		b.WriteString(f.kw("on update") + " " + updateStr)
+	}
+}
+
 // writeColumnDef writes the canonical form of a column definition to b.
 // It does not include any leading indentation or comma — the caller handles that.
 func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
@@ -131,6 +170,7 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 			b.WriteString(strings.Join(refCols, ", "))
 			b.WriteString(")")
 		}
+		f.writeRefActions(b, ind+ind, col.References.OnDelete, col.References.OnUpdate)
 	}
 	if col.Default != nil {
 		b.WriteString("\n")
@@ -182,6 +222,7 @@ func (f *formatter) writeTableConstraint(b *strings.Builder, tc parser.TableCons
 			b.WriteString(strings.Join(refCols, ", "))
 			b.WriteString(")")
 		}
+		f.writeRefActions(b, ind+ind, tc.OnDelete, tc.OnUpdate)
 	case parser.ConstraintUnique:
 		b.WriteString(f.kw("unique") + " (")
 		uqCols := make([]string, len(tc.Columns))

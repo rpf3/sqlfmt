@@ -11,10 +11,24 @@ const (
 	NullabilityNull                       // NULL
 )
 
+// RefAction represents an ON DELETE / ON UPDATE referential action.
+type RefAction int
+
+const (
+	RefActionNone       RefAction = iota // not specified
+	RefActionCascade                     // CASCADE
+	RefActionSetNull                     // SET NULL
+	RefActionSetDefault                  // SET DEFAULT
+	RefActionNoAction                    // NO ACTION
+	RefActionRestrict                    // RESTRICT
+)
+
 // ColumnReference holds the target of an inline REFERENCES clause.
 type ColumnReference struct {
-	Table   string
-	Columns []string // column names; empty means implicit reference to table's PK
+	Table    string
+	Columns  []string  // column names; empty means implicit reference to table's PK
+	OnDelete RefAction // ON DELETE action; RefActionNone if not specified
+	OnUpdate RefAction // ON UPDATE action; RefActionNone if not specified
 }
 
 // IdentitySpec holds the optional IDENTITY column attribute.
@@ -83,10 +97,12 @@ const (
 type TableConstraint struct {
 	Name       string // optional constraint name from CONSTRAINT <name>; empty if unnamed
 	Type       TableConstraintType
-	Columns    []string // local column names (PK, FK)
-	RefTable   string   // for FK: referenced table name
-	RefColumns []string // for FK: referenced column names; empty means implicit PK reference
-	Check      Expr     // for CHECK: expression (without outer parens); nil for non-CHECK constraints
+	Columns    []string  // local column names (PK, FK)
+	RefTable   string    // for FK: referenced table name
+	RefColumns []string  // for FK: referenced column names; empty means implicit PK reference
+	OnDelete   RefAction // for FK: ON DELETE action; RefActionNone if not specified
+	OnUpdate   RefAction // for FK: ON UPDATE action; RefActionNone if not specified
+	Check      Expr      // for CHECK: expression (without outer parens); nil for non-CHECK constraints
 }
 
 // ─── ALTER TABLE ──────────────────────────────────────────────────────────────
