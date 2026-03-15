@@ -128,12 +128,14 @@ func (*AlterTableStmt) statementNode() {}
 type DropObjectType int
 
 const (
-	DropTable DropObjectType = iota // DROP TABLE
-	DropView                        // DROP VIEW
-	DropIndex                       // DROP INDEX
+	DropTable     DropObjectType = iota // DROP TABLE
+	DropView                            // DROP VIEW
+	DropIndex                           // DROP INDEX
+	DropProcedure                       // DROP PROCEDURE / DROP PROC
+	DropFunction                        // DROP FUNCTION
 )
 
-// DropStmt represents: DROP (TABLE|VIEW|INDEX) [IF EXISTS] <name>
+// DropStmt represents: DROP (TABLE|VIEW|INDEX|PROCEDURE|FUNCTION) [IF EXISTS] <name>
 type DropStmt struct {
 	Type     DropObjectType
 	IfExists bool
