@@ -7,6 +7,14 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+func (f *formatter) formatCreateSchema(s *parser.CreateSchemaStmt) string {
+	out := f.kw("create schema ") + s.Name
+	if s.Authorization != "" {
+		out += " " + f.kw("authorization") + " " + s.Authorization
+	}
+	return out + ";"
+}
+
 func (f *formatter) formatCreateView(s *parser.CreateViewStmt) string {
 	kw := "create view "
 	if s.IsAlter {

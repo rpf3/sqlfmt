@@ -254,6 +254,9 @@ func (p *parser) parseCreate() (Statement, error) {
 	if p.curValue("TYPE") {
 		return p.parseCreateType()
 	}
+	if p.curKeyword("SCHEMA") {
+		return p.parseCreateSchema()
+	}
 	if p.curValue("PROCEDURE") || p.curValue("PROC") {
 		return p.parseCreateProc()
 	}
@@ -261,6 +264,30 @@ func (p *parser) parseCreate() (Statement, error) {
 		return p.parseCreateFunc()
 	}
 	return p.parseCreateTable()
+}
+
+// parseCreateSchema handles: CREATE SCHEMA <name> [AUTHORIZATION <owner>] [;]
+func (p *parser) parseCreateSchema() (Statement, error) {
+	p.advance() // consume SCHEMA
+
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := &CreateSchemaStmt{Name: nameTok.Value}
+
+	if p.curKeyword("AUTHORIZATION") {
+		p.advance() // consume AUTHORIZATION
+		ownerTok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Authorization = ownerTok.Value
+	}
+
+	p.consumeSemicolon()
+	return stmt, nil
 }
 
 // parseCreateTable handles CREATE TABLE.

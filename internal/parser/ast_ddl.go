@@ -160,6 +160,16 @@ type CreateViewStmt struct {
 
 func (*CreateViewStmt) statementNode() {}
 
+// ─── CREATE SCHEMA ────────────────────────────────────────────────────────────
+
+// CreateSchemaStmt represents: CREATE SCHEMA <name> [AUTHORIZATION <owner>]
+type CreateSchemaStmt struct {
+	Name          string // schema name
+	Authorization string // optional owner; empty if absent
+}
+
+func (*CreateSchemaStmt) statementNode() {}
+
 // ─── CREATE TYPE ──────────────────────────────────────────────────────────────
 
 // CreateTypeKind identifies the variant of a CREATE TYPE statement.

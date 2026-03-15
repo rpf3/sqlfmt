@@ -1,0 +1,5 @@
+CREATE SCHEMA staging;
+
+CREATE SCHEMA reporting AUTHORIZATION db_owner;
+
+CREATE SCHEMA archive AUTHORIZATION dbo;
