@@ -27,6 +27,74 @@ func (p *parser) parseTopClause() string {
 	return val
 }
 
+// parseOutputClause parses an OUTPUT clause: OUTPUT <col-list> [INTO <var> [(<cols>)]].
+// On entry: p.cur is the OUTPUT keyword.
+// On exit: p.cur is positioned after the clause.
+func (p *parser) parseOutputClause() (*OutputClause, error) {
+	p.advance() // consume OUTPUT
+	out := &OutputClause{}
+
+	// Parse column list; stop at INTO, WHERE, FROM, VALUES, SELECT, semicolon, EOF.
+	for {
+		item, err := p.parseOutputItem()
+		if err != nil {
+			return nil, err
+		}
+		out.Columns = append(out.Columns, item)
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+
+	// Optional INTO <table-variable> [(col-list)]
+	if p.curKeyword("INTO") {
+		p.advance() // consume INTO
+		tok, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		out.Into = tok.Value
+		if p.curIs(lexer.LParen) {
+			cols, err := p.parseIdentList()
+			if err != nil {
+				return nil, err
+			}
+			out.IntoCols = cols
+		}
+	}
+
+	return out, nil
+}
+
+// parseOutputItem parses one item in an OUTPUT column list.
+// It mirrors parseSelectItem but stops at OUTPUT-specific delimiters.
+func (p *parser) parseOutputItem() (SelectItem, error) {
+	expr := p.parseExpr(func() bool {
+		return p.curIs(lexer.Comma) ||
+			p.curKeyword("INTO") ||
+			p.curKeyword("WHERE") ||
+			p.curKeyword("FROM") ||
+			p.curKeyword("VALUES") ||
+			p.curKeyword("SELECT") ||
+			p.curKeyword("AS") ||
+			p.curIs(lexer.Semicolon) ||
+			p.curIs(lexer.EOF)
+	})
+
+	var alias string
+	if p.curKeyword("AS") {
+		p.advance()
+		tok, err := p.expectIdent()
+		if err != nil {
+			return SelectItem{}, err
+		}
+		alias = tok.Value
+	}
+
+	return SelectItem{Value: expr, Alias: alias}, nil
+}
+
 // parseInsert handles:
 //
 //	INSERT INTO <table> [(cols)] VALUES (...) [, (...)] [;]
@@ -49,6 +117,14 @@ func (p *parser) parseInsert() (Statement, error) {
 			return nil, err
 		}
 		stmt.Columns = cols
+	}
+
+	if p.curKeyword("OUTPUT") {
+		out, err := p.parseOutputClause()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Output = out
 	}
 
 	if p.curKeyword("VALUES") {
@@ -124,6 +200,14 @@ func (p *parser) parseUpdate() (Statement, error) {
 		return nil, err
 	}
 	stmt.Sets = sets
+
+	if p.curKeyword("OUTPUT") {
+		out, err := p.parseOutputClause()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Output = out
+	}
 
 	if p.curKeyword("FROM") {
 		from, err := p.parseUpdateFrom()
@@ -210,6 +294,7 @@ func (p *parser) parseSetClause() ([]UpdateSet, error) {
 			return p.curIs(lexer.Comma) ||
 				p.curKeyword("WHERE") ||
 				p.curKeyword("FROM") ||
+				p.curKeyword("OUTPUT") ||
 				p.curIs(lexer.Semicolon) ||
 				p.curIs(lexer.EOF)
 		})
@@ -265,6 +350,14 @@ func (p *parser) parseDelete() (Statement, error) {
 	} else if (p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent)) && !p.curKeyword("WHERE") {
 		stmt.Alias = p.cur.Value
 		p.advance()
+	}
+
+	if p.curKeyword("OUTPUT") {
+		out, err := p.parseOutputClause()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Output = out
 	}
 
 	if p.curKeyword("WHERE") {
@@ -349,6 +442,14 @@ func (p *parser) parseMerge() (Statement, error) {
 			return nil, err
 		}
 		stmt.Clauses = append(stmt.Clauses, clause)
+	}
+
+	if p.curKeyword("OUTPUT") {
+		out, err := p.parseOutputClause()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Output = out
 	}
 
 	p.consumeSemicolon()

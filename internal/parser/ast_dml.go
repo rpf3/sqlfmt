@@ -1,28 +1,40 @@
 package parser
 
+// ─── OUTPUT ───────────────────────────────────────────────────────────────────
+
+// OutputClause is an optional OUTPUT clause on INSERT, UPDATE, DELETE, or MERGE.
+// Columns may reference the inserted.* and deleted.* pseudo-tables, or $action.
+type OutputClause struct {
+	Columns  []SelectItem // projected columns
+	Into     string       // table variable name for OUTPUT INTO; empty if absent
+	IntoCols []string     // explicit column list for INTO; nil if absent
+}
+
 // ─── DELETE ───────────────────────────────────────────────────────────────────
 
-// DeleteStmt represents: DELETE [TOP (n)] [<alias>] FROM <table> [AS <alias>] [WHERE <predicate>]
+// DeleteStmt represents: DELETE [TOP (n)] [<alias>] FROM <table> [AS <alias>] [OUTPUT …] [WHERE <predicate>]
 type DeleteStmt struct {
-	Top           string // expression inside TOP(n); empty if absent
-	Table         string // table name
-	Alias         string // table alias; empty if none
-	AliasExplicit bool   // true when the AS keyword preceded the alias
-	Where         Expr   // WHERE predicate; nil if absent
+	Top           string        // expression inside TOP(n); empty if absent
+	Table         string        // table name
+	Alias         string        // table alias; empty if none
+	AliasExplicit bool          // true when the AS keyword preceded the alias
+	Output        *OutputClause // OUTPUT clause; nil if absent
+	Where         Expr          // WHERE predicate; nil if absent
 }
 
 func (*DeleteStmt) statementNode() {}
 
 // ─── INSERT ───────────────────────────────────────────────────────────────────
 
-// InsertStmt represents INSERT INTO <table> [(cols)] VALUES (...) [, (...)]
-// or INSERT INTO <table> [(cols)] <select>.
+// InsertStmt represents INSERT INTO <table> [(cols)] [OUTPUT …] VALUES (...) [, (...)]
+// or INSERT INTO <table> [(cols)] [OUTPUT …] <select>.
 // Exactly one of Values or Select is non-nil.
 type InsertStmt struct {
 	Table   string
-	Columns []string    // target column list; nil if no explicit column list
-	Values  [][]Expr    // rows of value expressions; nil if Select is set
-	Select  *SelectStmt // INSERT … SELECT form; nil if Values is set
+	Columns []string      // target column list; nil if no explicit column list
+	Output  *OutputClause // OUTPUT clause; nil if absent
+	Values  [][]Expr      // rows of value expressions; nil if Select is set
+	Select  *SelectStmt   // INSERT … SELECT form; nil if Values is set
 }
 
 func (*InsertStmt) statementNode() {}
@@ -56,6 +68,7 @@ type UpdateStmt struct {
 	Top    string            // expression inside TOP(n); empty if absent
 	Target string            // table name (ANSI) or alias (SQL Server)
 	Sets   []UpdateSet       // SET assignments; always non-empty
+	Output *OutputClause     // OUTPUT clause; nil if absent
 	From   *UpdateFromSource // non-nil for SQL Server FROM style
 	Where  Expr              // WHERE predicate; nil if absent
 }
@@ -99,6 +112,7 @@ type MergeStmt struct {
 	Source      SelectFromSource  // USING source: named table or derived table
 	On          Expr              // ON condition
 	Clauses     []MergeWhenClause // WHEN clauses; always non-empty
+	Output      *OutputClause     // OUTPUT clause; nil if absent
 }
 
 func (*MergeStmt) statementNode() {}

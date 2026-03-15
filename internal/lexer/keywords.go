@@ -54,6 +54,7 @@ var keywords = map[string]bool{
 	"SET":      true,
 	"DELETE":   true,
 	"TRUNCATE": true,
+	"OUTPUT":   true,
 	// Conditions and logic
 	"AND":     true,
 	"OR":      true,

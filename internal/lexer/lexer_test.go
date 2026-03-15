@@ -353,8 +353,8 @@ func TestTokenizeIllegalChar(t *testing.T) {
 
 func TestTokenizeIllegalContinuesScanning(t *testing.T) {
 	// Lexer should emit Illegal and keep going.
-	// '@foo' is now a valid T-SQL variable ident; '$bar' produces Illegal '$' + Ident 'bar'.
-	tokens, _ := Tokenize("@foo $bar")
+	// '@foo' is a valid T-SQL variable ident; '?' is always Illegal.
+	tokens, _ := Tokenize("@foo ?bar")
 	var illegalCount int
 	for _, tok := range tokens {
 		if tok.Type == Illegal {
