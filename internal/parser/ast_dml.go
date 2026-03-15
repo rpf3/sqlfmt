@@ -2,8 +2,9 @@ package parser
 
 // ─── DELETE ───────────────────────────────────────────────────────────────────
 
-// DeleteStmt represents: DELETE [<alias>] FROM <table> [AS <alias>] [WHERE <predicate>]
+// DeleteStmt represents: DELETE [TOP (n)] [<alias>] FROM <table> [AS <alias>] [WHERE <predicate>]
 type DeleteStmt struct {
+	Top           string // expression inside TOP(n); empty if absent
 	Table         string // table name
 	Alias         string // table alias; empty if none
 	AliasExplicit bool   // true when the AS keyword preceded the alias
@@ -45,13 +46,14 @@ type UpdateFromSource struct {
 
 // UpdateStmt represents an UPDATE statement.
 //
-// ANSI:       UPDATE <table> SET <col=expr> [WHERE <pred>]
-// SQL Server: UPDATE <alias> SET <col=expr> FROM <table> AS <alias> [JOINs] [WHERE <pred>]
+// ANSI:       UPDATE [TOP (n)] <table> SET <col=expr> [WHERE <pred>]
+// SQL Server: UPDATE [TOP (n)] <alias> SET <col=expr> FROM <table> AS <alias> [JOINs] [WHERE <pred>]
 //
 // When From is nil the statement is ANSI style and Target is the table name.
 // When From is non-nil the statement is SQL Server style: Target is the alias
 // that appears after UPDATE, and From holds the FROM clause details.
 type UpdateStmt struct {
+	Top    string            // expression inside TOP(n); empty if absent
 	Target string            // table name (ANSI) or alias (SQL Server)
 	Sets   []UpdateSet       // SET assignments; always non-empty
 	From   *UpdateFromSource // non-nil for SQL Server FROM style
