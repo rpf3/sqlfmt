@@ -47,6 +47,9 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 	ind := f.indent()
 	var b strings.Builder
 	b.WriteString(f.kw("update"))
+	if s.Top != "" {
+		b.WriteString(" " + f.kw("top") + " (" + s.Top + ")")
+	}
 	b.WriteString("\n")
 	b.WriteString(ind)
 	b.WriteString(f.ident(s.Target))
@@ -97,9 +100,13 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 	ind := f.indent()
 	var b strings.Builder
+	topClause := ""
+	if s.Top != "" {
+		topClause = " " + f.kw("top") + " (" + s.Top + ")"
+	}
 	if s.Alias != "" {
-		// Multi-line form: DELETE <alias> FROM <table> AS <alias>
-		b.WriteString(f.kw("delete"))
+		// Multi-line form: DELETE [TOP (n)] <alias> FROM <table> AS <alias>
+		b.WriteString(f.kw("delete") + topClause)
 		b.WriteString("\n")
 		b.WriteString(ind)
 		b.WriteString(f.ident(s.Alias))
@@ -112,13 +119,13 @@ func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 		b.WriteString(f.ident(s.Alias))
 	} else if s.Where != nil {
 		// No alias but WHERE present: table on its own line for readability
-		b.WriteString(f.kw("delete from"))
+		b.WriteString(f.kw("delete") + topClause + " " + f.kw("from"))
 		b.WriteString("\n")
 		b.WriteString(ind)
 		b.WriteString(f.ident(s.Table))
 	} else {
 		// No alias, no WHERE: compact single line
-		b.WriteString(f.kw("delete from "))
+		b.WriteString(f.kw("delete") + topClause + " " + f.kw("from "))
 		b.WriteString(f.ident(s.Table))
 	}
 	if s.Where != nil {

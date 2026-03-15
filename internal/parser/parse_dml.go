@@ -6,6 +6,27 @@ import (
 	"github.com/rpf3/sqlfmt/internal/lexer"
 )
 
+// parseTopClause parses an optional TOP (n) clause immediately after a DML
+// keyword (UPDATE, DELETE). Returns the expression string inside the parens,
+// or empty string if TOP is not present. PERCENT and WITH TIES are not valid
+// in DML context and are not parsed here.
+func (p *parser) parseTopClause() string {
+	if !p.curKeyword("TOP") {
+		return ""
+	}
+	p.advance() // consume TOP
+	if p.curIs(lexer.LParen) {
+		p.advance() // consume (
+		expr, _ := p.parseExprRaw(func() bool { return false })
+		p.advance() // consume )
+		return expr
+	}
+	// bare TOP n (no parens)
+	val := p.cur.Value
+	p.advance()
+	return val
+}
+
 // parseInsert handles:
 //
 //	INSERT INTO <table> [(cols)] VALUES (...) [, (...)] [;]
@@ -89,11 +110,14 @@ func (p *parser) parseValueRow() ([]Expr, error) {
 func (p *parser) parseUpdate() (Statement, error) {
 	p.advance() // consume UPDATE
 
+	stmt := &UpdateStmt{}
+	stmt.Top = p.parseTopClause()
+
 	target, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	stmt := &UpdateStmt{Target: target}
+	stmt.Target = target
 
 	sets, err := p.parseSetClause()
 	if err != nil {
@@ -209,6 +233,9 @@ func (p *parser) parseSetClause() ([]UpdateSet, error) {
 func (p *parser) parseDelete() (Statement, error) {
 	p.advance() // consume DELETE
 
+	stmt := &DeleteStmt{}
+	stmt.Top = p.parseTopClause()
+
 	// Optional pre-FROM alias (SQL Server style: DELETE alias FROM ...).
 	// We detect it by checking whether the current token is an identifier
 	// immediately followed by the FROM keyword.
@@ -225,7 +252,7 @@ func (p *parser) parseDelete() (Statement, error) {
 		return nil, err
 	}
 
-	stmt := &DeleteStmt{Table: deleteName}
+	stmt.Table = deleteName
 
 	if p.curKeyword("AS") {
 		p.advance()
