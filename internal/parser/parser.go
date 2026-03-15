@@ -69,6 +69,11 @@ func (p *parser) curValue(v string) bool {
 	return strings.EqualFold(p.cur.Value, v)
 }
 
+// peekValue reports whether peek's value matches v (case-insensitive), regardless of token type.
+func (p *parser) peekValue(v string) bool {
+	return strings.EqualFold(p.peek.Value, v)
+}
+
 // peekKeyword reports whether peek is the keyword kw (case-insensitive).
 func (p *parser) peekKeyword(kw string) bool {
 	return p.peek.Type == lexer.Keyword && strings.EqualFold(p.peek.Value, kw)
@@ -222,6 +227,15 @@ func (p *parser) parseStatement() (Statement, error) {
 	}
 	if p.curKeyword("BEGIN") && p.peekKeyword("TRY") {
 		return p.parseTryCatch()
+	}
+	if p.curKeyword("BEGIN") && (p.peekKeyword("TRANSACTION") || p.peekValue("TRAN")) {
+		return p.parseTransaction()
+	}
+	if p.curKeyword("COMMIT") || p.curKeyword("ROLLBACK") {
+		return p.parseTransaction()
+	}
+	if p.curValue("SAVE") && (p.peekKeyword("TRANSACTION") || p.peekValue("TRAN")) {
+		return p.parseTransaction()
 	}
 	if p.curKeyword("THROW") {
 		return p.parseThrow()

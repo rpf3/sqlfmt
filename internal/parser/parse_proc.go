@@ -364,6 +364,66 @@ func (p *parser) parseTryCatch() (Statement, error) {
 //	THROW <error_number>, <message>, <state>; -- raise with arguments
 //
 // On entry p.cur is THROW.
+// parseTransaction handles BEGIN TRANSACTION, COMMIT, ROLLBACK, and SAVE TRANSACTION.
+//
+// BEGIN alone (without TRANSACTION/TRAN) is not dispatched here — it opens a
+// proc/function body and is handled by parseProcBody.
+func (p *parser) parseTransaction() (Statement, error) {
+	stmt := &TransactionStmt{}
+
+	switch {
+	case p.curKeyword("BEGIN"):
+		p.advance() // consume BEGIN
+		// consume optional TRANSACTION or TRAN
+		if p.curKeyword("TRANSACTION") || p.curValue("TRAN") {
+			p.advance()
+		}
+		stmt.Kind = TxnBegin
+		// optional savepoint name
+		if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+			stmt.Name = p.cur.Value
+			p.advance()
+		}
+
+	case p.curKeyword("COMMIT"):
+		p.advance() // consume COMMIT
+		// consume optional TRANSACTION, TRAN, or WORK
+		if p.curKeyword("TRANSACTION") || p.curValue("TRAN") || p.curValue("WORK") {
+			p.advance()
+		}
+		stmt.Kind = TxnCommit
+
+	case p.curKeyword("ROLLBACK"):
+		p.advance() // consume ROLLBACK
+		// consume optional TRANSACTION, TRAN, or WORK
+		if p.curKeyword("TRANSACTION") || p.curValue("TRAN") || p.curValue("WORK") {
+			p.advance()
+		}
+		stmt.Kind = TxnRollback
+		// optional savepoint name
+		if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+			stmt.Name = p.cur.Value
+			p.advance()
+		}
+
+	case p.curValue("SAVE"):
+		p.advance() // consume SAVE
+		// consume TRANSACTION or TRAN
+		if p.curKeyword("TRANSACTION") || p.curValue("TRAN") {
+			p.advance()
+		}
+		stmt.Kind = TxnSave
+		// savepoint name is required for SAVE TRANSACTION
+		if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+			stmt.Name = p.cur.Value
+			p.advance()
+		}
+	}
+
+	p.consumeSemicolon()
+	return stmt, nil
+}
+
 func (p *parser) parseThrow() (Statement, error) {
 	p.advance() // consume THROW
 

@@ -104,6 +104,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatPrint(s)
 	case *parser.ExecStmt:
 		return f.formatExec(s)
+	case *parser.TransactionStmt:
+		return f.formatTransaction(s)
 	case *parser.RawStmt:
 		return s.Text + ";"
 	}
