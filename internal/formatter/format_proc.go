@@ -288,8 +288,9 @@ func (f *formatter) formatTryCatch(s *parser.TryCatchStmt) string {
 }
 
 // formatTransaction formats a transaction control statement.
-// Canonical output: "begin transaction [name]", "commit", "rollback [name]",
-// "save transaction name". TRAN abbreviations and WORK are normalised away.
+// Canonical output: "begin transaction [name]", "commit transaction",
+// "rollback transaction [name]", "save transaction name".
+// TRAN abbreviations and WORK are normalised away.
 func (f *formatter) formatTransaction(s *parser.TransactionStmt) string {
 	switch s.Kind {
 	case parser.TxnBegin:
@@ -298,12 +299,12 @@ func (f *formatter) formatTransaction(s *parser.TransactionStmt) string {
 		}
 		return f.kw("begin transaction") + ";"
 	case parser.TxnCommit:
-		return f.kw("commit") + ";"
+		return f.kw("commit transaction") + ";"
 	case parser.TxnRollback:
 		if s.Name != "" {
 			return f.kw("rollback transaction") + " " + s.Name + ";"
 		}
-		return f.kw("rollback") + ";"
+		return f.kw("rollback transaction") + ";"
 	case parser.TxnSave:
 		return f.kw("save transaction") + " " + s.Name + ";"
 	}
