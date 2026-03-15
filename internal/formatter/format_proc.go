@@ -33,7 +33,11 @@ func (f *formatter) writeProcParamList(b *strings.Builder, params []parser.ProcP
 
 func (f *formatter) formatCreateProc(s *parser.CreateProcStmt) string {
 	var b strings.Builder
-	b.WriteString(f.kw("create procedure "))
+	if s.IsAlter {
+		b.WriteString(f.kw("alter procedure "))
+	} else {
+		b.WriteString(f.kw("create procedure "))
+	}
 	b.WriteString(f.ident(s.Name))
 	f.writeProcParamList(&b, s.Params)
 
@@ -53,7 +57,11 @@ func (f *formatter) formatCreateProc(s *parser.CreateProcStmt) string {
 
 func (f *formatter) formatCreateFunc(s *parser.CreateFuncStmt) string {
 	var b strings.Builder
-	b.WriteString(f.kw("create function "))
+	if s.IsAlter {
+		b.WriteString(f.kw("alter function "))
+	} else {
+		b.WriteString(f.kw("create function "))
+	}
 	b.WriteString(f.ident(s.Name))
 
 	f.writeProcParamList(&b, s.Params)

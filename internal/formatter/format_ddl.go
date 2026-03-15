@@ -8,7 +8,11 @@ import (
 )
 
 func (f *formatter) formatCreateView(s *parser.CreateViewStmt) string {
-	return f.kw("create view ") + f.ident(s.Name) + f.kw(" as") + "\n" + f.formatSelectStmt(s.Select)
+	kw := "create view "
+	if s.IsAlter {
+		kw = "alter view "
+	}
+	return f.kw(kw) + f.ident(s.Name) + f.kw(" as") + "\n" + f.formatSelectStmt(s.Select)
 }
 
 func (f *formatter) formatTruncate(s *parser.TruncateStmt) string {

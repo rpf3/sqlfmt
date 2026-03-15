@@ -29,6 +29,7 @@ type ProcParam struct {
 //	    <body>
 //	END
 type CreateProcStmt struct {
+	IsAlter     bool        // true when this was ALTER PROCEDURE
 	Name        string      // procedure name (may be schema-qualified)
 	Params      []ProcParam // parameter list; nil if no parameters
 	HasBeginEnd bool        // true when body was explicitly wrapped in BEGIN...END
@@ -62,6 +63,7 @@ const (
 //	Inline TVF:  CREATE FUNCTION <name> (<params>) RETURNS TABLE AS RETURN (<select>)
 //	Multi TVF:   CREATE FUNCTION <name> (<params>) RETURNS @var TABLE (<cols>) AS BEGIN <body> END
 type CreateFuncStmt struct {
+	IsAlter      bool        // true when this was ALTER FUNCTION
 	Name         string      // function name (may be schema-qualified)
 	Params       []ProcParam // parameter list; nil if no parameters
 	Kind         CreateFuncKind
