@@ -36,6 +36,7 @@ func (f *formatter) writeOutputClause(b *strings.Builder, out *parser.OutputClau
 
 func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 	var b strings.Builder
+	f.writeCTEList(&b, s.CTEs, false)
 	b.WriteString(f.kw("insert into "))
 	b.WriteString(f.ident(s.Table))
 
@@ -76,6 +77,7 @@ func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 	ind := f.indent()
 	var b strings.Builder
+	f.writeCTEList(&b, s.CTEs, false)
 	b.WriteString(f.kw("update"))
 	if s.Top != "" {
 		b.WriteString(" " + f.kw("top") + " (" + s.Top + ")")
@@ -132,6 +134,7 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 	ind := f.indent()
 	var b strings.Builder
+	f.writeCTEList(&b, s.CTEs, false)
 	topClause := ""
 	if s.Top != "" {
 		topClause = " " + f.kw("top") + " (" + s.Top + ")"

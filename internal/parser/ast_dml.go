@@ -14,6 +14,7 @@ type OutputClause struct {
 
 // DeleteStmt represents: DELETE [TOP (n)] [<alias>] FROM <table> [AS <alias>] [OUTPUT …] [WHERE <predicate>]
 type DeleteStmt struct {
+	CTEs          []CTEDef      // WITH clause; nil if no CTEs
 	Top           string        // expression inside TOP(n); empty if absent
 	Table         string        // table name
 	Alias         string        // table alias; empty if none
@@ -30,6 +31,7 @@ func (*DeleteStmt) statementNode() {}
 // or INSERT INTO <table> [(cols)] [OUTPUT …] <select>.
 // Exactly one of Values or Select is non-nil.
 type InsertStmt struct {
+	CTEs    []CTEDef // WITH clause; nil if no CTEs
 	Table   string
 	Columns []string      // target column list; nil if no explicit column list
 	Output  *OutputClause // OUTPUT clause; nil if absent
@@ -65,6 +67,7 @@ type UpdateFromSource struct {
 // When From is non-nil the statement is SQL Server style: Target is the alias
 // that appears after UPDATE, and From holds the FROM clause details.
 type UpdateStmt struct {
+	CTEs   []CTEDef          // WITH clause; nil if no CTEs
 	Top    string            // expression inside TOP(n); empty if absent
 	Target string            // table name (ANSI) or alias (SQL Server)
 	Sets   []UpdateSet       // SET assignments; always non-empty
