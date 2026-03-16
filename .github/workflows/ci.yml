@@ -29,7 +29,15 @@ jobs:
         run: task vet
 
       - name: test
-        run: task test
+        run: go test -coverprofile=coverage.out -covermode=count -coverpkg=./... ./...
+
+      - name: coverage summary
+        run: |
+          go tool cover -func=coverage.out | tee coverage-summary.txt
+          echo '## Test Coverage' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat coverage-summary.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: lint
         uses: golangci/golangci-lint-action@v6
