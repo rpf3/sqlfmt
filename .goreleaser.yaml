@@ -29,6 +29,7 @@ checksum:
 changelog:
   sort: asc
   use: git
+  format: '{{ regexReplaceAll "^[a-z]+!?:\\s*" .Message "" }}'
   groups:
     - title: Features
       regexp: '^feat:'
