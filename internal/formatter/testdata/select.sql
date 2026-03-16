@@ -329,3 +329,27 @@ select
 	t.id
 from
 	orders as t with (rowlock, updlock);
+
+select
+	@total = count(*)
+from
+	orders as t
+where
+	t.status = 'active';
+
+select
+	@min = min(t.amount)
+,	@max = max(t.amount)
+from
+	orders as t;
+
+select
+	@name = t.name
+from
+	customers as t
+where
+	t.id = @id;
+
+select
+	@count = 0
+,	@status = 'pending';

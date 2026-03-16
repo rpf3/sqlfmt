@@ -124,9 +124,19 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		}
 		cols = append(cols, c)
 	}
-	f.writeCommaList(&b, cols)
 
-	// FROM
+	// No-FROM SELECT: single column on the same line (e.g. "select 1;"),
+	// multiple columns via the normal comma list.
+	if s.From.Name == "" && s.From.Subquery == nil {
+		if len(cols) == 1 {
+			b.WriteString(" " + cols[0])
+		} else {
+			f.writeCommaList(&b, cols)
+		}
+		b.WriteString(";")
+		return b.String()
+	}
+	f.writeCommaList(&b, cols)
 	b.WriteString("\n" + f.kw("from"))
 	if s.From.Subquery != nil {
 		b.WriteString("\n" + ind + "(")

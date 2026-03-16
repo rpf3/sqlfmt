@@ -56,15 +56,15 @@ func (p *parser) parseSelectBranch() (*SelectStmt, error) {
 	}
 	stmt.Columns = cols
 
-	if err := p.expectKeyword("FROM"); err != nil {
-		return nil, err
-	}
+	if p.curKeyword("FROM") {
+		p.advance() // consume FROM
 
-	from, err := p.parseFromSource()
-	if err != nil {
-		return nil, err
+		from, err := p.parseFromSource()
+		if err != nil {
+			return nil, err
+		}
+		stmt.From = from
 	}
-	stmt.From = from
 
 	joins, err := p.parseJoinClauses()
 	if err != nil {
@@ -272,7 +272,8 @@ func (p *parser) parseSelectList() ([]SelectItem, error) {
 // parseSelectItem parses one SELECT list entry: <expr> [AS <alias>].
 func (p *parser) parseSelectItem() (SelectItem, error) {
 	expr := p.parseExpr(func() bool {
-		return p.curIs(lexer.Comma) || p.curKeyword("FROM") || p.curKeyword("AS")
+		return p.curIs(lexer.Comma) || p.curIs(lexer.Semicolon) ||
+			p.curKeyword("FROM") || p.curKeyword("AS")
 	})
 
 	var alias string
