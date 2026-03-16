@@ -6,6 +6,74 @@ import (
 	"github.com/rpf3/sqlfmt/internal/config"
 )
 
+// ── Control flow body recursion ───────────────────────────────────────────────
+
+func TestLintControlFlowRecursion(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name: "update-without-where inside IF then branch",
+			input: `if @run = 1 begin
+	update dbo.orders set status = 'active';
+end;`,
+			wantRule: config.RuleUpdateWithoutWhere,
+		},
+		{
+			name: "update-without-where inside IF else branch",
+			input: `if @run = 1 begin
+	update dbo.orders set status = 'active' where id = 1;
+end else begin
+	update dbo.orders set status = 'inactive';
+end;`,
+			wantRule: config.RuleUpdateWithoutWhere,
+		},
+		{
+			name: "delete-without-where inside WHILE body",
+			input: `while @i < 10 begin
+	delete from dbo.logs;
+	set @i = @i + 1;
+end;`,
+			wantRule: config.RuleDeleteWithoutWhere,
+		},
+		{
+			name: "select-star inside TRY body",
+			input: `begin try
+	select * from dbo.orders as o;
+end try
+begin catch
+	throw;
+end catch;`,
+			wantRule: config.RuleSelectStar,
+		},
+		{
+			name: "update-without-where inside CATCH body",
+			input: `begin try
+	select id from dbo.orders as o;
+end try
+begin catch
+	update dbo.errors set handled = 1;
+	throw;
+end catch;`,
+			wantRule: config.RuleUpdateWithoutWhere,
+		},
+		{
+			name: "clean statements inside IF are not flagged",
+			input: `if @run = 1 begin
+	update dbo.orders set status = 'active' where id = @id;
+end;`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+}
+
 func TestLintEmptyCatch(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -24,7 +92,7 @@ end catch;`,
 		{
 			name: "catch with throw is clean",
 			input: `begin try
-	insert into orders (customer_id) values (42);
+	insert into dbo.orders (customer_id) values (42);
 end try
 begin catch
 	rollback transaction;
@@ -49,7 +117,7 @@ func TestLintCatchWithoutThrow(t *testing.T) {
 		{
 			name: "catch without throw warns",
 			input: `begin try
-	insert into orders (customer_id) values (42);
+	insert into dbo.orders (customer_id) values (42);
 end try
 begin catch
 	rollback transaction;
@@ -59,7 +127,7 @@ end catch;`,
 		{
 			name: "catch with direct throw is clean",
 			input: `begin try
-	insert into orders (customer_id) values (42);
+	insert into dbo.orders (customer_id) values (42);
 end try
 begin catch
 	rollback transaction;
@@ -70,7 +138,7 @@ end catch;`,
 		{
 			name: "throw inside if branch satisfies rule",
 			input: `begin try
-	insert into orders (customer_id) values (42);
+	insert into dbo.orders (customer_id) values (42);
 end try
 begin catch
 	if @@trancount > 0 begin
@@ -83,7 +151,7 @@ end catch;`,
 		{
 			name: "empty catch fires empty-catch not catch-without-throw",
 			input: `begin try
-	insert into orders (customer_id) values (42);
+	insert into dbo.orders (customer_id) values (42);
 end try
 begin catch
 end catch;`,

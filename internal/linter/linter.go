@@ -161,11 +161,26 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkCreateFunc(s)
 	case *parser.TryCatchStmt:
 		l.checkTryCatch(s)
+		l.checkStmtList(s.TryBody)
+		l.checkStmtList(s.CatchBody)
+	case *parser.IfStmt:
+		l.checkStmtList(s.Then)
+		l.checkStmtList(s.Else)
+	case *parser.WhileStmt:
+		l.checkStmtList(s.Body)
 	case *parser.ExecStmt:
 		l.checkExecStmt(s)
 	}
 	l.checkSchemaQualification(stmt)
 	l.checkIdentsWithSpaces(stmt)
+}
+
+// checkStmtList runs checkStatement on each statement in a slice.
+// Used to recurse into IF/WHILE/TRY-CATCH bodies.
+func (l *linter) checkStmtList(stmts []parser.Statement) {
+	for _, stmt := range stmts {
+		l.checkStatement(stmt)
+	}
 }
 
 func (l *linter) checkCreateIndex(s *parser.CreateIndexStmt) {
