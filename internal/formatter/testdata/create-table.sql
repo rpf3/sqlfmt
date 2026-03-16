@@ -58,3 +58,16 @@ create table orders
 ,	constraint pk_orders
 		primary key (id)
 );
+
+create table order_lines
+(
+	id int not null
+,	unit_price decimal(10, 2) not null
+,	quantity int not null
+,	total as unit_price * quantity
+,	total_persisted as unit_price * quantity persisted
+,	total_not_null as unit_price * quantity persisted not null
+
+,	constraint pk_order_lines
+		primary key (id)
+);

@@ -39,9 +39,15 @@ type IdentitySpec struct {
 }
 
 // ColumnDef is one column in a CREATE TABLE column list.
+// For regular columns, DataType is set and Computed is false.
+// For computed columns (AS expr), Computed is true and ComputedExpr holds the expression;
+// DataType is empty. Persisted is only meaningful when Computed is true.
 type ColumnDef struct {
 	Name              string           // column name
 	DataType          string           // e.g. "INTEGER", "TEXT", "VARCHAR(255)", "NUMERIC(10, 2)"
+	Computed          bool             // true for AS <expr> computed columns
+	ComputedExpr      Expr             // expression for computed columns; nil for regular columns
+	Persisted         bool             // PERSISTED keyword present (computed columns only)
 	Identity          *IdentitySpec    // optional IDENTITY attribute; nil if absent
 	PrimaryKey        bool             // PRIMARY KEY inline constraint
 	DefaultConstraint string           // optional CONSTRAINT name preceding DEFAULT; empty if unnamed
