@@ -459,7 +459,7 @@ func TestTokenizeSelectKeywords(t *testing.T) {
 		"SELECT", "DISTINCT", "FROM", "WHERE", "AS",
 		"GROUP", "BY", "HAVING", "ORDER", "ASC", "DESC",
 		// Row limiting
-		"OFFSET", "ROWS", "ROW", "FETCH", "NEXT", "FIRST", "ONLY", "LIMIT",
+		"OFFSET", "ROWS", "ROW", "FETCH", "NEXT", "FIRST", "ONLY",
 		// Joins
 		"JOIN", "INNER", "LEFT", "RIGHT", "FULL", "OUTER", "CROSS",
 		"ON", "USING",

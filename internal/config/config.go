@@ -49,7 +49,6 @@ const (
 	RuleIndexDirection              = "index-direction"
 	RuleOrderByDirection            = "order-by-direction"
 	RuleAliasWithoutAs              = "alias-without-as"
-	RuleNoLimit                     = "no-limit"
 	RuleOffsetRows                  = "offset-rows"
 	RuleExistsSelectOne             = "exists-select-one"
 	RuleDeleteWithoutWhere          = "delete-without-where"
@@ -80,7 +79,6 @@ var knownRules = map[string]bool{
 	RuleIndexDirection:              true,
 	RuleOrderByDirection:            true,
 	RuleAliasWithoutAs:              true,
-	RuleNoLimit:                     true,
 	RuleOffsetRows:                  true,
 	RuleExistsSelectOne:             true,
 	RuleDeleteWithoutWhere:          true,

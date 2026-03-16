@@ -264,12 +264,6 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		b.WriteString("\n" + ind + s.Fetch + " " + f.kw("rows only"))
 	}
 
-	// LIMIT n (non-ANSI; lint rule #35 warns about this)
-	if s.Limit != "" {
-		b.WriteString("\n" + f.kw("limit"))
-		b.WriteString("\n" + ind + s.Limit)
-	}
-
 	b.WriteString(";")
 	return b.String()
 }
