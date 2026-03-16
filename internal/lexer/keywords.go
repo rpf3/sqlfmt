@@ -148,7 +148,6 @@ var keywords = map[string]bool{
 	"FETCH":     true,
 	"NEXT":      true,
 	"ONLY":      true,
-	"LATERAL":   true,
 }
 
 // isKeyword reports whether word (any casing) is a SQL reserved word.
