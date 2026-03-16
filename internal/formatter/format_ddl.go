@@ -131,6 +131,23 @@ func (f *formatter) writeRefActions(b *strings.Builder, ind string, onDelete, on
 func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 	ind := f.indent()
 	b.WriteString(f.ident(col.Name))
+
+	// Computed column: <name> as <expr> [persisted] [not null|null]
+	if col.Computed {
+		b.WriteString(" " + f.kw("as") + " ")
+		b.WriteString(parser.Render(col.ComputedExpr))
+		if col.Persisted {
+			b.WriteString(" " + f.kw("persisted"))
+		}
+		switch col.Nullability {
+		case parser.NullabilityNotNull:
+			b.WriteString(" " + f.kw("not null"))
+		case parser.NullabilityNull:
+			b.WriteString(" " + f.kw("null"))
+		}
+		return
+	}
+
 	b.WriteString(" ")
 	b.WriteString(f.kw(strings.ToLower(col.DataType)))
 	if col.Identity != nil {

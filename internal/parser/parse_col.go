@@ -342,11 +342,33 @@ func (p *parser) parseColNullability() Nullability {
 	}
 }
 
-// parseColumnDef parses a column definition: <name> <datatype> [constraints...].
+// parseColumnDef parses a column definition: <name> <datatype> [constraints...]
+// or a computed column: <name> AS <expr> [PERSISTED] [NULL|NOT NULL].
 func (p *parser) parseColumnDef() (ColumnDef, error) {
 	nameTok, err := p.expectIdent()
 	if err != nil {
 		return ColumnDef{}, err
+	}
+
+	// Computed column: <name> AS <expr> [PERSISTED] [NULL|NOT NULL]
+	if p.curKeyword("AS") {
+		p.advance() // consume AS
+		expr := p.parseExpr(func() bool {
+			return p.curKeyword("PERSISTED") ||
+				p.curKeyword("NOT") || p.curKeyword("NULL") ||
+				p.curIs(lexer.Comma) || p.curIs(lexer.RParen)
+		})
+		col := ColumnDef{
+			Name:         nameTok.Value,
+			Computed:     true,
+			ComputedExpr: expr,
+		}
+		if p.curKeyword("PERSISTED") {
+			p.advance() // consume PERSISTED
+			col.Persisted = true
+		}
+		col.Nullability = p.parseColNullability()
+		return col, nil
 	}
 
 	dataType, err := p.parseDataType()

@@ -103,6 +103,7 @@ var keywords = map[string]bool{
 	// Type-related
 	"CAST":       true,
 	"IDENTITY":   true,
+	"PERSISTED":  true,
 	"PRIMARY":    true,
 	"KEY":        true,
 	"FOREIGN":    true,
