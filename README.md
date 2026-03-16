@@ -14,6 +14,36 @@ sqlfmt reads T-SQL source files and rewrites them in a consistent canonical styl
 - Language-defined names (`varchar`, `@@rowcount`, built-in functions) normalised to lowercase
 - User-defined names (tables, columns, aliases, variables) preserved verbatim
 
+## Installation
+
+**One-line installer** (Linux and macOS):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | sh
+```
+
+Installs the latest release to `~/.local/bin/sqlfmt`. Override the destination with `INSTALL_DIR`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | INSTALL_DIR=/usr/local/bin sh
+```
+
+Pin a specific version with `SQLFMT_VERSION`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | SQLFMT_VERSION=v1.0.0 sh
+```
+
+**Go install:**
+
+```sh
+go install github.com/rpf3/sqlfmt/cmd/sqlfmt@latest
+```
+
+**Manual download:**
+
+Download a pre-built binary for your platform from the [releases page](https://github.com/rpf3/sqlfmt/releases).
+
 ## Usage
 
 ```sh
@@ -54,33 +84,3 @@ sqlfmt supports the following T-SQL statement types:
 **Procedural:** `DECLARE`, `SET`, `IF`/`ELSE`, `WHILE`, `BEGIN`/`END`, `TRY`/`CATCH`, `THROW`, `PRINT`, `EXEC`, transaction control
 **CTEs:** `WITH` (including recursive), `WITH` in DML statements
 **Clauses:** `TOP`, `OUTPUT`, `PIVOT`/`UNPIVOT`, `APPLY`, window functions, `GROUP BY` extensions (`ROLLUP`, `CUBE`, `GROUPING SETS`)
-
-## Installation
-
-**One-line installer** (Linux and macOS):
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | sh
-```
-
-Installs the latest release to `~/.local/bin/sqlfmt`. Override the destination with `INSTALL_DIR`:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | INSTALL_DIR=/usr/local/bin sh
-```
-
-Pin a specific version with `SQLFMT_VERSION`:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | SQLFMT_VERSION=v1.0.0 sh
-```
-
-**Go install:**
-
-```sh
-go install github.com/rpf3/sqlfmt/cmd/sqlfmt@latest
-```
-
-**Manual download:**
-
-Download a pre-built binary for your platform from the [releases page](https://github.com/rpf3/sqlfmt/releases).
