@@ -345,12 +345,6 @@ func joinKeyword(jt parser.JoinType) string {
 		return "full outer join"
 	case parser.JoinCross:
 		return "cross join"
-	case parser.JoinNatural:
-		return "natural join"
-	case parser.JoinNaturalLeft:
-		return "natural left join"
-	case parser.JoinNaturalRight:
-		return "natural right join"
 	case parser.JoinCrossApply:
 		return "cross apply"
 	case parser.JoinOuterApply:
