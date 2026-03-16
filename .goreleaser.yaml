@@ -29,6 +29,7 @@ checksum:
 changelog:
   sort: asc
   use: git
+  format: "{{ .Message }}"
   groups:
     - title: Features
       regexp: '^feat:'
