@@ -114,13 +114,14 @@ const (
 	AlterDropColumn                                 // DROP COLUMN <name>
 	AlterAddConstraint                              // ADD [CONSTRAINT <name>] <constraint>
 	AlterDropConstraint                             // DROP CONSTRAINT <name>
+	AlterAlterColumn                                // ALTER COLUMN <col_def>
 )
 
 // AlterTableAction holds the data for one ALTER TABLE action.
 // Only the fields relevant to the action Type are populated.
 type AlterTableAction struct {
 	Type           AlterTableActionType
-	Column         *ColumnDef       // AlterAddColumn
+	Column         *ColumnDef       // AlterAddColumn, AlterAlterColumn
 	ColumnName     string           // AlterDropColumn
 	Constraint     *TableConstraint // AlterAddConstraint
 	ConstraintName string           // AlterDropConstraint

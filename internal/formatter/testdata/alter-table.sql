@@ -10,3 +10,12 @@ alter table recipes
 
 alter table recipes
 	drop constraint uq_recipes_name_description;
+
+alter table dbo.orders
+	alter column status nvarchar(50) not null;
+
+alter table dbo.orders
+	alter column amount decimal(18, 2) null;
+
+alter table dbo.orders
+	alter column code nvarchar(max) not null;
