@@ -66,7 +66,6 @@ var keywords = map[string]bool{
 	"EXISTS":  true,
 	"BETWEEN": true,
 	"LIKE":    true,
-	"ILIKE":   true,
 	"IS":      true,
 	"NULL":    true,
 	"TRUE":    true,
