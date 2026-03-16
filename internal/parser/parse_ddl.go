@@ -47,7 +47,7 @@ func (p *parser) parseAlterTable() (Statement, error) {
 		return nil, err
 	}
 
-	nameTok, err := p.expectIdent()
+	name, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (p *parser) parseAlterTable() (Statement, error) {
 	p.consumeSemicolon()
 
 	stmt := &AlterTableStmt{
-		Name:   nameTok.Value,
+		Name:   name,
 		Action: action,
 	}
 	return stmt, nil
@@ -74,8 +74,11 @@ func (p *parser) parseAlterTableAction() (AlterTableAction, error) {
 	if p.curKeyword("DROP") {
 		return p.parseAlterDrop()
 	}
+	if p.curKeyword("ALTER") {
+		return p.parseAlterAlter()
+	}
 	return AlterTableAction{}, fmt.Errorf(
-		"expected ADD or DROP at %d:%d, got %s %q",
+		"expected ADD, DROP, or ALTER at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
 }
@@ -143,6 +146,32 @@ func (p *parser) parseAlterDrop() (AlterTableAction, error) {
 		"expected COLUMN or CONSTRAINT after DROP at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
+}
+
+// parseAlterAlter handles: ALTER COLUMN <name> <datatype> [NULL|NOT NULL]
+func (p *parser) parseAlterAlter() (AlterTableAction, error) {
+	p.advance() // consume ALTER
+	if err := p.expectKeyword("COLUMN"); err != nil {
+		return AlterTableAction{}, err
+	}
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return AlterTableAction{}, err
+	}
+	dataType, err := p.parseDataType()
+	if err != nil {
+		return AlterTableAction{}, err
+	}
+	col := ColumnDef{
+		Name:        nameTok.Value,
+		DataType:    dataType,
+		Nullability: p.parseColNullability(),
+	}
+	action := AlterTableAction{
+		Type:   AlterAlterColumn,
+		Column: &col,
+	}
+	return action, nil
 }
 
 // parseDrop handles DROP TABLE, DROP VIEW, and DROP INDEX.
