@@ -27,3 +27,7 @@ SELECT t.id,t.status FROM orders AS t WITH (NOLOCK);
 SELECT t.id,t.status FROM orders t WITH (NOLOCK);
 SELECT o.id,c.name FROM orders AS o WITH (NOLOCK) INNER JOIN customers AS c WITH (NOLOCK) ON c.id = o.customer_id;
 SELECT t.id FROM orders AS t WITH (ROWLOCK, UPDLOCK);
+SELECT @total = count(*) FROM orders AS t WHERE t.status = 'active';
+SELECT @min = min(t.amount),@max = max(t.amount) FROM orders AS t;
+SELECT @name = t.name FROM customers AS t WHERE t.id = @id;
+SELECT @count = 0,@status = 'pending';
