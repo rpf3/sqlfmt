@@ -138,17 +138,6 @@ func TestParseSelectOffsetFetch(t *testing.T) {
 	}
 }
 
-func TestParseSelectLimit(t *testing.T) {
-	stmt := parseSelect(t, "select * from orders limit 10;")
-
-	if stmt.Limit != "10" {
-		t.Errorf("Limit: got %q, want %q", stmt.Limit, "10")
-	}
-	if stmt.Fetch != "" {
-		t.Errorf("Fetch: got %q, want empty", stmt.Fetch)
-	}
-}
-
 func TestParseSelectWindowFunction(t *testing.T) {
 	stmt := parseSelect(t,
 		"select t.id, row_number() over (partition by t.customer_id order by t.created_at desc) as rn from orders as t;",

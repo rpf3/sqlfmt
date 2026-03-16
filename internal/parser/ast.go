@@ -156,7 +156,6 @@ type SelectStmt struct {
 	Offset        string        // n from OFFSET n ROWS; empty if absent
 	OffsetHasRows bool          // true when ROWS or ROW keyword followed the offset value
 	Fetch         string        // n from FETCH NEXT n ROWS ONLY; empty if absent
-	Limit         string        // n from LIMIT n (non-ANSI); empty if absent
 }
 
 func (*SelectStmt) statementNode() {}

@@ -14,7 +14,6 @@ var keywords = map[string]bool{
 	"BY":        true,
 	"HAVING":    true,
 	"ORDER":     true,
-	"LIMIT":     true,
 	"OFFSET":    true,
 	"UNION":     true,
 	"INTERSECT": true,

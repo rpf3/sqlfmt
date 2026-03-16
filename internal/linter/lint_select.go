@@ -88,12 +88,6 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 		}
 	}
 
-	// #35 no-limit
-	if s.Limit != "" {
-		l.warn(config.RuleNoLimit,
-			"LIMIT is non-ANSI; use FETCH NEXT n ROWS ONLY instead")
-	}
-
 	// #36 offset-rows
 	if s.Offset != "" && !s.OffsetHasRows {
 		l.warn(config.RuleOffsetRows,

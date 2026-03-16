@@ -14,7 +14,7 @@ func (p *parser) isSetOpKeyword() bool {
 
 // parseSelectBranch parses one SELECT branch: SELECT [DISTINCT] cols FROM …
 // [JOINs] [WHERE] [GROUP BY] [HAVING]. It stops before ORDER BY, OFFSET,
-// FETCH, LIMIT, set operators (UNION/INTERSECT/EXCEPT), semicolons, and
+// FETCH, set operators (UNION/INTERSECT/EXCEPT), semicolons, and
 // closing parentheses. The ORDER BY and pagination clauses are parsed by the
 // enclosing parseSelectCore so they apply to the whole compound query.
 func (p *parser) parseSelectBranch() (*SelectStmt, error) {
@@ -80,7 +80,7 @@ func (p *parser) parseSelectBranch() (*SelectStmt, error) {
 				p.curKeyword("GROUP") || p.curKeyword("HAVING") ||
 				p.curKeyword("WINDOW") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
-				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+				p.curKeyword("FETCH") ||
 				p.isSetOpKeyword() ||
 				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
 		}
@@ -116,7 +116,7 @@ func (p *parser) parseSelectBranch() (*SelectStmt, error) {
 		stmt.Having = p.parseAndChain(func() bool {
 			return p.curKeyword("WINDOW") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
-				p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+				p.curKeyword("FETCH") ||
 				p.isSetOpKeyword() ||
 				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
 		})
@@ -236,15 +236,6 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 		if p.curKeyword("ONLY") {
 			p.advance()
 		}
-	}
-
-	if p.curKeyword("LIMIT") {
-		p.advance()
-		tok, err := p.expect(lexer.IntLit)
-		if err != nil {
-			return nil, err
-		}
-		stmt.Limit = tok.Value
 	}
 
 	return stmt, nil
@@ -468,7 +459,7 @@ func (p *parser) parseGroupByItem() (GroupByItem, error) {
 		return p.curIs(lexer.Comma) || p.curKeyword("HAVING") ||
 			p.curKeyword("WINDOW") ||
 			p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
-			p.curKeyword("FETCH") || p.curKeyword("LIMIT") ||
+			p.curKeyword("FETCH") ||
 			p.isSetOpKeyword() ||
 			p.curIs(lexer.Semicolon)
 	}
