@@ -57,6 +57,30 @@ sqlfmt supports the following T-SQL statement types:
 
 ## Installation
 
+**One-line installer** (Linux and macOS):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | sh
+```
+
+Installs the latest release to `~/.local/bin/sqlfmt`. Override the destination with `INSTALL_DIR`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | INSTALL_DIR=/usr/local/bin sh
+```
+
+Pin a specific version with `SQLFMT_VERSION`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | SQLFMT_VERSION=v1.0.0 sh
+```
+
+**Go install:**
+
 ```sh
 go install github.com/rpf3/sqlfmt/cmd/sqlfmt@latest
 ```
+
+**Manual download:**
+
+Download a pre-built binary for your platform from the [releases page](https://github.com/rpf3/sqlfmt/releases).
