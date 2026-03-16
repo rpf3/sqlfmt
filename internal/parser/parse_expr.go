@@ -32,21 +32,20 @@ var sqlDataTypes = map[string]bool{
 var builtinFunctions = map[string]bool{
 	// Aggregate
 	"COUNT": true, "SUM": true, "AVG": true, "MAX": true, "MIN": true,
-	"STRING_AGG": true, "LISTAGG": true, "GROUP_CONCAT": true,
+	"STRING_AGG": true,
 	// Window
 	"ROW_NUMBER": true, "RANK": true, "DENSE_RANK": true, "NTILE": true,
 	"LAG": true, "LEAD": true, "FIRST_VALUE": true, "LAST_VALUE": true,
 	"CUME_DIST": true, "PERCENT_RANK": true,
 	// Null / conditional
-	"COALESCE": true, "NULLIF": true, "ISNULL": true, "NVL": true,
-	"IFNULL": true, "IIF": true,
+	"COALESCE": true, "NULLIF": true, "ISNULL": true, "IIF": true,
 	// String
 	"UPPER": true, "LOWER": true, "TRIM": true, "LTRIM": true, "RTRIM": true,
-	"LEN": true, "LENGTH": true, "SUBSTRING": true, "SUBSTR": true,
+	"LEN": true, "SUBSTRING": true,
 	"REPLACE": true, "CHARINDEX": true, "PATINDEX": true, "STUFF": true,
 	"CONCAT": true,
 	// Date / time
-	"GETDATE": true, "NOW": true, "DATEADD": true, "DATEDIFF": true,
+	"GETDATE": true, "DATEADD": true, "DATEDIFF": true,
 	"DATEPART": true, "DATENAME": true, "YEAR": true, "MONTH": true, "DAY": true,
 	"EOMONTH": true, "SYSDATETIME": true, "FORMAT": true,
 	// Type conversion (CAST is already a keyword)
