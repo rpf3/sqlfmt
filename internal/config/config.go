@@ -69,6 +69,7 @@ const (
 	RuleCatchWithoutThrow           = "catch-without-throw"
 	RuleExecNamedParams             = "exec-named-params"
 	RuleNoCascadeFk                 = "no-cascade-fk"
+	RuleComputedColumnNullability   = "computed-column-nullability"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -99,6 +100,7 @@ var knownRules = map[string]bool{
 	RuleCatchWithoutThrow:           true,
 	RuleExecNamedParams:             true,
 	RuleNoCascadeFk:                 true,
+	RuleComputedColumnNullability:   true,
 }
 
 // Config holds all formatting and linting options for sqlfmt.
