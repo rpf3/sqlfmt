@@ -10,9 +10,3 @@ alter table recipes
 
 alter table recipes
 	drop constraint uq_recipes_name_description;
-
-alter table ingredients
-	rename to ingredient;
-
-alter table recipe_ingredients
-	rename column quantity to amount;

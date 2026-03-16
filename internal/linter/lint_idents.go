@@ -50,11 +50,6 @@ func (l *linter) checkIdentsWithSpaces(stmt parser.Statement) {
 				l.checkIdentSpaces(s.Action.Column.Name,
 					fmt.Sprintf("table %q: column", s.Name))
 			}
-		case parser.AlterRenameTable:
-			l.checkIdentSpaces(s.Action.NewName, "table")
-		case parser.AlterRenameColumn:
-			l.checkIdentSpaces(s.Action.NewName,
-				fmt.Sprintf("table %q: column", s.Name))
 		}
 
 	case *parser.CreateTypeStmt:

@@ -323,14 +323,6 @@ func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
 	case parser.AlterDropConstraint:
 		b.WriteString(f.kw("drop constraint "))
 		b.WriteString(f.ident(s.Action.ConstraintName))
-	case parser.AlterRenameTable:
-		b.WriteString(f.kw("rename to "))
-		b.WriteString(f.ident(s.Action.NewName))
-	case parser.AlterRenameColumn:
-		b.WriteString(f.kw("rename column "))
-		b.WriteString(f.ident(s.Action.ColumnName))
-		b.WriteString(" " + f.kw("to") + " ")
-		b.WriteString(f.ident(s.Action.NewName))
 	}
 
 	b.WriteString(";")
