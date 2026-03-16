@@ -2,3 +2,6 @@ ALTER TABLE ingredients ADD COLUMN notes TEXT NULL;
 ALTER TABLE ingredients DROP COLUMN notes;
 ALTER TABLE recipes ADD CONSTRAINT uq_recipes_name_description UNIQUE(name,description);
 ALTER TABLE recipes DROP CONSTRAINT uq_recipes_name_description;
+ALTER TABLE dbo.orders ALTER COLUMN status NVARCHAR(50) NOT NULL;
+ALTER TABLE dbo.orders ALTER COLUMN amount DECIMAL(18,2) NULL;
+ALTER TABLE dbo.orders ALTER COLUMN code NVARCHAR(MAX) NOT NULL;
