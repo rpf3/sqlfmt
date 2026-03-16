@@ -8,7 +8,6 @@ SELECT o.id,c.name AS customer_name,p.name AS product_name,oi.quantity FROM orde
 SELECT o.id,o.total_amount,c.name FROM orders AS o RIGHT JOIN customers AS c ON c.id = o.customer_id;
 SELECT o.id,c.name FROM orders AS o FULL OUTER JOIN customers AS c ON c.id = o.customer_id;
 SELECT s.name AS size,c.name AS colour FROM sizes AS s CROSS JOIN colours AS c;
-SELECT o.id,c.name FROM orders AS o INNER JOIN customers AS c USING (customer_id);
 SELECT t.status,count(*) AS order_count,sum(t.total_amount) AS total FROM orders AS t GROUP BY t.status HAVING count(*) > 10;
 SELECT t.id,t.created_at,t.total_amount FROM orders AS t ORDER BY t.created_at DESC,t.id ASC;
 SELECT t.id,t.name FROM products AS t ORDER BY t.name ASC OFFSET 40 ROWS FETCH NEXT 20 ROWS ONLY;

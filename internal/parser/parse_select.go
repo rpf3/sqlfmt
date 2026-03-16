@@ -531,7 +531,7 @@ func (p *parser) isNextJoin() bool {
 }
 
 // parseJoinClauses consumes zero or more JOIN clauses following a FROM source.
-// Each clause is: <join-type> <table> [AS <alias>] (ON <expr> | USING (<cols>)).
+// Each clause is: <join-type> <table> [AS <alias>] ON <expr>.
 // parseJoinType consumes the join-keyword sequence and returns the
 // corresponding JoinType constant. It is called once per iteration of the
 // parseJoinClauses loop, with p.cur already positioned at the first keyword
@@ -702,13 +702,6 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 					p.curKeyword("LIMIT") || p.isSetOpKeyword() ||
 					p.curIs(lexer.Semicolon)
 			})
-		} else if p.curKeyword("USING") {
-			p.advance()
-			cols, err := p.parseIdentList()
-			if err != nil {
-				return nil, err
-			}
-			jc.Using = cols
 		}
 
 		joins = append(joins, jc)

@@ -230,18 +230,6 @@ func TestFormatSelectCrossJoin(t *testing.T) {
 	}
 }
 
-// TestFormatSelectJoinUsing verifies USING clause is double-indented.
-func TestFormatSelectJoinUsing(t *testing.T) {
-	input := "select o.id, c.name from orders as o inner join customers as c using (customer_id);"
-	got, err := Format(input, config.Default())
-	if err != nil {
-		t.Fatalf("Format() unexpected error: %v", err)
-	}
-	if !strings.Contains(got, "\n\t\tusing (customer_id);") {
-		t.Errorf("missing double-indented USING line in:\n%s", got)
-	}
-}
-
 // TestFormatSelectMultipleJoins verifies consecutive JOIN blocks are all emitted.
 func TestFormatSelectMultipleJoins(t *testing.T) {
 	input := "select o.id from orders as o inner join customers as c on c.id = o.customer_id inner join products as p on p.id = o.product_id;"
@@ -259,7 +247,6 @@ func TestFormatSelectJoinIdempotent(t *testing.T) {
 	inputs := []string{
 		"select o.id, c.name from orders as o inner join customers as c on c.id = o.customer_id;",
 		"select s.name, c.name from sizes as s cross join colours as c;",
-		"select o.id, c.name from orders as o inner join customers as c using (customer_id);",
 		"select o.id from orders as o left join items as i on i.order_id = o.id right join vendors as v on v.id = i.vendor_id;",
 	}
 	for _, input := range inputs {
