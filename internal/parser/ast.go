@@ -53,6 +53,7 @@ const (
 type JoinClause struct {
 	Type          JoinType
 	Name          string      // joined table name; empty for APPLY subquery sources
+	Hints         string      // table hints e.g. "(nolock)"; empty if none
 	Alias         string      // table alias; empty if none
 	AliasExplicit bool        // true when the AS keyword preceded the alias
 	On            Expr        // ON condition; nil for CROSS
@@ -123,6 +124,7 @@ type GroupByItem struct {
 // Exactly one of Name (a table name) or Subquery is non-zero.
 type SelectFromSource struct {
 	Name          string       // table name; empty for a subquery
+	Hints         string       // table hints e.g. "(nolock)"; empty if none
 	Subquery      *SelectStmt  // derived table; nil for a named table
 	Alias         string       // alias for either kind; empty if no alias
 	AliasExplicit bool         // true when the AS keyword preceded the alias

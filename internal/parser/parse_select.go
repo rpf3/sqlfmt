@@ -349,6 +349,17 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 		p.advance()
 	}
 
+	// Optional table hints: [[AS] alias] WITH (hint, ...)
+	// Hints follow the alias per the T-SQL grammar.
+	if p.curKeyword("WITH") && p.peek.Type == lexer.LParen {
+		p.advance() // consume WITH
+		hints, err := p.parseParenRaw()
+		if err != nil {
+			return SelectFromSource{}, err
+		}
+		source.Hints = hints
+	}
+
 	return source, nil
 }
 
@@ -652,6 +663,17 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 		} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
 			jc.Alias = p.cur.Value
 			p.advance()
+		}
+
+		// Optional table hints: [[AS] alias] WITH (hint, ...)
+		// Hints follow the alias per the T-SQL grammar.
+		if p.curKeyword("WITH") && p.peek.Type == lexer.LParen {
+			p.advance() // consume WITH
+			hints, err := p.parseParenRaw()
+			if err != nil {
+				return nil, err
+			}
+			jc.Hints = hints
 		}
 
 		// ON condition or USING column list
