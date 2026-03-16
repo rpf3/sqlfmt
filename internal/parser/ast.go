@@ -40,16 +40,13 @@ type SelectItem struct {
 type JoinType int
 
 const (
-	JoinInner        JoinType = iota // [INNER] JOIN
-	JoinLeft                         // LEFT [OUTER] JOIN
-	JoinRight                        // RIGHT [OUTER] JOIN
-	JoinFullOuter                    // FULL OUTER JOIN
-	JoinCross                        // CROSS JOIN
-	JoinNatural                      // NATURAL JOIN
-	JoinNaturalLeft                  // NATURAL LEFT JOIN
-	JoinNaturalRight                 // NATURAL RIGHT JOIN
-	JoinCrossApply                   // CROSS APPLY
-	JoinOuterApply                   // OUTER APPLY
+	JoinInner      JoinType = iota // [INNER] JOIN
+	JoinLeft                       // LEFT [OUTER] JOIN
+	JoinRight                      // RIGHT [OUTER] JOIN
+	JoinFullOuter                  // FULL OUTER JOIN
+	JoinCross                      // CROSS JOIN
+	JoinCrossApply                 // CROSS APPLY
+	JoinOuterApply                 // OUTER APPLY
 )
 
 // JoinClause is one JOIN clause attached to a SELECT's FROM source.

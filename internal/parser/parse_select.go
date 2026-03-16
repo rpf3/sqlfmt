@@ -526,8 +526,7 @@ func (p *parser) isNextJoin() bool {
 		(p.curKeyword("RIGHT") && (p.peekKeyword("JOIN") || p.peekKeyword("OUTER"))) ||
 		(p.curKeyword("FULL") && (p.peekKeyword("OUTER") || p.peekKeyword("JOIN"))) ||
 		(p.curKeyword("CROSS") && (p.peekKeyword("JOIN") || p.peekKeyword("APPLY"))) ||
-		(p.curKeyword("OUTER") && p.peekKeyword("APPLY")) ||
-		p.curKeyword("NATURAL")
+		(p.curKeyword("OUTER") && p.peekKeyword("APPLY"))
 }
 
 // parseJoinClauses consumes zero or more JOIN clauses following a FROM source.
@@ -586,33 +585,6 @@ func (p *parser) parseJoinType() (JoinType, error) {
 			return 0, err
 		}
 		return JoinOuterApply, nil
-	case p.curKeyword("NATURAL"):
-		p.advance() // consume NATURAL
-		switch {
-		case p.curKeyword("LEFT"):
-			p.advance() // consume LEFT
-			if p.curKeyword("OUTER") {
-				p.advance() // consume optional OUTER
-			}
-			if err := p.expectKeyword("JOIN"); err != nil {
-				return 0, err
-			}
-			return JoinNaturalLeft, nil
-		case p.curKeyword("RIGHT"):
-			p.advance() // consume RIGHT
-			if p.curKeyword("OUTER") {
-				p.advance() // consume optional OUTER
-			}
-			if err := p.expectKeyword("JOIN"); err != nil {
-				return 0, err
-			}
-			return JoinNaturalRight, nil
-		default:
-			if err := p.expectKeyword("JOIN"); err != nil {
-				return 0, err
-			}
-			return JoinNatural, nil
-		}
 	}
 	return 0, fmt.Errorf("unexpected join keyword at %d:%d: %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value)
