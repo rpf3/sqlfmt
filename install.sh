@@ -1,11 +1,15 @@
 #!/usr/bin/env sh
-# install.sh — download and install the latest sqlfmt release binary
+# install.sh — download and install a sqlfmt release binary
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/rpf3/sqlfmt/main/install.sh | sh
 #
-# By default the binary is installed to ~/.local/bin/sqlfmt.
-# Set INSTALL_DIR to override, e.g.:
+# Environment variables:
+#   SQLFMT_VERSION  — release tag to install (default: latest), e.g. v1.0.0
+#   INSTALL_DIR     — install directory (default: ~/.local/bin)
+#
+# Examples:
+#   SQLFMT_VERSION=v1.0.0 sh install.sh
 #   INSTALL_DIR=/usr/local/bin sh install.sh
 
 set -e
@@ -48,19 +52,24 @@ else
   exit 1
 fi
 
-# ── resolve latest version ───────────────────────────────────────────────────
+# ── resolve version ──────────────────────────────────────────────────────────
 
-echo "Fetching latest release..."
-VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
-  | grep '"tag_name"' \
-  | sed 's/.*"tag_name": *"\(.*\)".*/\1/')"
+if [ -n "${SQLFMT_VERSION:-}" ]; then
+  VERSION="$SQLFMT_VERSION"
+  echo "Using requested version: $VERSION"
+else
+  echo "Fetching latest release..."
+  VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+    | grep '"tag_name"' \
+    | sed 's/.*"tag_name": *"\(.*\)".*/\1/')"
 
-if [ -z "$VERSION" ]; then
-  echo "error: could not determine latest release version" >&2
-  exit 1
+  if [ -z "$VERSION" ]; then
+    echo "error: could not determine latest release version" >&2
+    exit 1
+  fi
+
+  echo "Latest version: $VERSION"
 fi
-
-echo "Latest version: $VERSION"
 
 # ── construct URLs ───────────────────────────────────────────────────────────
 
