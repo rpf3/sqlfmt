@@ -74,11 +74,8 @@ func (p *parser) parseAlterTableAction() (AlterTableAction, error) {
 	if p.curKeyword("DROP") {
 		return p.parseAlterDrop()
 	}
-	if p.curKeyword("RENAME") {
-		return p.parseAlterRename()
-	}
 	return AlterTableAction{}, fmt.Errorf(
-		"expected ADD, DROP, or RENAME at %d:%d, got %s %q",
+		"expected ADD or DROP at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
 }
@@ -144,50 +141,6 @@ func (p *parser) parseAlterDrop() (AlterTableAction, error) {
 
 	return AlterTableAction{}, fmt.Errorf(
 		"expected COLUMN or CONSTRAINT after DROP at %d:%d, got %s %q",
-		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
-	)
-}
-
-// parseAlterRename handles: RENAME TO <new_name> | RENAME COLUMN <old> TO <new>
-func (p *parser) parseAlterRename() (AlterTableAction, error) {
-	p.advance() // consume RENAME
-
-	if p.curKeyword("TO") {
-		p.advance() // consume TO
-		nameTok, err := p.expectIdent()
-		if err != nil {
-			return AlterTableAction{}, err
-		}
-		action := AlterTableAction{
-			Type:    AlterRenameTable,
-			NewName: nameTok.Value,
-		}
-		return action, nil
-	}
-
-	if p.curKeyword("COLUMN") {
-		p.advance() // consume COLUMN
-		oldTok, err := p.expectIdent()
-		if err != nil {
-			return AlterTableAction{}, err
-		}
-		if err := p.expectKeyword("TO"); err != nil {
-			return AlterTableAction{}, err
-		}
-		newTok, err := p.expectIdent()
-		if err != nil {
-			return AlterTableAction{}, err
-		}
-		action := AlterTableAction{
-			Type:       AlterRenameColumn,
-			ColumnName: oldTok.Value,
-			NewName:    newTok.Value,
-		}
-		return action, nil
-	}
-
-	return AlterTableAction{}, fmt.Errorf(
-		"expected TO or COLUMN after RENAME at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
 }

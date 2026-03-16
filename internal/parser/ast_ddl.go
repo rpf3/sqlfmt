@@ -114,8 +114,6 @@ const (
 	AlterDropColumn                                 // DROP COLUMN <name>
 	AlterAddConstraint                              // ADD [CONSTRAINT <name>] <constraint>
 	AlterDropConstraint                             // DROP CONSTRAINT <name>
-	AlterRenameTable                                // RENAME TO <new_name>
-	AlterRenameColumn                               // RENAME COLUMN <old> TO <new>
 )
 
 // AlterTableAction holds the data for one ALTER TABLE action.
@@ -123,10 +121,9 @@ const (
 type AlterTableAction struct {
 	Type           AlterTableActionType
 	Column         *ColumnDef       // AlterAddColumn
-	ColumnName     string           // AlterDropColumn; also the old name for AlterRenameColumn
+	ColumnName     string           // AlterDropColumn
 	Constraint     *TableConstraint // AlterAddConstraint
 	ConstraintName string           // AlterDropConstraint
-	NewName        string           // AlterRenameTable and AlterRenameColumn
 }
 
 // AlterTableStmt represents: ALTER TABLE <name> <action>

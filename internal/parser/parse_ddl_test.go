@@ -1060,31 +1060,6 @@ func TestParseAlterTableAction(t *testing.T) {
 		}
 	})
 
-	// ── RENAME ────────────────────────────────────────────────────────────────
-
-	t.Run("rename table", func(t *testing.T) {
-		stmt := mustParseAlterTable(t, "alter table orders rename to purchases;")
-		if stmt.Action.Type != AlterRenameTable {
-			t.Fatalf("Action.Type: got %v, want AlterRenameTable", stmt.Action.Type)
-		}
-		if stmt.Action.NewName != "purchases" {
-			t.Errorf("Action.NewName: got %q, want %q", stmt.Action.NewName, "purchases")
-		}
-	})
-
-	t.Run("rename column", func(t *testing.T) {
-		stmt := mustParseAlterTable(t, "alter table orders rename column status to order_status;")
-		if stmt.Action.Type != AlterRenameColumn {
-			t.Fatalf("Action.Type: got %v, want AlterRenameColumn", stmt.Action.Type)
-		}
-		if stmt.Action.ColumnName != "status" {
-			t.Errorf("Action.ColumnName: got %q, want %q", stmt.Action.ColumnName, "status")
-		}
-		if stmt.Action.NewName != "order_status" {
-			t.Errorf("Action.NewName: got %q, want %q", stmt.Action.NewName, "order_status")
-		}
-	})
-
 	// ── Error cases ───────────────────────────────────────────────────────────
 
 	t.Run("unknown action keyword", func(t *testing.T) {
@@ -1098,13 +1073,6 @@ func TestParseAlterTableAction(t *testing.T) {
 		result := Parse("alter table t drop index ix;")
 		if len(result.Errors) == 0 {
 			t.Error("expected parse errors for DROP without COLUMN or CONSTRAINT, got none")
-		}
-	})
-
-	t.Run("rename without to or column", func(t *testing.T) {
-		result := Parse("alter table t rename id to user_id;")
-		if len(result.Errors) == 0 {
-			t.Error("expected parse errors for RENAME without TO or COLUMN, got none")
 		}
 	})
 }
