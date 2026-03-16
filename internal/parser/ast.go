@@ -58,8 +58,7 @@ type JoinClause struct {
 	Name          string      // joined table name; empty for APPLY subquery sources
 	Alias         string      // table alias; empty if none
 	AliasExplicit bool        // true when the AS keyword preceded the alias
-	On            Expr        // ON condition; nil for CROSS or USING
-	Using         []string    // USING column list; empty if ON or CROSS
+	On            Expr        // ON condition; nil for CROSS
 	TVFArgs       string      // parenthesised arg list for APPLY TVF sources; empty for regular joins
 	Subquery      *SelectStmt // subquery source for APPLY (SELECT ...) form; nil for regular joins
 }

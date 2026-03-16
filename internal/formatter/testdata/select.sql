@@ -92,15 +92,6 @@ cross join
 	colours as c;
 
 select
-	o.id
-,	c.name
-from
-	orders as o
-inner join
-	customers as c
-		using (customer_id);
-
-select
 	t.status
 ,	count(*) as order_count
 ,	sum(t.total_amount) as total

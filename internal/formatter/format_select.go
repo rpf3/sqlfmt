@@ -171,8 +171,6 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 				for _, term := range terms[1:] {
 					b.WriteString("\n" + ind + ind + f.kw("and") + " " + parser.Render(term))
 				}
-			} else if len(jc.Using) > 0 {
-				b.WriteString("\n" + ind + ind + f.kw("using") + " (" + strings.Join(jc.Using, ", ") + ")")
 			}
 		}
 	}

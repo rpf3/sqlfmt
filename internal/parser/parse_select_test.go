@@ -400,26 +400,6 @@ func TestParseSelectCrossJoin(t *testing.T) {
 	if jc.On != nil {
 		t.Errorf("On: expected nil, got %q", Render(jc.On))
 	}
-	if len(jc.Using) != 0 {
-		t.Errorf("Using: expected empty, got %v", jc.Using)
-	}
-}
-
-func TestParseSelectJoinUsing(t *testing.T) {
-	stmt := parseSelect(t,
-		"select o.id, c.name from orders as o inner join customers as c using (customer_id);",
-	)
-
-	if len(stmt.Joins) != 1 {
-		t.Fatalf("Joins: got %d, want 1", len(stmt.Joins))
-	}
-	jc := stmt.Joins[0]
-	if jc.On != nil {
-		t.Errorf("On: expected nil, got %q", Render(jc.On))
-	}
-	if len(jc.Using) != 1 || jc.Using[0] != "customer_id" {
-		t.Errorf("Using: got %v, want [customer_id]", jc.Using)
-	}
 }
 
 func TestParseSelectMultipleJoins(t *testing.T) {
