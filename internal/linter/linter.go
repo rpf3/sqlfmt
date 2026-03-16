@@ -217,6 +217,15 @@ func (l *linter) checkCreateTable(s *parser.CreateTableStmt) {
 				),
 			)
 		}
+		if col.Computed && !col.Persisted && col.Nullability != parser.NullabilityNone {
+			l.warn(
+				config.RuleComputedColumnNullability,
+				fmt.Sprintf(
+					"table %q: column %q has a nullability constraint but is not PERSISTED; NOT NULL / NULL is only valid on a PERSISTED computed column",
+					s.Name, col.Name,
+				),
+			)
+		}
 	}
 	for _, tc := range s.Constraints {
 		if tc.Type == parser.ConstraintPrimaryKey && tc.Name == "" {

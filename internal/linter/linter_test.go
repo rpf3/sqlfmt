@@ -145,6 +145,80 @@ func TestLintIndexDirection(t *testing.T) {
 	}
 }
 
+func TestLintComputedColumnNullability(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name: "non-persisted computed column with NOT NULL warns",
+			input: `create table orders (
+				id integer not null,
+				total as unit_price * quantity not null
+			);`,
+			wantRule: config.RuleComputedColumnNullability,
+		},
+		{
+			name: "non-persisted computed column with NULL warns",
+			input: `create table orders (
+				id integer not null,
+				total as unit_price * quantity null
+			);`,
+			wantRule: config.RuleComputedColumnNullability,
+		},
+		{
+			name: "persisted computed column with NOT NULL is clean",
+			input: `create table orders (
+				id integer not null,
+				total as unit_price * quantity persisted not null
+			);`,
+			wantRule: "",
+		},
+		{
+			name: "non-persisted computed column with no nullability is clean",
+			input: `create table orders (
+				id integer not null,
+				total as unit_price * quantity
+			);`,
+			wantRule: "",
+		},
+		{
+			name: "regular column with NOT NULL is clean",
+			input: `create table orders (
+				id integer not null,
+				total numeric(10, 2) not null
+			);`,
+			wantRule: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			warnings, err := Lint(tt.input, config.Default())
+			if err != nil {
+				t.Fatalf("Lint returned unexpected error: %v", err)
+			}
+			if tt.wantRule == "" {
+				if len(warnings) != 0 {
+					t.Errorf("expected no warnings, got %d: %v", len(warnings), warnings)
+				}
+				return
+			}
+			found := false
+			for _, w := range warnings {
+				if w.Rule == tt.wantRule {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected warning with rule %q, got: %v", tt.wantRule, warnings)
+			}
+		})
+	}
+}
+
 func TestLintParseError(t *testing.T) {
 	_, err := Lint("not valid sql", config.Default())
 	if err == nil {
