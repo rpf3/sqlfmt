@@ -303,3 +303,29 @@ select
 ,	avg(t.amount) as avg_amount
 from
 	orders as t;
+
+select
+	t.id
+,	t.status
+from
+	orders as t with (nolock);
+
+select
+	t.id
+,	t.status
+from
+	orders as t with (nolock);
+
+select
+	o.id
+,	c.name
+from
+	orders as o with (nolock)
+inner join
+	customers as c with (nolock)
+		on c.id = o.customer_id;
+
+select
+	t.id
+from
+	orders as t with (rowlock, updlock);

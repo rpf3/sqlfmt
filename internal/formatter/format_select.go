@@ -144,6 +144,9 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		if s.From.Alias != "" {
 			b.WriteString(" " + f.kw("as") + " " + f.ident(s.From.Alias))
 		}
+		if s.From.Hints != "" {
+			b.WriteString(" " + f.kw("with") + " " + strings.ToLower(s.From.Hints))
+		}
 	}
 
 	// JOINs
@@ -164,6 +167,9 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 			}
 			if jc.Alias != "" {
 				b.WriteString(" " + f.kw("as") + " " + f.ident(jc.Alias))
+			}
+			if jc.Hints != "" {
+				b.WriteString(" " + f.kw("with") + " " + strings.ToLower(jc.Hints))
 			}
 			if jc.On != nil {
 				terms := parser.AndTerms(jc.On)

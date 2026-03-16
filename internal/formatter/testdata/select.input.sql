@@ -23,3 +23,7 @@ SELECT t.id,t.name FROM orders AS t WHERE t.status = 'active' AND t.region = 'us
 SELECT t.status,count(*) AS order_count FROM orders AS t GROUP BY t.status HAVING count(*) > 10 AND sum(t.amount) > 1000;
 SELECT o.id,o.status FROM orders AS o INNER JOIN customers AS c ON c.id = o.customer_id AND c.active = 1 WHERE o.status = 'active' AND o.total_amount > 0;
 SELECT COUNT(*) AS total,SUM(t.amount) AS revenue,AVG(t.amount) AS avg_amount FROM orders AS t;
+SELECT t.id,t.status FROM orders AS t WITH (NOLOCK);
+SELECT t.id,t.status FROM orders t WITH (NOLOCK);
+SELECT o.id,c.name FROM orders AS o WITH (NOLOCK) INNER JOIN customers AS c WITH (NOLOCK) ON c.id = o.customer_id;
+SELECT t.id FROM orders AS t WITH (ROWLOCK, UPDLOCK);
