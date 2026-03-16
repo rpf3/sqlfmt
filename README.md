@@ -75,12 +75,16 @@ lint_rules:
   - no-cascade-fk
 ```
 
-## Supported syntax
+## Supported Syntax
 
 sqlfmt supports the following T-SQL statement types:
 
 **DML:** `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `TRUNCATE`
+
 **DDL:** `CREATE`/`ALTER`/`DROP` TABLE, VIEW, INDEX, PROCEDURE, FUNCTION, TYPE, SCHEMA
+
 **Procedural:** `DECLARE`, `SET`, `IF`/`ELSE`, `WHILE`, `BEGIN`/`END`, `TRY`/`CATCH`, `THROW`, `PRINT`, `EXEC`, transaction control
+
 **CTEs:** `WITH` (including recursive), `WITH` in DML statements
+
 **Clauses:** `TOP`, `OUTPUT`, `PIVOT`/`UNPIVOT`, `APPLY`, window functions, `GROUP BY` extensions (`ROLLUP`, `CUBE`, `GROUPING SETS`)
