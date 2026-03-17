@@ -124,6 +124,7 @@ type GroupByItem struct {
 // Exactly one of Name (a table name) or Subquery is non-zero.
 type SelectFromSource struct {
 	Name          string       // table name; empty for a subquery
+	TVFArgs       string       // parenthesised arg list for TVF sources e.g. "(@id)"; empty for plain tables
 	Hints         string       // table hints e.g. "(nolock)"; empty if none
 	Subquery      *SelectStmt  // derived table; nil for a named table
 	Alias         string       // alias for either kind; empty if no alias
