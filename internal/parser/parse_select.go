@@ -380,6 +380,9 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 			return SelectFromSource{}, err
 		}
 		source.TVFArgs = args
+		if builtinFunctions[strings.ToUpper(source.Name)] {
+			source.Name = strings.ToLower(source.Name)
+		}
 	}
 
 	// Optional PIVOT / UNPIVOT postfix operator before the alias.
@@ -715,6 +718,9 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 				return nil, err
 			}
 			jc.TVFArgs = args
+			if builtinFunctions[strings.ToUpper(jc.Name)] {
+				jc.Name = strings.ToLower(jc.Name)
+			}
 		}
 
 		// Optional alias (AS or bare)

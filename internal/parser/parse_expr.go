@@ -57,6 +57,9 @@ var builtinFunctions = map[string]bool{
 	// JSON (SQL Server 2016+)
 	"JSON_VALUE": true, "JSON_QUERY": true, "JSON_MODIFY": true,
 	"ISJSON": true, "JSON_PATH_EXISTS": true,
+	// Table-valued functions (system)
+	"STRING_SPLIT": true, "OPENJSON": true,
+	"OPENROWSET": true, "OPENQUERY": true, "OPENXML": true, "OPENDATASOURCE": true,
 }
 
 // exprToken returns the normalised string for a single expression token:
