@@ -172,6 +172,8 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkStmtList(s.Body)
 	case *parser.ExecStmt:
 		l.checkExecStmt(s)
+	case *parser.DeclareStmt:
+		l.checkDeclareStmt(s)
 	}
 	l.checkSchemaQualification(stmt)
 	l.checkIdentsWithSpaces(stmt)
@@ -199,8 +201,19 @@ func (l *linter) checkCreateIndex(s *parser.CreateIndexStmt) {
 	}
 }
 
+// isMaxType reports whether dataType is a variable-length type with a MAX
+// length parameter, e.g. VARCHAR(MAX) or NVARCHAR(MAX).
+func isMaxType(dataType string) bool {
+	return strings.Contains(strings.ToUpper(dataType), "(MAX)")
+}
+
 func (l *linter) checkCreateTable(s *parser.CreateTableStmt) {
 	for _, col := range s.Columns {
+		if isMaxType(col.DataType) {
+			l.warn(config.RuleNoVarcharMax,
+				fmt.Sprintf("table %q: column %q uses %s; consider a bounded length unless large values are expected",
+					s.Name, col.Name, col.DataType))
+		}
 		if col.PrimaryKey {
 			l.warn(
 				config.RuleInlinePrimaryKey,
