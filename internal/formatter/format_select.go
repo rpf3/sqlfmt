@@ -34,6 +34,11 @@ func (f *formatter) formatExpr(e parser.Expr) string {
 		fnStr = fn.Name + "(" + strings.Join(args, ", ") + ")"
 	}
 
+	// Named window reference: render inline without a block.
+	if fn.Over.Ref != "" {
+		return fnStr + " " + f.kw("over") + " " + fn.Over.Ref
+	}
+
 	// Build OVER spec parts with keyword casing applied.
 	var overParts []string
 	if len(fn.Over.PartitionBy) > 0 {
