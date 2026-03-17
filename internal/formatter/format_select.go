@@ -234,6 +234,9 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	} else {
 		b.WriteString("\n" + ind)
 		b.WriteString(f.ident(s.From.Name))
+		if s.From.TVFArgs != "" {
+			b.WriteString(s.From.TVFArgs)
+		}
 		if s.From.Pivot != nil {
 			b.WriteString(f.formatPivot(s.From.Pivot))
 		}

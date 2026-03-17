@@ -373,6 +373,15 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 	}
 	source := SelectFromSource{Name: name}
 
+	// Optional TVF argument list: name(args...)
+	if p.curIs(lexer.LParen) {
+		args, err := p.parseParenRaw()
+		if err != nil {
+			return SelectFromSource{}, err
+		}
+		source.TVFArgs = args
+	}
+
 	// Optional PIVOT / UNPIVOT postfix operator before the alias.
 	if p.curKeyword("PIVOT") || p.curKeyword("UNPIVOT") {
 		pivot, err := p.parsePivotClause()
@@ -698,6 +707,15 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 			return nil, err
 		}
 		jc := JoinClause{Type: joinType, Name: joinName}
+
+		// Optional TVF argument list: name(args...)
+		if p.curIs(lexer.LParen) {
+			args, err := p.parseParenRaw()
+			if err != nil {
+				return nil, err
+			}
+			jc.TVFArgs = args
+		}
 
 		// Optional alias (AS or bare)
 		if p.curKeyword("AS") {
