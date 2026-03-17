@@ -378,10 +378,10 @@ func TestFormatSelectSubqueryIdempotent(t *testing.T) {
 // ─── window function tests ────────────────────────────────────────────────────
 
 // TestFormatSelectWindowFunction verifies window functions with PARTITION BY
-// and ORDER BY format as a single normalised expression on one column line.
+// and ORDER BY format in a block OVER clause.
 func TestFormatSelectWindowFunction(t *testing.T) {
 	input := "select t.id, t.customer_id, t.total_amount, row_number() OVER (PARTITION BY t.customer_id ORDER BY t.created_at DESC) as rn from orders as t;"
-	want := "select\n\tt.id\n,\tt.customer_id\n,\tt.total_amount\n,\trow_number() over (partition by t.customer_id order by t.created_at desc) as rn\nfrom\n\torders as t;\n"
+	want := "select\n\tt.id\n,\tt.customer_id\n,\tt.total_amount\n,\trow_number() over (\n\t\tpartition by t.customer_id order by t.created_at desc\n\t) as rn\nfrom\n\torders as t;\n"
 	got, err := Format(input, config.Default())
 	if err != nil {
 		t.Fatalf("Format() unexpected error: %v", err)
@@ -395,7 +395,7 @@ func TestFormatSelectWindowFunction(t *testing.T) {
 // omits PARTITION BY (ORDER BY only) also formats correctly.
 func TestFormatSelectWindowFunctionNoPartition(t *testing.T) {
 	input := "select t.id, t.total_amount, rank() OVER (ORDER BY t.total_amount DESC) as amount_rank from orders as t;"
-	want := "select\n\tt.id\n,\tt.total_amount\n,\trank() over (order by t.total_amount desc) as amount_rank\nfrom\n\torders as t;\n"
+	want := "select\n\tt.id\n,\tt.total_amount\n,\trank() over (\n\t\torder by t.total_amount desc\n\t) as amount_rank\nfrom\n\torders as t;\n"
 	got, err := Format(input, config.Default())
 	if err != nil {
 		t.Fatalf("Format() unexpected error: %v", err)
@@ -410,7 +410,7 @@ func TestFormatSelectWindowFunctionNoPartition(t *testing.T) {
 // HAVING, ORDER BY, and FETCH NEXT all format correctly together.
 func TestFormatSelectKitchenSink(t *testing.T) {
 	input := "select distinct c.id, c.name as customer_name, sum(o.total_amount) as lifetime_value, count(o.id) as order_count, row_number() over (order by sum(o.total_amount) desc) as value_rank from customers as c inner join orders as o on o.customer_id = c.id where c.created_at >= '2024-01-01' group by c.id, c.name having sum(o.total_amount) > 1000 order by lifetime_value desc fetch next 100 rows only;"
-	want := "select distinct\n\tc.id\n,\tc.name as customer_name\n,\tsum(o.total_amount) as lifetime_value\n,\tcount(o.id) as order_count\n,\trow_number() over (order by sum(o.total_amount) desc) as value_rank\nfrom\n\tcustomers as c\ninner join\n\torders as o\n\t\ton o.customer_id = c.id\nwhere\n\tc.created_at >= '2024-01-01'\ngroup by\n\tc.id\n,\tc.name\nhaving\n\tsum(o.total_amount) > 1000\norder by\n\tlifetime_value desc\nfetch next\n\t100 rows only;\n"
+	want := "select distinct\n\tc.id\n,\tc.name as customer_name\n,\tsum(o.total_amount) as lifetime_value\n,\tcount(o.id) as order_count\n,\trow_number() over (\n\t\torder by sum(o.total_amount) desc\n\t) as value_rank\nfrom\n\tcustomers as c\ninner join\n\torders as o\n\t\ton o.customer_id = c.id\nwhere\n\tc.created_at >= '2024-01-01'\ngroup by\n\tc.id\n,\tc.name\nhaving\n\tsum(o.total_amount) > 1000\norder by\n\tlifetime_value desc\nfetch next\n\t100 rows only;\n"
 	got, err := Format(input, config.Default())
 	if err != nil {
 		t.Fatalf("Format() unexpected error: %v", err)
