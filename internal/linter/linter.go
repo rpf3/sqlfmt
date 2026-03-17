@@ -122,12 +122,14 @@ type linter struct {
 	warnings []Warning
 }
 
-// severity returns the configured severity for a rule, defaulting to warn.
+// severity returns the configured severity for a rule. An explicit entry in
+// LintRules takes precedence; otherwise DefaultSeverity applies (most rules
+// default to warn, opt-in rules default to off).
 func (l *linter) severity(rule string) config.RuleSeverity {
 	if s, ok := l.cfg.LintRules[rule]; ok {
 		return s
 	}
-	return config.RuleSeverityWarn
+	return config.DefaultSeverity(rule)
 }
 
 func (l *linter) warn(rule, message string) {
