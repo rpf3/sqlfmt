@@ -56,6 +56,16 @@ func (p *parser) parseSelectBranch() (*SelectStmt, error) {
 	}
 	stmt.Columns = cols
 
+	// SELECT INTO: INTO <table> appears between column list and FROM.
+	if p.curKeyword("INTO") {
+		p.advance() // consume INTO
+		intoName, err := p.parseQualifiedName()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Into = intoName
+	}
+
 	if p.curKeyword("FROM") {
 		p.advance() // consume FROM
 
@@ -273,7 +283,7 @@ func (p *parser) parseSelectList() ([]SelectItem, error) {
 func (p *parser) parseSelectItem() (SelectItem, error) {
 	expr := p.parseExpr(func() bool {
 		return p.curIs(lexer.Comma) || p.curIs(lexer.Semicolon) ||
-			p.curKeyword("FROM") || p.curKeyword("AS")
+			p.curKeyword("FROM") || p.curKeyword("INTO") || p.curKeyword("AS")
 	})
 
 	var alias string

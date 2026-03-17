@@ -145,6 +145,7 @@ type SelectStmt struct {
 	TopPercent    bool   // true when PERCENT modifier present
 	TopWithTies   bool   // true when WITH TIES modifier present
 	Columns       []SelectItem
+	Into          string // table name for SELECT INTO; empty if absent
 	From          SelectFromSource
 	Joins         []JoinClause  // nil if no JOINs
 	Where         Expr          // WHERE predicate; nil if WhereSubq is set
