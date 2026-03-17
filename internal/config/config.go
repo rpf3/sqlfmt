@@ -70,6 +70,7 @@ const (
 	RuleExecNamedParams             = "exec-named-params"
 	RuleNoCascadeFk                 = "no-cascade-fk"
 	RuleComputedColumnNullability   = "computed-column-nullability"
+	RuleNoNolockHint                = "no-nolock-hint"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -101,6 +102,24 @@ var knownRules = map[string]bool{
 	RuleExecNamedParams:             true,
 	RuleNoCascadeFk:                 true,
 	RuleComputedColumnNullability:   true,
+	RuleNoNolockHint:                true,
+}
+
+// defaultOffRules are rules that are off unless explicitly enabled in config.
+// Most rules default to warn; these are opt-in because they flag patterns that
+// are legitimate in many codebases (e.g. WITH (NOLOCK) for read-heavy queries).
+var defaultOffRules = map[string]bool{
+	RuleNoNolockHint: true,
+}
+
+// DefaultSeverity returns the default severity for rule when no explicit
+// configuration is present. Most rules default to warn; rules in
+// defaultOffRules default to off so they must be opted into.
+func DefaultSeverity(rule string) RuleSeverity {
+	if defaultOffRules[rule] {
+		return RuleSeverityOff
+	}
+	return RuleSeverityWarn
 }
 
 // Config holds all formatting and linting options for sqlfmt.

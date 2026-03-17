@@ -8,10 +8,22 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+// containsHint reports whether the raw hints string (e.g. "(nolock, rowlock)")
+// contains the named hint. The comparison is case-insensitive.
+func containsHint(hints, target string) bool {
+	return strings.Contains(strings.ToUpper(hints), strings.ToUpper(target))
+}
+
 func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 	// Recurse into CTEs first so warnings appear in source order.
 	for _, cte := range s.CTEs {
 		l.checkSelectStmt(cte.Select)
+	}
+
+	// no-nolock-hint: warn when FROM source or any JOIN uses NOLOCK/READUNCOMMITTED.
+	l.checkNolockHint(s.From.Name, s.From.Hints)
+	for _, jc := range s.Joins {
+		l.checkNolockHint(jc.Name, jc.Hints)
 	}
 
 	// #12 select-star
@@ -118,4 +130,21 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 	for _, setOp := range s.SetOps {
 		l.checkSelectStmt(setOp.Select)
 	}
+}
+
+// checkNolockHint emits a no-nolock-hint warning when the hints string for a
+// named table contains NOLOCK or READUNCOMMITTED.
+func (l *linter) checkNolockHint(tableName, hints string) {
+	if hints == "" {
+		return
+	}
+	if !containsHint(hints, "NOLOCK") && !containsHint(hints, "READUNCOMMITTED") {
+		return
+	}
+	name := tableName
+	if name == "" {
+		name = "(subquery)"
+	}
+	l.warn(config.RuleNoNolockHint,
+		fmt.Sprintf("table %q uses WITH (NOLOCK); dirty reads may return uncommitted or phantom data — consider READ COMMITTED SNAPSHOT instead", name))
 }
