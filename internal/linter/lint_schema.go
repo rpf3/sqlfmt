@@ -86,6 +86,10 @@ func (l *linter) checkSchemaQualification(stmt parser.Statement) {
 
 	case *parser.CreateFuncStmt:
 		l.warnUnqualified(s.Name, "CREATE FUNCTION")
+
+	case *parser.ExecStmt:
+		// Dynamic SQL (Proc == "") has no qualifiable name; skip.
+		l.warnUnqualified(s.Proc, "EXEC")
 	}
 }
 
