@@ -42,6 +42,46 @@ func checkRuleEnabledClean(t *testing.T, input, rule string) {
 	}
 }
 
+func TestLintNoVarcharMax(t *testing.T) {
+	const rule = config.RuleNoVarcharMax
+
+	t.Run("off by default", func(t *testing.T) {
+		checkRule(t, `create table dbo.t (body nvarchar(max) not null);`, "")
+	})
+
+	t.Run("VARCHAR(MAX) column warns", func(t *testing.T) {
+		checkRuleEnabled(t, `create table dbo.t (body varchar(max) not null);`, rule)
+	})
+
+	t.Run("NVARCHAR(MAX) column warns", func(t *testing.T) {
+		checkRuleEnabled(t, `create table dbo.t (body nvarchar(max) not null);`, rule)
+	})
+
+	t.Run("bounded column is clean", func(t *testing.T) {
+		checkRuleEnabledClean(t, `create table dbo.t (name nvarchar(200) not null);`, rule)
+	})
+
+	t.Run("DECLARE with NVARCHAR(MAX) warns", func(t *testing.T) {
+		checkRuleEnabled(t, `declare @body nvarchar(max);`, rule)
+	})
+
+	t.Run("DECLARE with bounded type is clean", func(t *testing.T) {
+		checkRuleEnabledClean(t, `declare @name nvarchar(100);`, rule)
+	})
+
+	t.Run("proc param with NVARCHAR(MAX) warns", func(t *testing.T) {
+		checkRuleEnabled(t,
+			`create procedure dbo.p @body nvarchar(max) as begin select 1; end;`,
+			rule)
+	})
+
+	t.Run("proc param with bounded type is clean", func(t *testing.T) {
+		checkRuleEnabledClean(t,
+			`create procedure dbo.p @name nvarchar(200) as begin select 1; end;`,
+			rule)
+	})
+}
+
 func TestLintNoNolockHint(t *testing.T) {
 	const rule = config.RuleNoNolockHint
 

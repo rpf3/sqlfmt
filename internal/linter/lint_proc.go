@@ -54,11 +54,29 @@ func (l *linter) checkExecStmt(s *parser.ExecStmt) {
 	}
 }
 
+// checkDeclareStmt applies lint rules to a DECLARE statement.
+func (l *linter) checkDeclareStmt(s *parser.DeclareStmt) {
+	for _, v := range s.Vars {
+		if isMaxType(v.Type) {
+			l.warn(config.RuleNoVarcharMax,
+				fmt.Sprintf("variable %q uses %s; consider a bounded length unless large values are expected",
+					v.Name, v.Type))
+		}
+	}
+}
+
 // checkCreateProc applies lint rules to a CREATE PROCEDURE statement.
 func (l *linter) checkCreateProc(s *parser.CreateProcStmt) {
 	if !s.HasBeginEnd {
 		l.warn(config.RuleMissingBeginEnd,
 			fmt.Sprintf("procedure %q: body should be wrapped in BEGIN ... END", s.Name))
+	}
+	for _, p := range s.Params {
+		if isMaxType(p.DataType) {
+			l.warn(config.RuleNoVarcharMax,
+				fmt.Sprintf("procedure %q: parameter %q uses %s; consider a bounded length unless large values are expected",
+					s.Name, p.Name, p.DataType))
+		}
 	}
 }
 
@@ -99,6 +117,13 @@ func (l *linter) checkTryCatch(s *parser.TryCatchStmt) {
 
 // checkCreateFunc applies lint rules to a CREATE FUNCTION statement.
 func (l *linter) checkCreateFunc(s *parser.CreateFuncStmt) {
+	for _, p := range s.Params {
+		if isMaxType(p.DataType) {
+			l.warn(config.RuleNoVarcharMax,
+				fmt.Sprintf("function %q: parameter %q uses %s; consider a bounded length unless large values are expected",
+					s.Name, p.Name, p.DataType))
+		}
+	}
 	// Inline TVFs use RETURN (...) — BEGIN/END does not apply.
 	if s.Kind == parser.CreateFuncInlineTable {
 		return

@@ -71,6 +71,7 @@ const (
 	RuleNoCascadeFk                 = "no-cascade-fk"
 	RuleComputedColumnNullability   = "computed-column-nullability"
 	RuleNoNolockHint                = "no-nolock-hint"
+	RuleNoVarcharMax                = "no-varchar-max"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -103,13 +104,16 @@ var knownRules = map[string]bool{
 	RuleNoCascadeFk:                 true,
 	RuleComputedColumnNullability:   true,
 	RuleNoNolockHint:                true,
+	RuleNoVarcharMax:                true,
 }
 
 // defaultOffRules are rules that are off unless explicitly enabled in config.
 // Most rules default to warn; these are opt-in because they flag patterns that
-// are legitimate in many codebases (e.g. WITH (NOLOCK) for read-heavy queries).
+// are legitimate in many codebases (e.g. WITH (NOLOCK) for read-heavy queries,
+// VARCHAR(MAX) for large-text columns).
 var defaultOffRules = map[string]bool{
 	RuleNoNolockHint: true,
+	RuleNoVarcharMax: true,
 }
 
 // DefaultSeverity returns the default severity for rule when no explicit
