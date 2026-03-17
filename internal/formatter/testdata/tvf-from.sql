@@ -13,7 +13,7 @@ from
 select
 	s.value
 from
-	STRING_SPLIT(@csv, ',') as s;
+	string_split(@csv, ',') as s;
 
 select
 	*
