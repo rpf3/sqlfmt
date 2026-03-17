@@ -175,6 +175,18 @@ type TryCatchStmt struct {
 
 func (*TryCatchStmt) statementNode() {}
 
+// ─── RETURN ───────────────────────────────────────────────────────────────────
+
+// ReturnStmt represents a T-SQL RETURN statement.
+//
+//	RETURN          -- bare return (exits procedure with no value)
+//	RETURN <expr>   -- return a scalar value from a function
+type ReturnStmt struct {
+	Value Expr // nil for bare RETURN; scalar expression otherwise
+}
+
+func (*ReturnStmt) statementNode() {}
+
 // ─── THROW ────────────────────────────────────────────────────────────────────
 
 // ThrowStmt represents a T-SQL THROW statement.

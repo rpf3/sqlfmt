@@ -424,6 +424,30 @@ func (p *parser) parseTransaction() (Statement, error) {
 	return stmt, nil
 }
 
+// parseReturn handles:
+//
+//	RETURN          -- bare return
+//	RETURN <expr>   -- return scalar expression
+//
+// On entry p.cur is RETURN.
+func (p *parser) parseReturn() (Statement, error) {
+	p.advance() // consume RETURN
+
+	stmt := &ReturnStmt{}
+
+	// Bare RETURN: next token is ; or EOF.
+	if p.curIs(lexer.Semicolon) || p.cur.Type == lexer.EOF {
+		p.consumeSemicolon()
+		return stmt, nil
+	}
+
+	stmt.Value = p.parseExpr(func() bool {
+		return p.curIs(lexer.Semicolon) || p.cur.Type == lexer.EOF
+	})
+	p.consumeSemicolon()
+	return stmt, nil
+}
+
 func (p *parser) parseThrow() (Statement, error) {
 	p.advance() // consume THROW
 

@@ -237,6 +237,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curValue("SAVE") && (p.peekKeyword("TRANSACTION") || p.peekValue("TRAN")) {
 		return p.parseTransaction()
 	}
+	if p.curKeyword("RETURN") {
+		return p.parseReturn()
+	}
 	if p.curKeyword("THROW") {
 		return p.parseThrow()
 	}
