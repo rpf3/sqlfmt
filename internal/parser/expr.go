@@ -22,6 +22,7 @@ type LiteralExpr struct{ Token lexer.Token }
 
 // WindowSpec holds the OVER clause of a window function call.
 type WindowSpec struct {
+	Ref         string      // named window reference (e.g. "win"); non-empty = reference form
 	PartitionBy []Expr      // PARTITION BY expressions; nil if absent
 	OrderBy     []OrderItem // ORDER BY items; nil if absent
 	FrameUnit   string      // "rows" or "range"; empty if no frame clause
@@ -89,6 +90,10 @@ func Render(e Expr) string {
 			result = v.Name + "(" + strings.Join(args, ", ") + ")"
 		}
 		if v.Over != nil {
+			if v.Over.Ref != "" {
+				result += " over " + v.Over.Ref
+				return result
+			}
 			var overParts []string
 			if len(v.Over.PartitionBy) > 0 {
 				parts := make([]string, len(v.Over.PartitionBy))

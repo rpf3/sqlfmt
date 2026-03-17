@@ -203,7 +203,15 @@ func (p *parser) parseFunctionCall() *FunctionCallExpr {
 		}
 	}
 
-	// Window function: check for OVER (
+	// Named window reference: OVER win_name (no parens)
+	if p.curKeyword("OVER") && (p.peek.Type == lexer.Ident || p.peek.Type == lexer.QuotedIdent) {
+		p.advance() // consume OVER
+		ref := p.cur.Value
+		p.advance() // consume name
+		fn.Over = &WindowSpec{Ref: ref}
+		return fn
+	}
+	// Inline window spec: OVER (...)
 	if p.curKeyword("OVER") && p.peek.Type == lexer.LParen {
 		p.advance() // consume OVER
 		fn.Over = p.parseWindowSpec()
