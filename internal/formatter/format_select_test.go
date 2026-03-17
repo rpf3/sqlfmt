@@ -443,6 +443,45 @@ func TestFormatSelectWindowFunctionIdempotent(t *testing.T) {
 	}
 }
 
+// TestFormatSelectIIF verifies that IIF is lowercased and has no space before
+// its opening parenthesis. IIF tokenises as Ident (not a Keyword), so the
+// Ident → LParen branch in needsSelectSpace already suppresses the space
+// without any special-case code — this test locks in that behavior.
+func TestFormatSelectIIF(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "IIF in SELECT list",
+			input: "SELECT IIF(a > 1, 'yes', 'no') AS result FROM t;",
+			want:  "select\n\tiif(a > 1, 'yes', 'no') as result\nfrom\n\tt;\n",
+		},
+		{
+			name:  "IIF in WHERE clause",
+			input: "SELECT id FROM t WHERE IIF(status = 1, 1, 0) = 1;",
+			want:  "select\n\tid\nfrom\n\tt\nwhere\n\tiif(status = 1, 1, 0) = 1;\n",
+		},
+		{
+			name:  "nested IIF",
+			input: "SELECT IIF(a > 0, IIF(b > 0, 'both', 'a only'), 'neither') AS label FROM t;",
+			want:  "select\n\tiif(a > 0, iif(b > 0, 'both', 'a only'), 'neither') as label\nfrom\n\tt;\n",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Format(tc.input, config.Default())
+			if err != nil {
+				t.Fatalf("Format() error: %v", err)
+			}
+			if got != tc.want {
+				t.Errorf("Format() mismatch:\ngot:\n%s\nwant:\n%s", got, tc.want)
+			}
+		})
+	}
+}
+
 // TestFormatSelectBetween verifies that BETWEEN x AND y is treated as a single
 // predicate term and not split by the AND-chain formatter.
 func TestFormatSelectBetween(t *testing.T) {
