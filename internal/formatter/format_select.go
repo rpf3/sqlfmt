@@ -7,6 +7,75 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+// formatExpr renders an expression, applying block-style formatting for window
+// function OVER clauses. The spec (PARTITION BY, ORDER BY, frame) is placed on
+// its own indented line inside the parentheses rather than inline:
+//
+//	fn() over (
+//		partition by x order by y rows between …
+//	)
+//
+// All other expression types fall through to parser.Render.
+func (f *formatter) formatExpr(e parser.Expr) string {
+	fn, ok := e.(*parser.FunctionCallExpr)
+	if !ok || fn.Over == nil {
+		return parser.Render(e)
+	}
+
+	// Build the function-call portion (without OVER).
+	var fnStr string
+	if fn.Star {
+		fnStr = fn.Name + "(*)"
+	} else {
+		args := make([]string, len(fn.Args))
+		for i, a := range fn.Args {
+			args[i] = parser.Render(a)
+		}
+		fnStr = fn.Name + "(" + strings.Join(args, ", ") + ")"
+	}
+
+	// Build OVER spec parts with keyword casing applied.
+	var overParts []string
+	if len(fn.Over.PartitionBy) > 0 {
+		parts := make([]string, len(fn.Over.PartitionBy))
+		for i, pb := range fn.Over.PartitionBy {
+			parts[i] = parser.Render(pb)
+		}
+		overParts = append(overParts, f.kw("partition by")+" "+strings.Join(parts, ", "))
+	}
+	if len(fn.Over.OrderBy) > 0 {
+		items := make([]string, len(fn.Over.OrderBy))
+		for i, ob := range fn.Over.OrderBy {
+			s := parser.Render(ob.Value)
+			switch ob.Direction {
+			case parser.DirectionAsc:
+				s += " " + f.kw("asc")
+			case parser.DirectionDesc:
+				s += " " + f.kw("desc")
+			}
+			items[i] = s
+		}
+		overParts = append(overParts, f.kw("order by")+" "+strings.Join(items, ", "))
+	}
+	if fn.Over.FrameUnit != "" {
+		frame := f.kw(fn.Over.FrameUnit)
+		if fn.Over.FrameEnd != "" {
+			frame += " " + f.kw("between") + " " + f.kw(fn.Over.FrameStart) +
+				" " + f.kw("and") + " " + f.kw(fn.Over.FrameEnd)
+		} else {
+			frame += " " + f.kw(fn.Over.FrameStart)
+		}
+		overParts = append(overParts, frame)
+	}
+
+	spec := strings.Join(overParts, " ")
+	ind := f.indent()
+	if spec == "" {
+		return fnStr + " " + f.kw("over") + " ()"
+	}
+	return fnStr + " " + f.kw("over") + " (\n" + ind + ind + spec + "\n" + ind + ")"
+}
+
 // indentBodyStmt formats a procedure/function body statement with each
 // non-empty line prefixed by ind (single indent). The trailing semicolon
 // from formatStatement is preserved as-is.
@@ -118,7 +187,7 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 	// SELECT list
 	cols := make([]string, 0, len(s.Columns))
 	for _, col := range s.Columns {
-		c := parser.Render(col.Value)
+		c := f.formatExpr(col.Value)
 		if col.Alias != "" {
 			c += " " + f.kw("as") + " " + f.ident(col.Alias)
 		}

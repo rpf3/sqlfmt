@@ -229,14 +229,18 @@ select
 	t.id
 ,	t.customer_id
 ,	t.total_amount
-,	row_number() over (partition by t.customer_id order by t.created_at desc) as rn
+,	row_number() over (
+		partition by t.customer_id order by t.created_at desc
+	) as rn
 from
 	orders as t;
 
 select
 	t.id
 ,	t.total_amount
-,	rank() over (order by t.total_amount desc) as amount_rank
+,	rank() over (
+		order by t.total_amount desc
+	) as amount_rank
 from
 	orders as t;
 
@@ -245,7 +249,9 @@ select distinct
 ,	c.name as customer_name
 ,	sum(o.total_amount) as lifetime_value
 ,	count(o.id) as order_count
-,	row_number() over (order by sum(o.total_amount) desc) as value_rank
+,	row_number() over (
+		order by sum(o.total_amount) desc
+	) as value_rank
 from
 	customers as c
 inner join

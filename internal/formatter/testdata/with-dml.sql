@@ -2,7 +2,9 @@ with ranked as
 (
 	select
 		order_id
-	,	row_number() over (order by created_at) as rn
+	,	row_number() over (
+			order by created_at
+		) as rn
 	from
 		orders as o
 )
