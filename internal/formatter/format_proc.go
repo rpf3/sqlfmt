@@ -311,6 +311,15 @@ func (f *formatter) formatTransaction(s *parser.TransactionStmt) string {
 	return ""
 }
 
+// formatReturn formats a RETURN statement.
+// Bare RETURN produces "return;". RETURN with a value produces "return <expr>;".
+func (f *formatter) formatReturn(s *parser.ReturnStmt) string {
+	if s.Value == nil {
+		return f.kw("return") + ";"
+	}
+	return f.kw("return") + " " + parser.Render(s.Value) + ";"
+}
+
 // formatThrow formats a THROW statement. A bare THROW (re-raise) produces
 // "throw;". A THROW with arguments produces "throw <n>, '<msg>', <state>;".
 func (f *formatter) formatThrow(s *parser.ThrowStmt) string {
