@@ -54,6 +54,9 @@ var builtinFunctions = map[string]bool{
 	// Numeric
 	"ROUND": true, "FLOOR": true, "CEILING": true,
 	"ABS": true, "POWER": true, "SQRT": true, "SIGN": true,
+	// JSON (SQL Server 2016+)
+	"JSON_VALUE": true, "JSON_QUERY": true, "JSON_MODIFY": true,
+	"ISJSON": true, "JSON_PATH_EXISTS": true,
 }
 
 // exprToken returns the normalised string for a single expression token:
