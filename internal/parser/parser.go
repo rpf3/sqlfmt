@@ -237,6 +237,16 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curValue("SAVE") && (p.peekKeyword("TRANSACTION") || p.peekValue("TRAN")) {
 		return p.parseTransaction()
 	}
+	if p.curKeyword("BREAK") {
+		p.advance()
+		p.consumeSemicolon()
+		return &BreakStmt{}, nil
+	}
+	if p.curKeyword("CONTINUE") {
+		p.advance()
+		p.consumeSemicolon()
+		return &ContinueStmt{}, nil
+	}
 	if p.curKeyword("RETURN") {
 		return p.parseReturn()
 	}

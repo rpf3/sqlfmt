@@ -175,6 +175,18 @@ type TryCatchStmt struct {
 
 func (*TryCatchStmt) statementNode() {}
 
+// ─── BREAK / CONTINUE ─────────────────────────────────────────────────────────
+
+// BreakStmt represents a T-SQL BREAK statement inside a WHILE loop.
+type BreakStmt struct{}
+
+func (*BreakStmt) statementNode() {}
+
+// ContinueStmt represents a T-SQL CONTINUE statement inside a WHILE loop.
+type ContinueStmt struct{}
+
+func (*ContinueStmt) statementNode() {}
+
 // ─── RETURN ───────────────────────────────────────────────────────────────────
 
 // ReturnStmt represents a T-SQL RETURN statement.

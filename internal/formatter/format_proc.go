@@ -311,6 +311,12 @@ func (f *formatter) formatTransaction(s *parser.TransactionStmt) string {
 	return ""
 }
 
+// formatBreak formats a BREAK statement.
+func (f *formatter) formatBreak() string { return f.kw("break") + ";" }
+
+// formatContinue formats a CONTINUE statement.
+func (f *formatter) formatContinue() string { return f.kw("continue") + ";" }
+
 // formatReturn formats a RETURN statement.
 // Bare RETURN produces "return;". RETURN with a value produces "return <expr>;".
 func (f *formatter) formatReturn(s *parser.ReturnStmt) string {
