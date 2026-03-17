@@ -443,6 +443,53 @@ func TestFormatSelectWindowFunctionIdempotent(t *testing.T) {
 	}
 }
 
+// TestFormatSelectJSONFunctions verifies that SQL Server 2016+ JSON functions
+// are lowercased and have no space before their opening parenthesis.
+func TestFormatSelectJSONFunctions(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "JSON_VALUE in SELECT list",
+			input: "SELECT JSON_VALUE(doc, '$.name') AS name FROM t;",
+			want:  "select\n\tjson_value(doc, '$.name') as name\nfrom\n\tt;\n",
+		},
+		{
+			name:  "JSON_QUERY in SELECT list",
+			input: "SELECT JSON_QUERY(doc, '$.address') AS addr FROM t;",
+			want:  "select\n\tjson_query(doc, '$.address') as addr\nfrom\n\tt;\n",
+		},
+		{
+			name:  "JSON_MODIFY in SELECT list",
+			input: "SELECT JSON_MODIFY(doc, '$.name', 'new') AS updated FROM t;",
+			want:  "select\n\tjson_modify(doc, '$.name', 'new') as updated\nfrom\n\tt;\n",
+		},
+		{
+			name:  "ISJSON in WHERE clause",
+			input: "SELECT id FROM t WHERE ISJSON(doc) = 1;",
+			want:  "select\n\tid\nfrom\n\tt\nwhere\n\tisjson(doc) = 1;\n",
+		},
+		{
+			name:  "JSON_PATH_EXISTS in WHERE clause",
+			input: "SELECT id FROM t WHERE JSON_PATH_EXISTS(doc, '$.name') = 1;",
+			want:  "select\n\tid\nfrom\n\tt\nwhere\n\tjson_path_exists(doc, '$.name') = 1;\n",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Format(tc.input, config.Default())
+			if err != nil {
+				t.Fatalf("Format() error: %v", err)
+			}
+			if got != tc.want {
+				t.Errorf("Format() mismatch:\ngot:\n%s\nwant:\n%s", got, tc.want)
+			}
+		})
+	}
+}
+
 // TestFormatSelectIIF verifies that IIF is lowercased and has no space before
 // its opening parenthesis. IIF tokenises as Ident (not a Keyword), so the
 // Ident → LParen branch in needsSelectSpace already suppresses the space
