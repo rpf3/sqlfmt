@@ -118,16 +118,16 @@ func (p *parser) expectIdent() (lexer.Token, error) {
 	return tok, nil
 }
 
-// parseQualifiedName parses a possibly schema-qualified table name of the form
-// ident or ident.ident (e.g. "orders" or "dbo.orders"). It returns the full
-// dotted string so that the rest of the parser sees a single name value.
+// parseQualifiedName parses a possibly schema-qualified name of the form
+// ident[.ident]* (e.g. "orders", "dbo.orders", "db.dbo.orders"). It returns
+// the full dotted string so that the rest of the parser sees a single value.
 func (p *parser) parseQualifiedName() (string, error) {
 	tok, err := p.expectIdent()
 	if err != nil {
 		return "", err
 	}
 	name := tok.Value
-	if p.curIs(lexer.Dot) {
+	for p.curIs(lexer.Dot) {
 		p.advance() // consume '.'
 		part, err := p.expectIdent()
 		if err != nil {

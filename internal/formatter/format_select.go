@@ -125,18 +125,30 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		cols = append(cols, c)
 	}
 
-	// No-FROM SELECT: single column on the same line (e.g. "select 1;"),
-	// multiple columns via the normal comma list.
-	if s.From.Name == "" && s.From.Subquery == nil {
-		if len(cols) == 1 {
+	hasFrom := s.From.Name != "" || s.From.Subquery != nil
+
+	// No-FROM SELECT: single column stays on the same line (e.g. "select 1;").
+	// When INTO is present the column list uses the normal multi-line style
+	// so the INTO clause is consistently indented below it.
+	if !hasFrom {
+		if len(cols) == 1 && s.Into == "" {
 			b.WriteString(" " + cols[0])
 		} else {
 			f.writeCommaList(&b, cols)
+		}
+		if s.Into != "" {
+			b.WriteString("\n" + f.kw("into"))
+			b.WriteString("\n" + ind + f.ident(s.Into))
 		}
 		b.WriteString(";")
 		return b.String()
 	}
 	f.writeCommaList(&b, cols)
+	// INTO clause (SELECT INTO) appears between column list and FROM.
+	if s.Into != "" {
+		b.WriteString("\n" + f.kw("into"))
+		b.WriteString("\n" + ind + f.ident(s.Into))
+	}
 	b.WriteString("\n" + f.kw("from"))
 	if s.From.Subquery != nil {
 		b.WriteString("\n" + ind + "(")
