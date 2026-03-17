@@ -292,6 +292,18 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		b.WriteString("\n" + ind + s.Fetch + " " + f.kw("rows only"))
 	}
 
+	// FOR XML / FOR JSON
+	if s.ForKind != parser.ForNone {
+		if s.ForKind == parser.ForXML {
+			b.WriteString("\n" + f.kw("for xml"))
+		} else {
+			b.WriteString("\n" + f.kw("for json"))
+		}
+		if s.ForOpts != "" {
+			b.WriteString("\n" + ind + strings.ToLower(s.ForOpts))
+		}
+	}
+
 	b.WriteString(";")
 	return b.String()
 }

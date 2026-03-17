@@ -131,6 +131,15 @@ type SelectFromSource struct {
 	Pivot         *PivotClause // non-nil when a PIVOT or UNPIVOT operator follows the named source
 }
 
+// ForClauseKind identifies whether a FOR clause is FOR XML or FOR JSON.
+type ForClauseKind int
+
+const (
+	ForNone ForClauseKind = iota // no FOR clause
+	ForXML                       // FOR XML ...
+	ForJSON                      // FOR JSON ...
+)
+
 // SelectStmt represents a [WITH ...] SELECT statement.
 //
 // WHERE representation: exactly one of Where or WhereSubq is non-nil.
@@ -159,6 +168,8 @@ type SelectStmt struct {
 	Offset        string        // n from OFFSET n ROWS; empty if absent
 	OffsetHasRows bool          // true when ROWS or ROW keyword followed the offset value
 	Fetch         string        // n from FETCH NEXT n ROWS ONLY; empty if absent
+	ForKind       ForClauseKind // ForXML or ForJSON; ForNone if absent
+	ForOpts       string        // raw options after the XML/JSON mode keyword; empty if absent
 }
 
 func (*SelectStmt) statementNode() {}
