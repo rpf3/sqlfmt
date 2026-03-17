@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/rpf3/sqlfmt/internal/lexer"
 )
@@ -246,6 +247,41 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 		if p.curKeyword("ONLY") {
 			p.advance()
 		}
+	}
+
+	// FOR XML / FOR JSON — must appear after all other clauses.
+	if p.curKeyword("FOR") {
+		p.advance() // consume FOR
+		switch {
+		case p.curIs(lexer.Ident) && strings.EqualFold(p.cur.Value, "XML"):
+			stmt.ForKind = ForXML
+		case p.curIs(lexer.Ident) && strings.EqualFold(p.cur.Value, "JSON"):
+			stmt.ForKind = ForJSON
+		default:
+			return nil, fmt.Errorf(
+				"expected XML or JSON after FOR at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance() // consume XML or JSON
+		// Collect the raw options (mode keyword + any comma-separated directives)
+		// up to the terminating semicolon or a depth-0 closing paren (subquery boundary).
+		// Inner parens like PATH('order') are tracked by depth so they are included.
+		var tokBuf []lexer.Token
+		depth := 0
+		for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
+			if p.curIs(lexer.RParen) && depth == 0 {
+				break
+			}
+			if p.curIs(lexer.LParen) {
+				depth++
+			} else if p.curIs(lexer.RParen) {
+				depth--
+			}
+			tokBuf = append(tokBuf, p.cur)
+			p.advance()
+		}
+		stmt.ForOpts = joinBodyTokens(tokBuf)
 	}
 
 	return stmt, nil
@@ -509,6 +545,7 @@ func (p *parser) parseOrderByList() ([]OrderItem, error) {
 			return p.curKeyword("ASC") || p.curKeyword("DESC") ||
 				p.curIs(lexer.Comma) ||
 				p.curKeyword("OFFSET") || p.curKeyword("FETCH") ||
+				p.curKeyword("FOR") ||
 				p.curKeyword("LIMIT") || p.curIs(lexer.Semicolon)
 		})
 		item := OrderItem{Value: expr}
