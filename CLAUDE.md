@@ -32,7 +32,7 @@ task fmt && task test && task vet && task lint
 
 - **Always create a branch before starting any work** — never commit feature or fix work directly to `main`. Name branches `feat/issue-N-short-desc` or `refactor/issue-N-short-desc` etc.
 - Prefer rebase + fast-forward; always open a PR, never merge locally
-- One issue per commit maximum — a large feature may span multiple commits, but a single commit must not touch more than one issue
+- One issue per commit maximum — a large feature may span multiple commits, but a single commit must not touch more than one issue. When a shared file (e.g. `config.go`) needs changes for multiple issues, add only the changes for the current issue to that file before committing; add the next issue's changes in the next commit.
 - **Work on one issue at a time** — fully implement, test, and commit one issue before starting the next. Never implement multiple issues in parallel even when they touch the same files; doing so requires backing out changes to split commits, which is error-prone and wastes effort
 - **Commit incidental fixes and tangential work separately** — when a bug or related improvement is discovered while implementing a feature, do not bundle it into the feature commit. Finish and commit the feature first (or stash it), then make the fix or tangential change as its own commit with its own message. This keeps each commit's scope honest and makes history easier to bisect
 - No parenthetical scopes in conventional commit types (`feat:` not `feat(pkg):`)
