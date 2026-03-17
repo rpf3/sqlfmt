@@ -186,3 +186,34 @@ func TestLintNoCascadeFk(t *testing.T) {
 		})
 	}
 }
+
+func TestLintMissingSchemaNameExec(t *testing.T) {
+	rule := config.RuleMissingSchemaName
+
+	tests := []struct {
+		name     string
+		input    string
+		wantRule string
+	}{
+		{
+			name:     "unqualified EXEC warns",
+			input:    `exec get_orders @status = 'active';`,
+			wantRule: rule,
+		},
+		{
+			name:     "schema-qualified EXEC is clean",
+			input:    `exec dbo.get_orders @status = 'active';`,
+			wantRule: "",
+		},
+		{
+			name:     "dynamic SQL EXEC is exempt",
+			input:    `exec (@sql);`,
+			wantRule: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkRule(t, tt.input, tt.wantRule)
+		})
+	}
+}
