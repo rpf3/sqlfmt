@@ -24,6 +24,9 @@ type LiteralExpr struct{ Token lexer.Token }
 type WindowSpec struct {
 	PartitionBy []Expr      // PARTITION BY expressions; nil if absent
 	OrderBy     []OrderItem // ORDER BY items; nil if absent
+	FrameUnit   string      // "rows" or "range"; empty if no frame clause
+	FrameStart  string      // frame start boundary (e.g. "unbounded preceding", "current row")
+	FrameEnd    string      // frame end boundary; empty for single-bound frame
 }
 
 // FunctionCallExpr is a function call: name(args…) or name(*).
@@ -106,6 +109,15 @@ func Render(e Expr) string {
 					items[i] = s
 				}
 				overParts = append(overParts, "order by "+strings.Join(items, ", "))
+			}
+			if v.Over.FrameUnit != "" {
+				frame := v.Over.FrameUnit
+				if v.Over.FrameEnd != "" {
+					frame += " between " + v.Over.FrameStart + " and " + v.Over.FrameEnd
+				} else {
+					frame += " " + v.Over.FrameStart
+				}
+				overParts = append(overParts, frame)
 			}
 			result += " over (" + strings.Join(overParts, " ") + ")"
 		}

@@ -243,6 +243,7 @@ func (p *parser) parseWindowSpec() *WindowSpec {
 		for {
 			val := p.parseExprNode(func() bool {
 				return p.curKeyword("ASC") || p.curKeyword("DESC") ||
+					p.curKeyword("ROWS") || p.curKeyword("RANGE") ||
 					p.cur.Type == lexer.Comma || p.cur.Type == lexer.RParen
 			})
 			dir := DirectionNone
@@ -262,10 +263,49 @@ func (p *parser) parseWindowSpec() *WindowSpec {
 		}
 	}
 
+	// ROWS | RANGE frame clause
+	if p.curKeyword("ROWS") || p.curKeyword("RANGE") {
+		ws.FrameUnit = strings.ToLower(p.cur.Value)
+		p.advance()
+		if p.curKeyword("BETWEEN") {
+			p.advance() // consume BETWEEN
+			ws.FrameStart = p.parseFrameBound()
+			p.advance() // consume AND
+			ws.FrameEnd = p.parseFrameBound()
+		} else {
+			ws.FrameStart = p.parseFrameBound()
+		}
+	}
+
 	if p.cur.Type == lexer.RParen {
 		p.advance() // consume )
 	}
 	return ws
+}
+
+// parseFrameBound parses a single window frame boundary:
+//
+//	UNBOUNDED PRECEDING | UNBOUNDED FOLLOWING | CURRENT ROW | <expr> PRECEDING | <expr> FOLLOWING
+//
+// On exit p.cur is positioned after the consumed boundary tokens.
+func (p *parser) parseFrameBound() string {
+	if p.curKeyword("UNBOUNDED") {
+		p.advance()
+		dir := strings.ToLower(p.cur.Value) // PRECEDING or FOLLOWING
+		p.advance()
+		return "unbounded " + dir
+	}
+	if p.curKeyword("CURRENT") {
+		p.advance() // consume CURRENT
+		p.advance() // consume ROW
+		return "current row"
+	}
+	// Numeric or expression bound: <tok> PRECEDING|FOLLOWING
+	val := p.cur.Value
+	p.advance()
+	dir := strings.ToLower(p.cur.Value)
+	p.advance()
+	return val + " " + dir
 }
 
 // parseExprRaw reads tokens into a normalised expression string, tracking
