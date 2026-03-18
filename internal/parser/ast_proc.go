@@ -13,7 +13,7 @@ const (
 // ProcParam is one parameter in a CREATE PROCEDURE or CREATE FUNCTION parameter list.
 type ProcParam struct {
 	Name      string         // parameter name including sigil (e.g. "@customer_id")
-	DataType  string         // data type (e.g. "INT", "NVARCHAR(20)")
+	DataType  string         // pre-rendered type string e.g. "INT", "NVARCHAR(20)"; stored verbatim because the formatter emits it unchanged and no lint rule needs to decompose it
 	Direction ParamDirection // ParamDirectionIn (default) or ParamDirectionOut
 	Default   Expr           // default from = <expr>; nil if absent
 }

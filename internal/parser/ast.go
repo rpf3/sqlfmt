@@ -57,7 +57,7 @@ type JoinClause struct {
 	Alias         string      // table alias; empty if none
 	AliasExplicit bool        // true when the AS keyword preceded the alias
 	On            Expr        // ON condition; nil for CROSS
-	TVFArgs       string      // parenthesised arg list for APPLY TVF sources; empty for regular joins
+	TVFArgs       string      // parenthesised arg list for APPLY TVF sources e.g. "(@id)"; stored verbatim because TVF argument linting is not yet in scope; empty for regular joins
 	Subquery      *SelectStmt // subquery source for APPLY (SELECT ...) form; nil for regular joins
 }
 
@@ -76,7 +76,7 @@ type CTEDef struct {
 // WindowDef is one named window definition in a WINDOW clause.
 type WindowDef struct {
 	Name string // window name
-	Spec string // raw window spec content (between the parens)
+	Spec string // raw window spec content between the parens; stored verbatim — named WINDOW definitions are emitted unchanged by the formatter
 }
 
 // PivotKind identifies whether a FROM-source pivot operator is PIVOT or UNPIVOT.
@@ -93,9 +93,9 @@ const (
 //	UNPIVOT ( value_col            FOR pivot_col IN (col_list) )
 type PivotClause struct {
 	Kind      PivotKind
-	Value     string // PIVOT: aggregate expression; UNPIVOT: value column name
+	Value     string // PIVOT: aggregate expression e.g. "sum(amount)"; UNPIVOT: value column name; stored verbatim — formatter emits it unchanged
 	ForColumn string // column name after FOR
-	InList    string // raw content of IN (...) without surrounding parens
+	InList    string // raw content of IN (...) without surrounding parens; stored verbatim — formatter re-wraps the parens and emits the list unchanged
 }
 
 // GroupByModifier identifies the form of a GROUP BY item.
@@ -124,7 +124,7 @@ type GroupByItem struct {
 // Exactly one of Name (a table name) or Subquery is non-zero.
 type SelectFromSource struct {
 	Name          string       // table name; empty for a subquery
-	TVFArgs       string       // parenthesised arg list for TVF sources e.g. "(@id)"; empty for plain tables
+	TVFArgs       string       // parenthesised arg list for TVF sources e.g. "(@id)"; stored verbatim because TVF argument linting is not yet in scope; empty for plain tables
 	Hints         string       // table hints e.g. "(nolock)"; empty if none
 	Subquery      *SelectStmt  // derived table; nil for a named table
 	Alias         string       // alias for either kind; empty if no alias
@@ -170,7 +170,7 @@ type SelectStmt struct {
 	OffsetHasRows bool          // true when ROWS or ROW keyword followed the offset value
 	Fetch         string        // n from FETCH NEXT n ROWS ONLY; empty if absent
 	ForKind       ForClauseKind // ForXML or ForJSON; ForNone if absent
-	ForOpts       string        // raw options after the XML/JSON mode keyword; empty if absent
+	ForOpts       string        // raw options after the XML/JSON mode keyword e.g. "PATH, ROOT('r')"; stored verbatim because FOR XML/JSON option linting is not yet in scope; empty if absent
 }
 
 func (*SelectStmt) statementNode() {}

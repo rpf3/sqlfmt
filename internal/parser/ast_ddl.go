@@ -44,7 +44,7 @@ type IdentitySpec struct {
 // DataType is empty. Persisted is only meaningful when Computed is true.
 type ColumnDef struct {
 	Name              string           // column name
-	DataType          string           // e.g. "INTEGER", "TEXT", "VARCHAR(255)", "NUMERIC(10, 2)"
+	DataType          string           // pre-rendered type string e.g. "INTEGER", "VARCHAR(255)", "NUMERIC(10, 2)"; stored verbatim because the formatter emits it unchanged and lint rules match on the string directly
 	Computed          bool             // true for AS <expr> computed columns
 	ComputedExpr      Expr             // expression for computed columns; nil for regular columns
 	Persisted         bool             // PERSISTED keyword present (computed columns only)
@@ -206,7 +206,7 @@ const (
 type CreateTypeStmt struct {
 	Name        string // type name (may be schema-qualified, e.g. dbo.SSN)
 	Kind        CreateTypeKind
-	BaseType    string            // for CreateTypeAlias: base data type (e.g. "varchar(11)")
+	BaseType    string            // for CreateTypeAlias: pre-rendered base type e.g. "varchar(11)"; stored verbatim because the formatter emits it unchanged
 	Nullability Nullability       // for CreateTypeAlias: optional nullability; NullabilityNone if absent
 	Columns     []ColumnDef       // for CreateTypeTable: column definitions
 	Constraints []TableConstraint // for CreateTypeTable: table-level constraints
