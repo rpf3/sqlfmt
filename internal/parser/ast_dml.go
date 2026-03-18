@@ -43,9 +43,11 @@ func (*InsertStmt) statementNode() {}
 
 // --- UPDATE -------------------------------------------------------------------
 
-// UpdateSet is one col = expr assignment in an UPDATE SET clause.
+// UpdateSet is one assignment in an UPDATE SET clause.
+// Op is "=" for a simple assignment or a compound operator ("+=", "-=", "*=", "/=", "%=").
 type UpdateSet struct {
 	Column string // column name, possibly qualified (e.g. "o.status")
+	Op     string // assignment operator; "=" is the normal case
 	Value  Expr   // right-hand side expression
 }
 

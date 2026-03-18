@@ -158,6 +158,11 @@ func (f *formatter) formatCreateType(s *parser.CreateTypeStmt) string {
 	return b.String()
 }
 
+// formatSetVar formats a SET @var <op> <expr> statement.
+func (f *formatter) formatSetVar(s *parser.SetVarStmt) string {
+	return f.kw("set") + " " + s.Var + " " + s.Op + " " + parser.Render(s.Value) + ";"
+}
+
 // formatSet formats a SET statement.
 func (f *formatter) formatSet(s *parser.SetStmt) string {
 	var b strings.Builder

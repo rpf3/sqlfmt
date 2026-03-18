@@ -8,11 +8,15 @@ import (
 )
 
 // parseSet handles SET statement variants:
+//   - SET @var <op> <expr>               (SetVarStmt)
 //   - SET <option> <value>               (SetSimple)
 //   - SET TRANSACTION ISOLATION LEVEL …  (SetTransactionIsolation)
 //   - SET IDENTITY_INSERT <table> ON|OFF (SetIdentityInsert)
 func (p *parser) parseSet() (Statement, error) {
 	p.advance() // consume SET
+	if p.cur.Type == lexer.Ident && p.cur.Value != "" && p.cur.Value[0] == '@' {
+		return p.parseSetVar()
+	}
 	switch strings.ToUpper(p.cur.Value) {
 	case "TRANSACTION":
 		return p.parseSetTransaction()
@@ -21,6 +25,54 @@ func (p *parser) parseSet() (Statement, error) {
 	default:
 		return p.parseSetSimple()
 	}
+}
+
+// parseAssignOp consumes and returns the current assignment operator token,
+// supporting simple assignment (=) and compound operators (+=, -=, *=, /=, %=).
+func (p *parser) parseAssignOp() (string, error) {
+	switch p.cur.Type {
+	case lexer.Eq:
+		p.advance()
+		return "=", nil
+	case lexer.PlusEq:
+		p.advance()
+		return "+=", nil
+	case lexer.MinusEq:
+		p.advance()
+		return "-=", nil
+	case lexer.StarEq:
+		p.advance()
+		return "*=", nil
+	case lexer.SlashEq:
+		p.advance()
+		return "/=", nil
+	case lexer.PercentEq:
+		p.advance()
+		return "%=", nil
+	default:
+		return "", fmt.Errorf(
+			"expected assignment operator after SET variable at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+}
+
+// parseSetVar handles: SET @var <op> <expr> [;].
+func (p *parser) parseSetVar() (Statement, error) {
+	varName := p.cur.Value
+	p.advance() // consume variable name
+
+	op, err := p.parseAssignOp()
+	if err != nil {
+		return nil, err
+	}
+
+	value := p.parseExpr(func() bool {
+		return p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
+	})
+
+	p.consumeSemicolon()
+	return &SetVarStmt{Var: varName, Op: op, Value: value}, nil
 }
 
 // parseSetSimple handles: SET <option> <value> [;].

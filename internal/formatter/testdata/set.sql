@@ -19,3 +19,17 @@ set transaction isolation level snapshot;
 set identity_insert dbo.Orders on;
 
 set identity_insert Orders off;
+
+set @counter = 1;
+
+set @total = @subtotal + @tax;
+
+set @counter += 1;
+
+set @total -= @discount;
+
+set @bits *= 2;
+
+set @value /= 4;
+
+set @remainder %= 3;
