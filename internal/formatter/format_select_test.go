@@ -169,7 +169,7 @@ func TestFormatSelectTrailingComma(t *testing.T) {
 	}
 }
 
-// ─── JOIN formatting tests ────────────────────────────────────────────────────
+// --- JOIN formatting tests ----------------------------------------------------
 
 // TestFormatSelectInnerJoin verifies the three-line JOIN block style.
 func TestFormatSelectInnerJoin(t *testing.T) {
@@ -266,7 +266,7 @@ func TestFormatSelectJoinIdempotent(t *testing.T) {
 	}
 }
 
-// ─── subquery tests ───────────────────────────────────────────────────────────
+// --- subquery tests -----------------------------------------------------------
 
 func TestFormatSelectFromSubquery(t *testing.T) {
 	input := "select s.status, s.order_count from (select t.status, count(*) as order_count from orders as t group by t.status) as s where s.order_count > 5;"
@@ -304,7 +304,7 @@ func TestFormatSelectWhereExistsSubquery(t *testing.T) {
 	}
 }
 
-// ─── CTE tests ────────────────────────────────────────────────────────────────
+// --- CTE tests ----------------------------------------------------------------
 
 func TestFormatCTESingle(t *testing.T) {
 	input := "with active_orders as (select t.id, t.customer_id, t.total_amount from orders as t where t.status = 'active') select c.name, sum(o.total_amount) as lifetime_value from active_orders as o inner join customers as c on c.id = o.customer_id group by c.name order by lifetime_value desc;"
@@ -375,7 +375,7 @@ func TestFormatSelectSubqueryIdempotent(t *testing.T) {
 	}
 }
 
-// ─── window function tests ────────────────────────────────────────────────────
+// --- window function tests ----------------------------------------------------
 
 // TestFormatSelectWindowFunction verifies window functions with PARTITION BY
 // and ORDER BY format in a block OVER clause.

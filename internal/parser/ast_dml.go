@@ -1,6 +1,6 @@
 package parser
 
-// ─── OUTPUT ───────────────────────────────────────────────────────────────────
+// --- OUTPUT -------------------------------------------------------------------
 
 // OutputClause is an optional OUTPUT clause on INSERT, UPDATE, DELETE, or MERGE.
 // Columns may reference the inserted.* and deleted.* pseudo-tables, or $action.
@@ -10,7 +10,7 @@ type OutputClause struct {
 	IntoCols []string     // explicit column list for INTO; nil if absent
 }
 
-// ─── DELETE ───────────────────────────────────────────────────────────────────
+// --- DELETE -------------------------------------------------------------------
 
 // DeleteStmt represents: DELETE [TOP (n)] [<alias>] FROM <table> [AS <alias>] [OUTPUT …] [WHERE <predicate>]
 type DeleteStmt struct {
@@ -25,7 +25,7 @@ type DeleteStmt struct {
 
 func (*DeleteStmt) statementNode() {}
 
-// ─── INSERT ───────────────────────────────────────────────────────────────────
+// --- INSERT -------------------------------------------------------------------
 
 // InsertStmt represents INSERT INTO <table> [(cols)] [OUTPUT …] VALUES (...) [, (...)]
 // or INSERT INTO <table> [(cols)] [OUTPUT …] <select>.
@@ -41,7 +41,7 @@ type InsertStmt struct {
 
 func (*InsertStmt) statementNode() {}
 
-// ─── UPDATE ───────────────────────────────────────────────────────────────────
+// --- UPDATE -------------------------------------------------------------------
 
 // UpdateSet is one col = expr assignment in an UPDATE SET clause.
 type UpdateSet struct {
@@ -78,7 +78,7 @@ type UpdateStmt struct {
 
 func (*UpdateStmt) statementNode() {}
 
-// ─── MERGE ────────────────────────────────────────────────────────────────────
+// --- MERGE --------------------------------------------------------------------
 
 // MergeMatchType identifies what a WHEN clause matches.
 type MergeMatchType int

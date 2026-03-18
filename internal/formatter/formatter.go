@@ -1,3 +1,10 @@
+// Package formatter renders a parsed SQL AST back to formatted SQL text.
+// It applies the style rules in a config.Config — keyword casing, indent
+// style, and comma placement — to produce consistent, deterministic output.
+//
+// The public entry point is Format, which parses and formats input in one step.
+// The internal formatter type provides kw(), indent(), and ident() helpers
+// shared by all statement-specific formatters in the package.
 package formatter
 
 import (

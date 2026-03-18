@@ -1,3 +1,14 @@
+// Package parser implements a recursive-descent parser for T-SQL.
+// It converts a token stream produced by the lexer into an abstract syntax
+// tree (AST) composed of Statement and Expr values.
+//
+// The parser maintains a two-token lookahead window (cur and peek). It is
+// intentionally non-recovering: when an unexpected token is encountered inside
+// a statement, an error is recorded in ParseResult.Errors and parsing of that
+// statement stops. Subsequent statements in the same batch are still attempted,
+// so a multi-statement file with one bad statement does not block the rest.
+//
+// Comments are stripped by the lexer and do not appear in the AST.
 package parser
 
 import (
@@ -24,7 +35,7 @@ func Parse(input string) ParseResult {
 	return p.parseAll()
 }
 
-// ─── parser internals ────────────────────────────────────────────────────────
+// --- parser internals --------------------------------------------------------
 
 type parser struct {
 	lex              *lexer.Lexer

@@ -2,7 +2,7 @@ package parser
 
 import "testing"
 
-// ─── parseDeclare tests ───────────────────────────────────────────────────────
+// --- parseDeclare tests -------------------------------------------------------
 
 func mustParseDeclare(t *testing.T, sql string) *DeclareStmt {
 	t.Helper()
@@ -21,7 +21,7 @@ func mustParseDeclare(t *testing.T, sql string) *DeclareStmt {
 }
 
 func TestParseDeclare(t *testing.T) {
-	// ── Scalar variables ──────────────────────────────────────────────────────
+	// -- Scalar variables ------------------------------------------------------
 
 	t.Run("single scalar no default", func(t *testing.T) {
 		stmt := mustParseDeclare(t, "declare @count int;")
@@ -76,7 +76,7 @@ func TestParseDeclare(t *testing.T) {
 		}
 	})
 
-	// ── Multiple scalar variables ─────────────────────────────────────────────
+	// -- Multiple scalar variables ---------------------------------------------
 
 	t.Run("multiple scalars no defaults", func(t *testing.T) {
 		stmt := mustParseDeclare(t, "declare @a int, @b varchar(10), @c bit;")
@@ -111,7 +111,7 @@ func TestParseDeclare(t *testing.T) {
 		}
 	})
 
-	// ── Table variables ───────────────────────────────────────────────────────
+	// -- Table variables -------------------------------------------------------
 
 	t.Run("table variable single column", func(t *testing.T) {
 		stmt := mustParseDeclare(t, "declare @t table (id int not null);")
@@ -147,7 +147,7 @@ func TestParseDeclare(t *testing.T) {
 		}
 	})
 
-	// ── Error cases ───────────────────────────────────────────────────────────
+	// -- Error cases -----------------------------------------------------------
 
 	t.Run("missing variable name", func(t *testing.T) {
 		result := Parse("declare int;")
@@ -164,7 +164,7 @@ func TestParseDeclare(t *testing.T) {
 	})
 }
 
-// ─── parseProcParams tests ────────────────────────────────────────────────────
+// --- parseProcParams tests ----------------------------------------------------
 
 // parseProcParams stops at AS/BEGIN/)/EOF, so we can feed it just the param
 // fragment without needing a full CREATE PROC statement.
@@ -179,7 +179,7 @@ func mustParseProcParams(t *testing.T, sql string) []ProcParam {
 }
 
 func TestParseProcParams(t *testing.T) {
-	// ── Empty / no params ─────────────────────────────────────────────────────
+	// -- Empty / no params -----------------------------------------------------
 
 	t.Run("no params terminated by AS", func(t *testing.T) {
 		params := mustParseProcParams(t, "as")
@@ -195,7 +195,7 @@ func TestParseProcParams(t *testing.T) {
 		}
 	})
 
-	// ── Single param — basic ──────────────────────────────────────────────────
+	// -- Single param — basic --------------------------------------------------
 
 	t.Run("single param no default", func(t *testing.T) {
 		params := mustParseProcParams(t, "@count int")
@@ -226,7 +226,7 @@ func TestParseProcParams(t *testing.T) {
 		}
 	})
 
-	// ── Single param — defaults ───────────────────────────────────────────────
+	// -- Single param — defaults -----------------------------------------------
 
 	t.Run("single param with int default", func(t *testing.T) {
 		params := mustParseProcParams(t, "@count int = 0")
@@ -249,7 +249,7 @@ func TestParseProcParams(t *testing.T) {
 		}
 	})
 
-	// ── Single param — direction / modifiers ──────────────────────────────────
+	// -- Single param — direction / modifiers ----------------------------------
 
 	t.Run("output keyword", func(t *testing.T) {
 		params := mustParseProcParams(t, "@result int output")
@@ -276,7 +276,7 @@ func TestParseProcParams(t *testing.T) {
 		}
 	})
 
-	// ── Parenthesised form ────────────────────────────────────────────────────
+	// -- Parenthesised form ----------------------------------------------------
 
 	t.Run("single param in parens", func(t *testing.T) {
 		params := mustParseProcParams(t, "(@count int)")
@@ -288,7 +288,7 @@ func TestParseProcParams(t *testing.T) {
 		}
 	})
 
-	// ── Multiple params ───────────────────────────────────────────────────────
+	// -- Multiple params -------------------------------------------------------
 
 	t.Run("multiple params no parens", func(t *testing.T) {
 		params := mustParseProcParams(t, "@a int, @b varchar(10), @c bit")
@@ -327,7 +327,7 @@ func TestParseProcParams(t *testing.T) {
 		}
 	})
 
-	// ── Error cases ───────────────────────────────────────────────────────────
+	// -- Error cases -----------------------------------------------------------
 
 	t.Run("non-ident parameter name", func(t *testing.T) {
 		p := newTestParser("123 int")

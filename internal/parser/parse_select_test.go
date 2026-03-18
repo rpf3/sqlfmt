@@ -2,7 +2,7 @@ package parser
 
 import "testing"
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+// --- helpers -----------------------------------------------------------------
 
 func parseSelect(t *testing.T, sql string) *SelectStmt {
 	t.Helper()
@@ -25,7 +25,7 @@ func parseWith(t *testing.T, sql string) *SelectStmt {
 	return parseSelect(t, sql) // WITH statements also produce a *SelectStmt
 }
 
-// ─── core SELECT tests ────────────────────────────────────────────────────────
+// --- core SELECT tests --------------------------------------------------------
 
 func TestParseSelectStar(t *testing.T) {
 	stmt := parseSelect(t, "select * from orders;")
@@ -299,7 +299,7 @@ func TestParseSelectGroupByMultiple(t *testing.T) {
 	}
 }
 
-// ─── JOIN tests ───────────────────────────────────────────────────────────────
+// --- JOIN tests ---------------------------------------------------------------
 
 func TestParseSelectInnerJoin(t *testing.T) {
 	stmt := parseSelect(t,
@@ -409,7 +409,7 @@ func TestParseSelectMultipleJoins(t *testing.T) {
 	}
 }
 
-// ─── CTE tests ────────────────────────────────────────────────────────────────
+// --- CTE tests ----------------------------------------------------------------
 
 func TestParseCTESingle(t *testing.T) {
 	sql := "with active_orders as (select t.id, t.customer_id, t.total_amount from orders as t where t.status = 'active') select c.name, sum(o.total_amount) as lifetime_value from active_orders as o inner join customers as c on c.id = o.customer_id group by c.name order by lifetime_value desc;"

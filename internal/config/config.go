@@ -1,3 +1,10 @@
+// Package config defines the configuration structure for sqlfmt and provides
+// helpers to load it from a YAML file.
+//
+// Default() returns a ready-to-use Config with sensible defaults (lowercase
+// keywords, tab indentation, leading commas). Load() reads a named .sqlfmt.yaml
+// file; FindAndLoad() walks up the directory tree to find the nearest one,
+// following the same discovery pattern as .editorconfig and .golangci.yml.
 package config
 
 import (

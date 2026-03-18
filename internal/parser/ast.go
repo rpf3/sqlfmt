@@ -12,7 +12,7 @@ const (
 	DirectionDesc                  // explicit DESC
 )
 
-// ─── SELECT statement ─────────────────────────────────────────────────────────
+// --- SELECT statement ---------------------------------------------------------
 
 // SetOpType identifies the kind of set operation joining two SELECT branches.
 type SetOpType int

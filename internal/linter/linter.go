@@ -1,3 +1,11 @@
+// Package linter checks parsed SQL against a configurable set of style and
+// correctness rules, returning a slice of Warning values.
+//
+// Rules are organised by SQL domain (select, dml, ddl, proc) and are enabled
+// or disabled via config.Config.LintRules. Some rules are opt-in and default
+// to off; see config.DefaultSeverity. The linter recurses into subqueries,
+// CTEs, and procedural control-flow bodies (IF/WHILE/TRY-CATCH) so that rules
+// apply to nested SQL regardless of how deeply it is embedded.
 package linter
 
 import (

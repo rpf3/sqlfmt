@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// ─── TokenType.String() ───────────────────────────────────────────────────────
+// --- TokenType.String() -------------------------------------------------------
 
 func TestTokenTypeString(t *testing.T) {
 	tests := []struct {
@@ -49,7 +49,7 @@ func TestTokenTypeString(t *testing.T) {
 	}
 }
 
-// ─── Token.String() ───────────────────────────────────────────────────────────
+// --- Token.String() -----------------------------------------------------------
 
 func TestTokenString(t *testing.T) {
 	tok := Token{Type: Ident, Value: "foo", Line: 1, Column: 5}
@@ -59,7 +59,7 @@ func TestTokenString(t *testing.T) {
 	}
 }
 
-// ─── isKeyword ────────────────────────────────────────────────────────────────
+// --- isKeyword ----------------------------------------------------------------
 
 func TestIsKeyword(t *testing.T) {
 	trueWords := []string{
@@ -80,7 +80,7 @@ func TestIsKeyword(t *testing.T) {
 	}
 }
 
-// ─── Tokenize integration tests ───────────────────────────────────────────────
+// --- Tokenize integration tests -----------------------------------------------
 
 // tokenize is a helper that asserts no error and returns just the tokens.
 func tokenize(t *testing.T, input string) []Token {
@@ -336,7 +336,7 @@ func TestTokenizeBlockComment(t *testing.T) {
 	}
 }
 
-// ─── Illegal token tests ──────────────────────────────────────────────────────
+// --- Illegal token tests ------------------------------------------------------
 
 func TestTokenizeIllegalChar(t *testing.T) {
 	tokens, err := Tokenize("@")
@@ -433,7 +433,7 @@ func TestTokenizeUnterminatedBlockComment(t *testing.T) {
 	}
 }
 
-// ─── Position tracking ────────────────────────────────────────────────────────
+// --- Position tracking --------------------------------------------------------
 
 func TestTokenizePositions(t *testing.T) {
 	input := "SELECT\n  foo"
@@ -448,7 +448,7 @@ func TestTokenizePositions(t *testing.T) {
 	}
 }
 
-// ─── SELECT-related keyword coverage ─────────────────────────────────────────
+// --- SELECT-related keyword coverage -----------------------------------------
 
 func TestTokenizeSelectKeywords(t *testing.T) {
 	// All keywords required for SELECT parsing and formatting. This test acts
@@ -480,7 +480,7 @@ func TestTokenizeSelectKeywords(t *testing.T) {
 	}
 }
 
-// ─── Full SELECT statement ────────────────────────────────────────────────────
+// --- Full SELECT statement ----------------------------------------------------
 
 func TestTokenizeSelectStatement(t *testing.T) {
 	input := `SELECT id, name FROM users WHERE id = 1;`
@@ -521,7 +521,7 @@ func TestTokenizeSelectStatement(t *testing.T) {
 	}
 }
 
-// ─── EOF is sticky ────────────────────────────────────────────────────────────
+// --- EOF is sticky ------------------------------------------------------------
 
 func TestNextReturnsEOFRepeatedly(t *testing.T) {
 	l := New("x")
@@ -534,7 +534,7 @@ func TestNextReturnsEOFRepeatedly(t *testing.T) {
 	}
 }
 
-// ─── Dot disambiguation ───────────────────────────────────────────────────────
+// --- Dot disambiguation -------------------------------------------------------
 
 func TestTokenizeDotVsFloat(t *testing.T) {
 	// "users.col" → Ident Dot Ident
@@ -554,7 +554,7 @@ func TestTokenizeDotVsFloat(t *testing.T) {
 	}
 }
 
-// ─── Temp table names ─────────────────────────────────────────────────────────
+// --- Temp table names ---------------------------------------------------------
 
 func TestTokenizeTempTableNames(t *testing.T) {
 	tests := []struct {

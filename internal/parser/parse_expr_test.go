@@ -18,7 +18,7 @@ func newTestParser(sql string) *parser {
 // consume until EOF.
 func alwaysFalse() bool { return false }
 
-// ─── parseAndChain tests ──────────────────────────────────────────────────────
+// --- parseAndChain tests ------------------------------------------------------
 
 // TestParseAndChain_SingleTerm verifies that a predicate with no AND returns a
 // plain *RawExpr, not an *AndChain.
@@ -121,7 +121,7 @@ func TestParseAndChain_RenderIdentity(t *testing.T) {
 	}
 }
 
-// ─── parseFunctionCall / parseWindowSpec tests ────────────────────────────────
+// --- parseFunctionCall / parseWindowSpec tests --------------------------------
 
 // TestParseFunctionCall_Star verifies that count(*) produces a FunctionCallExpr
 // with Star=true and renders back to "count(*)".

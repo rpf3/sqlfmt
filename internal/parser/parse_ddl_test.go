@@ -2,7 +2,7 @@ package parser
 
 import "testing"
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
+// --- helpers ------------------------------------------------------------------
 
 // mustParseColDef parses a single column definition from sql and returns the
 // resulting ColumnDef. It fails the test immediately on any parse error.
@@ -24,7 +24,7 @@ func renderExpr(e Expr) string {
 	return Render(e)
 }
 
-// ─── parseDataType tests ──────────────────────────────────────────────────────
+// --- parseDataType tests ------------------------------------------------------
 
 func TestParseDataType(t *testing.T) {
 	tests := []struct {
@@ -82,7 +82,7 @@ func TestParseDataType(t *testing.T) {
 	}
 }
 
-// ─── parseColumnDef tests ─────────────────────────────────────────────────────
+// --- parseColumnDef tests -----------------------------------------------------
 
 func TestParseColumnDef(t *testing.T) {
 	// wantCol is the expected state of a ColumnDef after parsing. Fields left
@@ -161,7 +161,7 @@ func TestParseColumnDef(t *testing.T) {
 		}
 	}
 
-	// ── Basic ────────────────────────────────────────────────────────────────
+	// -- Basic ----------------------------------------------------------------
 
 	t.Run("plain type", func(t *testing.T) {
 		col := mustParseColDef(t, "id int")
@@ -178,7 +178,7 @@ func TestParseColumnDef(t *testing.T) {
 		check(t, "body nvarchar(max)", col, wantCol{name: "body", dataType: "NVARCHAR(MAX)"})
 	})
 
-	// ── IDENTITY ─────────────────────────────────────────────────────────────
+	// -- IDENTITY -------------------------------------------------------------
 
 	t.Run("identity bare", func(t *testing.T) {
 		col := mustParseColDef(t, "id int identity")
@@ -207,14 +207,14 @@ func TestParseColumnDef(t *testing.T) {
 		})
 	})
 
-	// ── PRIMARY KEY ───────────────────────────────────────────────────────────
+	// -- PRIMARY KEY -----------------------------------------------------------
 
 	t.Run("primary key inline", func(t *testing.T) {
 		col := mustParseColDef(t, "id int primary key")
 		check(t, "id int primary key", col, wantCol{name: "id", dataType: "INT", primaryKey: true})
 	})
 
-	// ── Nullability ───────────────────────────────────────────────────────────
+	// -- Nullability -----------------------------------------------------------
 
 	t.Run("not null", func(t *testing.T) {
 		col := mustParseColDef(t, "id int not null")
@@ -243,7 +243,7 @@ func TestParseColumnDef(t *testing.T) {
 		})
 	})
 
-	// ── DEFAULT ───────────────────────────────────────────────────────────────
+	// -- DEFAULT ---------------------------------------------------------------
 
 	t.Run("default int literal", func(t *testing.T) {
 		col := mustParseColDef(t, "qty int default 0")
@@ -308,7 +308,7 @@ func TestParseColumnDef(t *testing.T) {
 		})
 	})
 
-	// ── UNIQUE ────────────────────────────────────────────────────────────────
+	// -- UNIQUE ----------------------------------------------------------------
 
 	t.Run("unique", func(t *testing.T) {
 		col := mustParseColDef(t, "code varchar(10) unique")
@@ -317,7 +317,7 @@ func TestParseColumnDef(t *testing.T) {
 		})
 	})
 
-	// ── CHECK ─────────────────────────────────────────────────────────────────
+	// -- CHECK -----------------------------------------------------------------
 
 	t.Run("check expression", func(t *testing.T) {
 		col := mustParseColDef(t, "qty int check (qty > 0)")
@@ -326,7 +326,7 @@ func TestParseColumnDef(t *testing.T) {
 		})
 	})
 
-	// ── REFERENCES ────────────────────────────────────────────────────────────
+	// -- REFERENCES ------------------------------------------------------------
 
 	t.Run("references with column list", func(t *testing.T) {
 		col := mustParseColDef(t, "user_id int references users(id)")
@@ -347,7 +347,7 @@ func TestParseColumnDef(t *testing.T) {
 		})
 	})
 
-	// ── Combinations ──────────────────────────────────────────────────────────
+	// -- Combinations ----------------------------------------------------------
 
 	t.Run("identity not null", func(t *testing.T) {
 		col := mustParseColDef(t, "id int identity not null")
@@ -385,7 +385,7 @@ func TestParseColumnDef(t *testing.T) {
 		})
 	})
 
-	// ── Error cases ───────────────────────────────────────────────────────────
+	// -- Error cases -----------------------------------------------------------
 
 	t.Run("missing type name", func(t *testing.T) {
 		p := newTestParser("123 int")
@@ -404,7 +404,7 @@ func TestParseColumnDef(t *testing.T) {
 	})
 }
 
-// ─── parseTableConstraint tests ───────────────────────────────────────────────
+// --- parseTableConstraint tests -----------------------------------------------
 
 func mustParseTableConstraint(t *testing.T, sql string) TableConstraint {
 	t.Helper()
@@ -417,7 +417,7 @@ func mustParseTableConstraint(t *testing.T, sql string) TableConstraint {
 }
 
 func TestParseTableConstraint(t *testing.T) {
-	// ── PRIMARY KEY ───────────────────────────────────────────────────────────
+	// -- PRIMARY KEY -----------------------------------------------------------
 
 	t.Run("unnamed primary key single column", func(t *testing.T) {
 		tc := mustParseTableConstraint(t, "primary key (id)")
@@ -464,7 +464,7 @@ func TestParseTableConstraint(t *testing.T) {
 		}
 	})
 
-	// ── FOREIGN KEY ───────────────────────────────────────────────────────────
+	// -- FOREIGN KEY -----------------------------------------------------------
 
 	t.Run("unnamed foreign key with ref columns", func(t *testing.T) {
 		tc := mustParseTableConstraint(t, "foreign key (user_id) references users (id)")
@@ -520,7 +520,7 @@ func TestParseTableConstraint(t *testing.T) {
 		}
 	})
 
-	// ── UNIQUE ────────────────────────────────────────────────────────────────
+	// -- UNIQUE ----------------------------------------------------------------
 
 	t.Run("unnamed unique", func(t *testing.T) {
 		tc := mustParseTableConstraint(t, "unique (email)")
@@ -545,7 +545,7 @@ func TestParseTableConstraint(t *testing.T) {
 		}
 	})
 
-	// ── CHECK ─────────────────────────────────────────────────────────────────
+	// -- CHECK -----------------------------------------------------------------
 
 	t.Run("unnamed check", func(t *testing.T) {
 		tc := mustParseTableConstraint(t, "check (qty > 0)")
@@ -582,7 +582,7 @@ func TestParseTableConstraint(t *testing.T) {
 		}
 	})
 
-	// ── Error cases ───────────────────────────────────────────────────────────
+	// -- Error cases -----------------------------------------------------------
 
 	t.Run("unknown constraint keyword", func(t *testing.T) {
 		p := newTestParser("index (id)")
@@ -601,7 +601,7 @@ func TestParseTableConstraint(t *testing.T) {
 	})
 }
 
-// ─── parseCreateTable tests ───────────────────────────────────────────────────
+// --- parseCreateTable tests ---------------------------------------------------
 
 func mustParseCreateTable(t *testing.T, sql string) *CreateTableStmt {
 	t.Helper()
@@ -620,7 +620,7 @@ func mustParseCreateTable(t *testing.T, sql string) *CreateTableStmt {
 }
 
 func TestParseCreateTable(t *testing.T) {
-	// ── Name forms ────────────────────────────────────────────────────────────
+	// -- Name forms ------------------------------------------------------------
 
 	t.Run("simple name", func(t *testing.T) {
 		stmt := mustParseCreateTable(t, "create table orders (id int);")
@@ -643,7 +643,7 @@ func TestParseCreateTable(t *testing.T) {
 		}
 	})
 
-	// ── Column counts ─────────────────────────────────────────────────────────
+	// -- Column counts ---------------------------------------------------------
 
 	t.Run("single column", func(t *testing.T) {
 		stmt := mustParseCreateTable(t, "create table t (id int);")
@@ -671,7 +671,7 @@ func TestParseCreateTable(t *testing.T) {
 		}
 	})
 
-	// ── Columns and constraints separated ─────────────────────────────────────
+	// -- Columns and constraints separated -------------------------------------
 
 	t.Run("columns then table pk", func(t *testing.T) {
 		stmt := mustParseCreateTable(t,
@@ -754,7 +754,7 @@ func TestParseCreateTable(t *testing.T) {
 		}
 	})
 
-	// ── Inline column attributes survive round-trip through parseColumnList ───
+	// -- Inline column attributes survive round-trip through parseColumnList ---
 
 	t.Run("inline identity and nullability preserved", func(t *testing.T) {
 		stmt := mustParseCreateTable(t,
@@ -779,7 +779,7 @@ func TestParseCreateTable(t *testing.T) {
 		}
 	})
 
-	// ── Error cases ───────────────────────────────────────────────────────────
+	// -- Error cases -----------------------------------------------------------
 
 	t.Run("missing opening paren", func(t *testing.T) {
 		result := Parse("create table t id int;")
@@ -796,7 +796,7 @@ func TestParseCreateTable(t *testing.T) {
 	})
 }
 
-// ─── parseCreateIndex tests ───────────────────────────────────────────────────
+// --- parseCreateIndex tests ---------------------------------------------------
 
 func mustParseCreateIndex(t *testing.T, sql string) *CreateIndexStmt {
 	t.Helper()
@@ -815,7 +815,7 @@ func mustParseCreateIndex(t *testing.T, sql string) *CreateIndexStmt {
 }
 
 func TestParseCreateIndex(t *testing.T) {
-	// ── Unique flag ───────────────────────────────────────────────────────────
+	// -- Unique flag -----------------------------------------------------------
 
 	t.Run("non-unique index", func(t *testing.T) {
 		stmt := mustParseCreateIndex(t, "create index ix_orders_user on orders (user_id);")
@@ -837,7 +837,7 @@ func TestParseCreateIndex(t *testing.T) {
 		}
 	})
 
-	// ── IF NOT EXISTS ─────────────────────────────────────────────────────────
+	// -- IF NOT EXISTS ---------------------------------------------------------
 
 	t.Run("if not exists", func(t *testing.T) {
 		stmt := mustParseCreateIndex(t, "create index if not exists ix_orders_user on orders (user_id);")
@@ -859,7 +859,7 @@ func TestParseCreateIndex(t *testing.T) {
 		}
 	})
 
-	// ── Table name forms ──────────────────────────────────────────────────────
+	// -- Table name forms ------------------------------------------------------
 
 	t.Run("schema-qualified table", func(t *testing.T) {
 		stmt := mustParseCreateIndex(t, "create index ix_name on dbo.orders (id);")
@@ -868,7 +868,7 @@ func TestParseCreateIndex(t *testing.T) {
 		}
 	})
 
-	// ── Column directions ─────────────────────────────────────────────────────
+	// -- Column directions -----------------------------------------------------
 
 	t.Run("single column no direction", func(t *testing.T) {
 		stmt := mustParseCreateIndex(t, "create index ix on t (col);")
@@ -914,7 +914,7 @@ func TestParseCreateIndex(t *testing.T) {
 		}
 	})
 
-	// ── Error cases ───────────────────────────────────────────────────────────
+	// -- Error cases -----------------------------------------------------------
 
 	t.Run("missing on keyword", func(t *testing.T) {
 		result := Parse("create index ix_name orders (id);")
@@ -931,7 +931,7 @@ func TestParseCreateIndex(t *testing.T) {
 	})
 }
 
-// ─── parseAlterTableAction tests ─────────────────────────────────────────────
+// --- parseAlterTableAction tests ---------------------------------------------
 
 func mustParseAlterTable(t *testing.T, sql string) *AlterTableStmt {
 	t.Helper()
@@ -950,7 +950,7 @@ func mustParseAlterTable(t *testing.T, sql string) *AlterTableStmt {
 }
 
 func TestParseAlterTableAction(t *testing.T) {
-	// ── ADD COLUMN ────────────────────────────────────────────────────────────
+	// -- ADD COLUMN ------------------------------------------------------------
 
 	t.Run("add column basic", func(t *testing.T) {
 		stmt := mustParseAlterTable(t, "alter table orders add column status varchar(20) not null;")
@@ -1000,7 +1000,7 @@ func TestParseAlterTableAction(t *testing.T) {
 		}
 	})
 
-	// ── ADD CONSTRAINT ────────────────────────────────────────────────────────
+	// -- ADD CONSTRAINT --------------------------------------------------------
 
 	t.Run("add named primary key constraint", func(t *testing.T) {
 		stmt := mustParseAlterTable(t, "alter table t add constraint pk_t primary key (id);")
@@ -1036,7 +1036,7 @@ func TestParseAlterTableAction(t *testing.T) {
 		}
 	})
 
-	// ── DROP COLUMN ───────────────────────────────────────────────────────────
+	// -- DROP COLUMN -----------------------------------------------------------
 
 	t.Run("drop column", func(t *testing.T) {
 		stmt := mustParseAlterTable(t, "alter table orders drop column status;")
@@ -1048,7 +1048,7 @@ func TestParseAlterTableAction(t *testing.T) {
 		}
 	})
 
-	// ── DROP CONSTRAINT ───────────────────────────────────────────────────────
+	// -- DROP CONSTRAINT -------------------------------------------------------
 
 	t.Run("drop constraint", func(t *testing.T) {
 		stmt := mustParseAlterTable(t, "alter table orders drop constraint pk_orders;")
@@ -1060,7 +1060,7 @@ func TestParseAlterTableAction(t *testing.T) {
 		}
 	})
 
-	// ── Error cases ───────────────────────────────────────────────────────────
+	// -- Error cases -----------------------------------------------------------
 
 	t.Run("unknown action keyword", func(t *testing.T) {
 		result := Parse("alter table t modify column id int;")

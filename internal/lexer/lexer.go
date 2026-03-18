@@ -1,3 +1,11 @@
+// Package lexer converts raw SQL text into a stream of tokens.
+// It uses a pull-based model: the parser calls Next() to consume one token at
+// a time, which lets the recursive-descent parser manage its own lookahead
+// buffer without the lexer needing to know how much look-ahead is required.
+//
+// Tokens are classified as keywords, identifiers, literals, operators, and
+// punctuation. Keyword recognition is case-insensitive. Line and column
+// positions are recorded on every token to support error messages.
 package lexer
 
 import "fmt"
@@ -183,7 +191,7 @@ func Tokenize(input string) ([]Token, error) {
 	return tokens, firstErr
 }
 
-// ─── Navigation primitives ───────────────────────────────────────────────────
+// --- Navigation primitives ---------------------------------------------------
 
 // peek returns the current byte without consuming it, or 0 at EOF.
 func (l *Lexer) peek() byte {
@@ -263,7 +271,7 @@ func (l *Lexer) consumeIllegal() Token {
 	return l.makeTokenAt(Illegal, string(ch), line, col)
 }
 
-// ─── Sub-readers ─────────────────────────────────────────────────────────────
+// --- Sub-readers -------------------------------------------------------------
 
 // readIdent scans a bare identifier or keyword starting at the current position.
 // Keywords and identifiers share the same character rules; the distinction is
@@ -517,7 +525,7 @@ func (l *Lexer) readBlockComment() Token {
 	return l.makeTokenAt(Illegal, l.input[start:l.pos], line, col)
 }
 
-// ─── Character classification ─────────────────────────────────────────────────
+// --- Character classification -------------------------------------------------
 
 func isLetter(ch byte) bool {
 	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
