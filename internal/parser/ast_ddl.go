@@ -1,6 +1,6 @@
 package parser
 
-// ─── Shared column/constraint primitives ──────────────────────────────────────
+// --- Shared column/constraint primitives --------------------------------------
 
 // Nullability represents an optional nullability constraint on a column.
 type Nullability int
@@ -58,7 +58,7 @@ type ColumnDef struct {
 	References        *ColumnReference // optional inline REFERENCES clause
 }
 
-// ─── CREATE TABLE / INDEX ─────────────────────────────────────────────────────
+// --- CREATE TABLE / INDEX -----------------------------------------------------
 
 // CreateTableStmt represents: CREATE TABLE <name> (<columns> [, <constraints>])
 type CreateTableStmt struct {
@@ -86,7 +86,7 @@ type CreateIndexStmt struct {
 
 func (*CreateIndexStmt) statementNode() {}
 
-// ─── Table constraints ────────────────────────────────────────────────────────
+// --- Table constraints --------------------------------------------------------
 
 // TableConstraintType identifies the kind of table-level constraint.
 type TableConstraintType int
@@ -110,7 +110,7 @@ type TableConstraint struct {
 	Check      Expr      // for CHECK: expression (without outer parens); nil for non-CHECK constraints
 }
 
-// ─── ALTER TABLE ──────────────────────────────────────────────────────────────
+// --- ALTER TABLE --------------------------------------------------------------
 
 // AlterTableActionType identifies which ALTER TABLE action is being performed.
 type AlterTableActionType int
@@ -141,7 +141,7 @@ type AlterTableStmt struct {
 
 func (*AlterTableStmt) statementNode() {}
 
-// ─── DROP / TRUNCATE / VIEW ───────────────────────────────────────────────────
+// --- DROP / TRUNCATE / VIEW ---------------------------------------------------
 
 // DropObjectType identifies what kind of object a DROP statement targets.
 type DropObjectType int
@@ -179,7 +179,7 @@ type CreateViewStmt struct {
 
 func (*CreateViewStmt) statementNode() {}
 
-// ─── CREATE SCHEMA ────────────────────────────────────────────────────────────
+// --- CREATE SCHEMA ------------------------------------------------------------
 
 // CreateSchemaStmt represents: CREATE SCHEMA <name> [AUTHORIZATION <owner>]
 type CreateSchemaStmt struct {
@@ -189,7 +189,7 @@ type CreateSchemaStmt struct {
 
 func (*CreateSchemaStmt) statementNode() {}
 
-// ─── CREATE TYPE ──────────────────────────────────────────────────────────────
+// --- CREATE TYPE --------------------------------------------------------------
 
 // CreateTypeKind identifies the variant of a CREATE TYPE statement.
 type CreateTypeKind int

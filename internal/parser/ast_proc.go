@@ -1,6 +1,6 @@
 package parser
 
-// ─── Shared proc/func primitives ─────────────────────────────────────────────
+// --- Shared proc/func primitives ---------------------------------------------
 
 // ParamDirection indicates whether a procedure/function parameter is input or output.
 type ParamDirection int
@@ -18,7 +18,7 @@ type ProcParam struct {
 	Default   Expr           // default from = <expr>; nil if absent
 }
 
-// ─── CREATE PROCEDURE ─────────────────────────────────────────────────────────
+// --- CREATE PROCEDURE ---------------------------------------------------------
 
 // CreateProcStmt represents:
 //
@@ -46,7 +46,7 @@ type RawStmt struct {
 
 func (*RawStmt) statementNode() {}
 
-// ─── CREATE FUNCTION ──────────────────────────────────────────────────────────
+// --- CREATE FUNCTION ----------------------------------------------------------
 
 // CreateFuncKind identifies the variant of a CREATE FUNCTION statement.
 type CreateFuncKind int
@@ -77,7 +77,7 @@ type CreateFuncStmt struct {
 
 func (*CreateFuncStmt) statementNode() {}
 
-// ─── SET ──────────────────────────────────────────────────────────────────────
+// --- SET ----------------------------------------------------------------------
 
 // SetKind distinguishes the three forms of the SET statement.
 type SetKind int
@@ -106,7 +106,7 @@ type SetStmt struct {
 
 func (*SetStmt) statementNode() {}
 
-// ─── DECLARE ──────────────────────────────────────────────────────────────────
+// --- DECLARE ------------------------------------------------------------------
 
 // VarDecl is one variable declaration in a DECLARE statement.
 // Exactly one of Type (scalar) or Columns (table variable) is populated.
@@ -127,7 +127,7 @@ type DeclareStmt struct {
 
 func (*DeclareStmt) statementNode() {}
 
-// ─── IF / ELSE ────────────────────────────────────────────────────────────────
+// --- IF / ELSE ----------------------------------------------------------------
 
 // IfStmt represents a T-SQL IF [ELSE] statement.
 //
@@ -143,7 +143,7 @@ type IfStmt struct {
 
 func (*IfStmt) statementNode() {}
 
-// ─── WHILE ────────────────────────────────────────────────────────────────────
+// --- WHILE --------------------------------------------------------------------
 
 // WhileStmt represents a T-SQL WHILE loop.
 //
@@ -158,7 +158,7 @@ type WhileStmt struct {
 
 func (*WhileStmt) statementNode() {}
 
-// ─── TRY / CATCH ──────────────────────────────────────────────────────────────
+// --- TRY / CATCH --------------------------------------------------------------
 
 // TryCatchStmt represents a T-SQL TRY/CATCH block.
 //
@@ -175,7 +175,7 @@ type TryCatchStmt struct {
 
 func (*TryCatchStmt) statementNode() {}
 
-// ─── BREAK / CONTINUE ─────────────────────────────────────────────────────────
+// --- BREAK / CONTINUE ---------------------------------------------------------
 
 // BreakStmt represents a T-SQL BREAK statement inside a WHILE loop.
 type BreakStmt struct{}
@@ -187,7 +187,7 @@ type ContinueStmt struct{}
 
 func (*ContinueStmt) statementNode() {}
 
-// ─── RETURN ───────────────────────────────────────────────────────────────────
+// --- RETURN -------------------------------------------------------------------
 
 // ReturnStmt represents a T-SQL RETURN statement.
 //
@@ -199,7 +199,7 @@ type ReturnStmt struct {
 
 func (*ReturnStmt) statementNode() {}
 
-// ─── THROW ────────────────────────────────────────────────────────────────────
+// --- THROW --------------------------------------------------------------------
 
 // ThrowStmt represents a T-SQL THROW statement.
 //
@@ -214,7 +214,7 @@ type ThrowStmt struct {
 
 func (*ThrowStmt) statementNode() {}
 
-// ─── PRINT ────────────────────────────────────────────────────────────────────
+// --- PRINT --------------------------------------------------------------------
 
 // PrintStmt represents a T-SQL PRINT statement.
 //
@@ -228,7 +228,7 @@ type PrintStmt struct {
 
 func (*PrintStmt) statementNode() {}
 
-// ─── TRANSACTION ──────────────────────────────────────────────────────────────
+// --- TRANSACTION --------------------------------------------------------------
 
 // TransactionStmtKind identifies the kind of transaction control statement.
 type TransactionStmtKind int
@@ -248,7 +248,7 @@ type TransactionStmt struct {
 
 func (*TransactionStmt) statementNode() {}
 
-// ─── EXEC ─────────────────────────────────────────────────────────────────────
+// --- EXEC ---------------------------------------------------------------------
 
 // ExecStmt represents a T-SQL EXEC / EXECUTE statement.
 //

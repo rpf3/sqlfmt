@@ -6,7 +6,7 @@ import (
 	"github.com/rpf3/sqlfmt/internal/config"
 )
 
-// ── Control flow body recursion ───────────────────────────────────────────────
+// -- Control flow body recursion -----------------------------------------------
 
 func TestLintControlFlowRecursion(t *testing.T) {
 	tests := []struct {
