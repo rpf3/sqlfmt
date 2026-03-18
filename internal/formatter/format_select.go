@@ -57,6 +57,8 @@ func (f *formatter) formatExpr(e parser.Expr) string {
 				s += " " + f.kw("asc")
 			case parser.DirectionDesc:
 				s += " " + f.kw("desc")
+			case parser.DirectionNone:
+				// no direction keyword
 			}
 			items[i] = s
 		}
@@ -144,15 +146,16 @@ func (f *formatter) indentSubquery(s *parser.SelectStmt) string {
 // recursive is only meaningful for SELECT; DML callers pass false.
 func (f *formatter) writeCTEList(b *strings.Builder, ctes []parser.CTEDef, recursive bool) {
 	for i, cte := range ctes {
-		if i == 0 {
+		switch {
+		case i == 0:
 			withKw := f.kw("with")
 			if recursive {
 				withKw = f.kw("with recursive")
 			}
 			b.WriteString(withKw + " " + f.ident(cte.Name) + " " + f.kw("as"))
-		} else if f.cfg.CommaStyle == config.CommaTrailing {
+		case f.cfg.CommaStyle == config.CommaTrailing:
 			b.WriteString(f.ident(cte.Name) + " " + f.kw("as"))
-		} else {
+		default:
 			b.WriteString(", " + f.ident(cte.Name) + " " + f.kw("as"))
 		}
 		b.WriteString("\n(\n")
@@ -351,6 +354,8 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 				oi += " " + f.kw("desc")
 			case parser.DirectionAsc:
 				oi += " " + f.kw("asc")
+			case parser.DirectionNone:
+				// no direction keyword
 			}
 			orderItems = append(orderItems, oi)
 		}
@@ -437,6 +442,8 @@ func groupByModKeyword(mod parser.GroupByModifier) string {
 		return "cube"
 	case parser.GroupBySets:
 		return "grouping sets"
+	case parser.GroupBySimple, parser.GroupByGrandTotal:
+		return ""
 	}
 	return ""
 }

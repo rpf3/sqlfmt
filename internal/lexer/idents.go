@@ -26,7 +26,7 @@ func UnquoteIdent(name string) string {
 // SQL. A name needs quoting if it is empty, starts with a digit, contains
 // whitespace, or is a reserved keyword.
 func NeedsQuoting(name string) bool {
-	if len(name) == 0 {
+	if name == "" {
 		return true
 	}
 	if isDigit(name[0]) {

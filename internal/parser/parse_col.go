@@ -155,22 +155,24 @@ func (p *parser) parseCheckExpr() (Expr, error) {
 	}
 	var parts []string
 	depth := 1
+loop:
 	for {
 		tok := p.cur
 		if tok.Type == lexer.EOF {
 			return nil, fmt.Errorf("unterminated CHECK expression at %d:%d", tok.Line, tok.Column)
 		}
-		if tok.Type == lexer.RParen {
+		switch tok.Type {
+		case lexer.RParen:
 			depth--
 			if depth == 0 {
 				p.advance() // consume closing )
-				break
+				break loop
 			}
 			parts = append(parts, ")")
-		} else if tok.Type == lexer.LParen {
+		case lexer.LParen:
 			depth++
 			parts = append(parts, "(")
-		} else {
+		default:
 			parts = append(parts, exprToken(tok))
 		}
 		p.advance()
@@ -178,7 +180,7 @@ func (p *parser) parseCheckExpr() (Expr, error) {
 	return &RawExpr{Text: strings.Join(parts, " ")}, nil
 }
 
-// parseReferences parses: REFERENCES <table> [( <columns> )] [ON DELETE <action>] [ON UPDATE <action>]
+// parseReferences parses: REFERENCES <table> [( <columns> )] [ON DELETE <action>] [ON UPDATE <action>].
 func (p *parser) parseReferences() (*ColumnReference, error) {
 	if err := p.expectKeyword("REFERENCES"); err != nil {
 		return nil, err
@@ -255,7 +257,7 @@ func (p *parser) parseRefAction() (RefAction, error) {
 	)
 }
 
-// parseIdentitySpec parses: IDENTITY [(seed, increment)]
+// parseIdentitySpec parses: IDENTITY [(seed, increment)].
 // The IDENTITY keyword must already be the current token; this function
 // consumes it and returns the parsed spec.
 func (p *parser) parseIdentitySpec() (*IdentitySpec, error) {

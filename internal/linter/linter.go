@@ -24,6 +24,12 @@ type Warning struct {
 	Severity config.RuleSeverity
 }
 
+// linter holds configuration and accumulates warnings during a lint run.
+type linter struct {
+	cfg      config.Config
+	warnings []Warning
+}
+
 // Lint parses input SQL and returns any lint warnings found.
 // It returns an error if the input cannot be parsed.
 func Lint(input string, cfg config.Config) ([]Warning, error) {
@@ -122,12 +128,6 @@ func (l *linter) checkMustBeOnlyStatement(stmts []parser.Statement) {
 			}
 		}
 	}
-}
-
-// linter holds configuration and accumulates warnings during a lint run.
-type linter struct {
-	cfg      config.Config
-	warnings []Warning
 }
 
 // severity returns the configured severity for a rule. An explicit entry in
