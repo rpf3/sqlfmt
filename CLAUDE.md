@@ -119,6 +119,7 @@ Closes #N
 - Every package must have a `// Package foo ...` doc comment before the `package` declaration — explain design intent and any non-obvious invariants, not just the package name
 - Doc comments are full sentences: capitalize the first word and end with a period (`godot` in golangci.yml enforces this on declaration comments)
 - Only add inline comments where the logic is not self-evident from the code
+- When adding a `string` field to an AST struct that stores a pre-rendered SQL fragment, the comment must state *why* it is raw — either "stored verbatim because the formatter emits it unchanged" (deliberate simplification) or "stored verbatim because [X] is not yet in scope" (intentional debt) — see `ExecStmt.Args` as the canonical example
 
 ### Tests
 
