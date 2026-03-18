@@ -83,7 +83,7 @@ func (p *parser) parseAlterTableAction() (AlterTableAction, error) {
 	)
 }
 
-// parseAlterAdd handles: ADD COLUMN <col_def> | ADD [CONSTRAINT ...] <constraint>
+// parseAlterAdd handles: ADD COLUMN <col_def> | ADD [CONSTRAINT ...] <constraint>.
 func (p *parser) parseAlterAdd() (AlterTableAction, error) {
 	p.advance() // consume ADD
 
@@ -112,7 +112,7 @@ func (p *parser) parseAlterAdd() (AlterTableAction, error) {
 	return action, nil
 }
 
-// parseAlterDrop handles: DROP COLUMN <name> | DROP CONSTRAINT <name>
+// parseAlterDrop handles: DROP COLUMN <name> | DROP CONSTRAINT <name>.
 func (p *parser) parseAlterDrop() (AlterTableAction, error) {
 	p.advance() // consume DROP
 
@@ -148,7 +148,7 @@ func (p *parser) parseAlterDrop() (AlterTableAction, error) {
 	)
 }
 
-// parseAlterAlter handles: ALTER COLUMN <name> <datatype> [NULL|NOT NULL]
+// parseAlterAlter handles: ALTER COLUMN <name> <datatype> [NULL|NOT NULL].
 func (p *parser) parseAlterAlter() (AlterTableAction, error) {
 	p.advance() // consume ALTER
 	if err := p.expectKeyword("COLUMN"); err != nil {
@@ -248,7 +248,7 @@ func (p *parser) parseCreate() (Statement, error) {
 	return p.parseCreateTable()
 }
 
-// parseCreateSchema handles: CREATE SCHEMA <name> [AUTHORIZATION <owner>] [;]
+// parseCreateSchema handles: CREATE SCHEMA <name> [AUTHORIZATION <owner>] [;].
 func (p *parser) parseCreateSchema() (Statement, error) {
 	p.advance() // consume SCHEMA
 
@@ -352,7 +352,7 @@ func (p *parser) parseCreateIndex(unique bool) (Statement, error) {
 	return stmt, nil
 }
 
-// parseTruncate handles: TRUNCATE [TABLE] <name> [;]
+// parseTruncate handles: TRUNCATE [TABLE] <name> [;].
 func (p *parser) parseTruncate() (Statement, error) {
 	p.advance() // consume TRUNCATE
 	if p.curKeyword("TABLE") {
@@ -367,7 +367,7 @@ func (p *parser) parseTruncate() (Statement, error) {
 	return stmt, nil
 }
 
-// parseCreateView handles: CREATE VIEW <name> AS <select> [;]
+// parseCreateView handles: CREATE VIEW <name> AS <select> [;].
 func (p *parser) parseCreateView() (Statement, error) {
 	p.advance() // consume VIEW
 

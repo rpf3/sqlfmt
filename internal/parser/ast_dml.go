@@ -12,7 +12,7 @@ type OutputClause struct {
 
 // --- DELETE -------------------------------------------------------------------
 
-// DeleteStmt represents: DELETE [TOP (n)] [<alias>] FROM <table> [AS <alias>] [OUTPUT …] [WHERE <predicate>]
+// DeleteStmt represents: DELETE [TOP (n)] [<alias>] FROM <table> [AS <alias>] [OUTPUT …] [WHERE <predicate>].
 type DeleteStmt struct {
 	CTEs          []CTEDef      // WITH clause; nil if no CTEs
 	Top           string        // expression inside TOP(n); empty if absent

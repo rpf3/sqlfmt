@@ -60,7 +60,7 @@ type ColumnDef struct {
 
 // --- CREATE TABLE / INDEX -----------------------------------------------------
 
-// CreateTableStmt represents: CREATE TABLE <name> (<columns> [, <constraints>])
+// CreateTableStmt represents: CREATE TABLE <name> (<columns> [, <constraints>]).
 type CreateTableStmt struct {
 	Name        string // table name (unquoted or quoted)
 	Columns     []ColumnDef
@@ -75,7 +75,7 @@ type IndexColumn struct {
 	Direction Direction
 }
 
-// CreateIndexStmt represents: CREATE [UNIQUE] INDEX [IF NOT EXISTS] <name> ON <table> (<cols>)
+// CreateIndexStmt represents: CREATE [UNIQUE] INDEX [IF NOT EXISTS] <name> ON <table> (<cols>).
 type CreateIndexStmt struct {
 	Unique      bool
 	IfNotExists bool
@@ -133,7 +133,7 @@ type AlterTableAction struct {
 	ConstraintName string           // AlterDropConstraint
 }
 
-// AlterTableStmt represents: ALTER TABLE <name> <action>
+// AlterTableStmt represents: ALTER TABLE <name> <action>.
 type AlterTableStmt struct {
 	Name   string
 	Action AlterTableAction
@@ -154,7 +154,7 @@ const (
 	DropFunction                        // DROP FUNCTION
 )
 
-// DropStmt represents: DROP (TABLE|VIEW|INDEX|PROCEDURE|FUNCTION) [IF EXISTS] <name>
+// DropStmt represents: DROP (TABLE|VIEW|INDEX|PROCEDURE|FUNCTION) [IF EXISTS] <name>.
 type DropStmt struct {
 	Type     DropObjectType
 	IfExists bool
@@ -163,14 +163,14 @@ type DropStmt struct {
 
 func (*DropStmt) statementNode() {}
 
-// TruncateStmt represents: TRUNCATE [TABLE] <name>
+// TruncateStmt represents: TRUNCATE [TABLE] <name>.
 type TruncateStmt struct {
 	Name string // table name
 }
 
 func (*TruncateStmt) statementNode() {}
 
-// CreateViewStmt represents: CREATE VIEW <name> AS <select>
+// CreateViewStmt represents: CREATE VIEW <name> AS <select>.
 type CreateViewStmt struct {
 	IsAlter bool
 	Name    string
@@ -181,7 +181,7 @@ func (*CreateViewStmt) statementNode() {}
 
 // --- CREATE SCHEMA ------------------------------------------------------------
 
-// CreateSchemaStmt represents: CREATE SCHEMA <name> [AUTHORIZATION <owner>]
+// CreateSchemaStmt represents: CREATE SCHEMA <name> [AUTHORIZATION <owner>].
 type CreateSchemaStmt struct {
 	Name          string // schema name
 	Authorization string // optional owner; empty if absent

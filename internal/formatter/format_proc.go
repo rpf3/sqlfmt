@@ -138,6 +138,8 @@ func (f *formatter) formatCreateType(s *parser.CreateTypeStmt) string {
 			b.WriteString(" " + f.kw("not null"))
 		case parser.NullabilityNull:
 			b.WriteString(" " + f.kw("null"))
+		case parser.NullabilityNone:
+			// no nullability keyword
 		}
 
 	case parser.CreateTypeTable:

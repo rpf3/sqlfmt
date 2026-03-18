@@ -23,7 +23,7 @@ func (p *parser) parseSet() (Statement, error) {
 	}
 }
 
-// parseSetSimple handles: SET <option> <value> [;]
+// parseSetSimple handles: SET <option> <value> [;].
 func (p *parser) parseSetSimple() (Statement, error) {
 	if p.cur.Type != lexer.Ident && p.cur.Type != lexer.Keyword {
 		return nil, fmt.Errorf(
@@ -50,7 +50,7 @@ func (p *parser) parseSetSimple() (Statement, error) {
 	return stmt, nil
 }
 
-// parseSetTransaction handles: SET TRANSACTION ISOLATION LEVEL <level> [;]
+// parseSetTransaction handles: SET TRANSACTION ISOLATION LEVEL <level> [;].
 func (p *parser) parseSetTransaction() (Statement, error) {
 	p.advance() // consume TRANSACTION
 
@@ -97,7 +97,7 @@ func (p *parser) parseSetTransaction() (Statement, error) {
 	return stmt, nil
 }
 
-// parseSetIdentityInsert handles: SET IDENTITY_INSERT <table> ON|OFF [;]
+// parseSetIdentityInsert handles: SET IDENTITY_INSERT <table> ON|OFF [;].
 func (p *parser) parseSetIdentityInsert() (Statement, error) {
 	p.advance() // consume IDENTITY_INSERT
 

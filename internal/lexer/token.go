@@ -13,7 +13,7 @@ const (
 	// so all bad characters are surfaced in a single pass.
 	Illegal
 
-	// Identifiers and literals
+	// Identifiers and literals.
 	Ident       // unquoted identifier: foo, my_table
 	QuotedIdent // double-quoted identifier: "My Table"
 	StringLit   // single-quoted string: 'hello'
@@ -25,7 +25,7 @@ const (
 	// formatter's responsibility, not the lexer's.
 	Keyword
 
-	// Operators
+	// Operators.
 	Eq     // =
 	NotEq  // <> or !=
 	Lt     // <
@@ -38,7 +38,7 @@ const (
 	Slash  // /
 	Concat // ||
 
-	// Punctuation
+	// Punctuation.
 	LParen    // (
 	RParen    // )
 	Comma     // ,

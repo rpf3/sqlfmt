@@ -228,7 +228,7 @@ func (p *parser) parseUpdate() (Statement, error) {
 	return stmt, nil
 }
 
-// parseUpdateFrom parses: FROM <table> [AS <alias>] [JOINs]
+// parseUpdateFrom parses: FROM <table> [AS <alias>] [JOINs].
 func (p *parser) parseUpdateFrom() (*UpdateFromSource, error) {
 	p.advance() // consume FROM
 
@@ -262,7 +262,7 @@ func (p *parser) parseUpdateFrom() (*UpdateFromSource, error) {
 	return from, nil
 }
 
-// parseSetClause parses: SET col = expr [, col = expr ...]
+// parseSetClause parses: SET col = expr [, col = expr ...].
 // Column names may be qualified (e.g. t.col); the LHS is parsed with explicit
 // dot-checking rather than parseExprRaw because UPDATE SET always assigns to a
 // simple or qualified column name, never a computed expression.
@@ -580,7 +580,7 @@ func (p *parser) parseMergeWhenClause() (MergeWhenClause, error) {
 	return clause, nil
 }
 
-// parseMergeSetClause parses: SET col = expr [, col = expr ...]
+// parseMergeSetClause parses: SET col = expr [, col = expr ...].
 // Like parseSetClause but stops at WHEN (next clause boundary) in addition
 // to the standard terminators.
 func (p *parser) parseMergeSetClause() ([]UpdateSet, error) {

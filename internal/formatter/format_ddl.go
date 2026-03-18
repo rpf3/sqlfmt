@@ -83,7 +83,7 @@ func (f *formatter) formatCreateIndex(s *parser.CreateIndexStmt) string {
 // normalizeDefaultExpr normalises the default expression according to keyword
 // case, unless it is a string literal (single-quoted), which is preserved verbatim.
 func (f *formatter) normalizeDefaultExpr(v string) string {
-	if len(v) > 0 && v[0] == '\'' {
+	if v != "" && v[0] == '\'' {
 		return v
 	}
 	return f.kw(strings.ToLower(v))
@@ -101,6 +101,8 @@ func (f *formatter) refActionStr(a parser.RefAction) string {
 		return f.kw("set default")
 	case parser.RefActionNoAction:
 		return f.kw("no action")
+	case parser.RefActionNone:
+		return ""
 	}
 	return ""
 }
@@ -144,6 +146,8 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 			b.WriteString(" " + f.kw("not null"))
 		case parser.NullabilityNull:
 			b.WriteString(" " + f.kw("null"))
+		case parser.NullabilityNone:
+			// no nullability keyword
 		}
 		return
 	}
@@ -164,6 +168,8 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 		b.WriteString(" " + f.kw("not null"))
 	case parser.NullabilityNull:
 		b.WriteString(" " + f.kw("null"))
+	case parser.NullabilityNone:
+		// no nullability keyword
 	}
 	if col.Unique {
 		b.WriteString(" " + f.kw("unique"))
