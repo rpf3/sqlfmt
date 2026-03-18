@@ -106,6 +106,16 @@ type SetStmt struct {
 
 func (*SetStmt) statementNode() {}
 
+// SetVarStmt represents: SET @var <op> <expr> [;]
+// where <op> is one of = | += | -= | *= | /= | %=.
+type SetVarStmt struct {
+	Var   string // variable name including sigil (e.g. "@counter")
+	Op    string // assignment operator: "=", "+=", "-=", "*=", "/=", "%="
+	Value Expr   // right-hand side expression
+}
+
+func (*SetVarStmt) statementNode() {}
+
 // --- DECLARE ------------------------------------------------------------------
 
 // VarDecl is one variable declaration in a DECLARE statement.

@@ -95,6 +95,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatUpdate(s)
 	case *parser.SetStmt:
 		return f.formatSet(s)
+	case *parser.SetVarStmt:
+		return f.formatSetVar(s)
 	case *parser.DeclareStmt:
 		return f.formatDeclare(s)
 	case *parser.MergeStmt:

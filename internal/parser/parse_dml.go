@@ -286,7 +286,8 @@ func (p *parser) parseSetClause() ([]UpdateSet, error) {
 			colName = colName + "." + fieldTok.Value
 		}
 
-		if _, err := p.expect(lexer.Eq); err != nil {
+		op, err := p.parseAssignOp()
+		if err != nil {
 			return nil, err
 		}
 
@@ -298,7 +299,7 @@ func (p *parser) parseSetClause() ([]UpdateSet, error) {
 				p.curIs(lexer.Semicolon) ||
 				p.curIs(lexer.EOF)
 		})
-		sets = append(sets, UpdateSet{Column: colName, Value: expr})
+		sets = append(sets, UpdateSet{Column: colName, Op: op, Value: expr})
 
 		if !p.curIs(lexer.Comma) {
 			break
@@ -602,7 +603,8 @@ func (p *parser) parseMergeSetClause() ([]UpdateSet, error) {
 			}
 			colName = colName + "." + fieldTok.Value
 		}
-		if _, err := p.expect(lexer.Eq); err != nil {
+		op, err := p.parseAssignOp()
+		if err != nil {
 			return nil, err
 		}
 		expr := p.parseExpr(func() bool {
@@ -611,7 +613,7 @@ func (p *parser) parseMergeSetClause() ([]UpdateSet, error) {
 				p.curIs(lexer.Semicolon) ||
 				p.curIs(lexer.EOF)
 		})
-		sets = append(sets, UpdateSet{Column: colName, Value: expr})
+		sets = append(sets, UpdateSet{Column: colName, Op: op, Value: expr})
 		if !p.curIs(lexer.Comma) {
 			break
 		}

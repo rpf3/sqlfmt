@@ -43,6 +43,13 @@ const (
 	Caret     // ^ (bitwise XOR)
 	Tilde     // ~ (bitwise NOT, unary)
 
+	// Compound assignment operators.
+	PlusEq    // +=
+	MinusEq   // -=
+	StarEq    // *=
+	SlashEq   // /=
+	PercentEq // %=
+
 	// Punctuation.
 	LParen    // (
 	RParen    // )
@@ -81,6 +88,11 @@ var tokenTypeNames = map[TokenType]string{
 	Pipe:         "Pipe",
 	Caret:        "Caret",
 	Tilde:        "Tilde",
+	PlusEq:       "PlusEq",
+	MinusEq:      "MinusEq",
+	StarEq:       "StarEq",
+	SlashEq:      "SlashEq",
+	PercentEq:    "PercentEq",
 	LParen:       "LParen",
 	RParen:       "RParen",
 	Comma:        "Comma",

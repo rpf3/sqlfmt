@@ -91,7 +91,7 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 
 	setStrs := make([]string, len(s.Sets))
 	for i, set := range s.Sets {
-		setStrs[i] = set.Column + " = " + parser.Render(set.Value)
+		setStrs[i] = set.Column + " " + set.Op + " " + parser.Render(set.Value)
 	}
 	f.writeCommaList(&b, setStrs)
 
@@ -205,7 +205,7 @@ func (f *formatter) writeMergeWhenClause(b *strings.Builder, clause parser.Merge
 	case parser.MergeActionUpdate:
 		b.WriteString(f.kw(" update set"))
 		for i, set := range clause.Sets {
-			item := set.Column + " = " + parser.Render(set.Value)
+			item := set.Column + " " + set.Op + " " + parser.Render(set.Value)
 			if i == 0 {
 				b.WriteString("\n" + ind + item)
 			} else {

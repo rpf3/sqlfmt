@@ -149,19 +149,34 @@ func (l *Lexer) Next() Token {
 		return l.consumeSingle(Tilde)
 	}
 
-	// Single-character tokens.
+	// Single-character tokens (and compound-assignment two-character variants).
 	switch ch {
 	case '=':
 		return l.consumeSingle(Eq)
 	case '+':
+		if l.peekAt(1) == '=' {
+			return l.consumeDouble(PlusEq)
+		}
 		return l.consumeSingle(Plus)
 	case '-':
+		if l.peekAt(1) == '=' {
+			return l.consumeDouble(MinusEq)
+		}
 		return l.consumeSingle(Minus)
 	case '*':
+		if l.peekAt(1) == '=' {
+			return l.consumeDouble(StarEq)
+		}
 		return l.consumeSingle(Star)
 	case '/':
+		if l.peekAt(1) == '=' {
+			return l.consumeDouble(SlashEq)
+		}
 		return l.consumeSingle(Slash)
 	case '%':
+		if l.peekAt(1) == '=' {
+			return l.consumeDouble(PercentEq)
+		}
 		return l.consumeSingle(Percent)
 	case '(':
 		return l.consumeSingle(LParen)
