@@ -28,12 +28,60 @@ task fmt && task test && task vet && task lint
 - Prefer rebase + fast-forward; always open a PR, never merge locally
 - One issue per commit maximum — a large feature may span multiple commits, but a single commit must not touch more than one issue. When a shared file (e.g. `config.go`) needs changes for multiple issues, add only the changes for the current issue to that file before committing; add the next issue's changes in the next commit.
 - **Work on one issue at a time** — fully implement, test, and commit one issue before starting the next. Never implement multiple issues in parallel even when they touch the same files; doing so requires backing out changes to split commits, which is error-prone and wastes effort
-- **Commit incidental fixes and tangential work separately** — when a bug or related improvement is discovered while implementing a feature, do not bundle it into the feature commit. Finish and commit the feature first (or stash it), then make the fix or tangential change as its own commit with its own message. This keeps each commit's scope honest and makes history easier to bisect
-- No parenthetical scopes in conventional commit types (`feat:` not `feat(pkg):`)
-- Reference issues with `Closes #N` after a blank line in the commit body
-- Commit message bodies should explain interesting technical decisions — why a particular approach was chosen, what alternatives were considered, or any non-obvious constraints that shaped the implementation
-- PR descriptions must enumerate every issue closed by any commit in the PR — list them explicitly in the summary (e.g. `Closes #N, #M`) even if they are already referenced in individual commit bodies
+- **Surface incidental fixes — never bundle or silently skip them** — when a bug or related improvement is discovered while implementing a feature, stop and ask: *"I noticed [X]. Should I handle this as a follow-up commit in this branch, or file a GitHub issue to track it separately?"* Never bundle incidental work into the current commit without asking, and never silently ignore it
+
+## Commit messages
+
+**Subject line format:**
+
+```
+type: short imperative description
+```
+
+- Types: `feat`, `fix`, `docs`, `refactor`, `test`, `ci`, `chore`
+- No parenthetical scopes — `feat:` not `feat(pkg):`
+- Keep under 72 characters; use the imperative mood ("add", "fix", "remove" — not "added")
+
+**Body — the "why" section:**
+
+Every non-trivial commit should have a body that explains:
+
+- The *motivation* — what problem does this solve, or what behaviour changes and why?
+- Any non-obvious technical decisions and why that approach was chosen over alternatives
+- Constraints that shaped the implementation
+- If an obvious or suggested approach was *rejected*, say so and explain why
+
+Don't just restate what the diff shows — assume the reader can read code.
+
+**Issue reference** (after a blank line at the end of the body):
+
+```
+Closes #N
+```
+
+## Pull request standards
+
+- PR title: short (under 70 characters), imperative, matches the scope of the branch
+- PR description must enumerate *every* issue closed by any commit in the PR — list them explicitly (e.g. `Closes #N, #M`) even if already referenced in individual commit bodies
+- Summary section: 2–4 bullet points on what changed and why
+- Test plan section: what to verify, including edge cases
 - Always end PR bodies with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
+
+## Code generation style
+
+**Scope discipline:**
+
+- Only make changes directly requested or clearly necessary — no scope creep
+- Don't add features, refactoring, or "improvements" beyond what was asked
+- Don't add docstrings, comments, or type annotations to code you didn't change
+- Don't add error handling or validation for scenarios that can't happen in practice — trust internal code and framework guarantees; only validate at system boundaries (user input, external APIs)
+
+**Simplicity over abstraction:**
+
+- Don't create helpers or abstractions for one-off operations
+- Don't design for hypothetical future requirements — the right complexity is the minimum needed now; three similar lines is better than a premature abstraction
+- Don't use feature flags or backwards-compatibility shims when you can simply change the code
+- Don't leave `// removed` comments, unused `_var` renames, or re-exports for deleted code — if something is removed, remove it completely
 
 ## Go style
 
