@@ -448,6 +448,61 @@ func (p *parser) parseReturn() (Statement, error) {
 	return stmt, nil
 }
 
+// parseRaiserror handles:
+//
+//	RAISERROR(<msg_or_id>, <severity>, <state>) [WITH <option> [, <option>]] [;]
+//
+// On entry p.cur is the RAISERROR ident token.
+func (p *parser) parseRaiserror() (Statement, error) {
+	p.advance() // consume RAISERROR
+
+	if _, err := p.expect(lexer.LParen); err != nil {
+		return nil, err
+	}
+
+	args := make([]string, 0, 3)
+	for i := 0; i < 3; i++ {
+		if i > 0 {
+			if _, err := p.expect(lexer.Comma); err != nil {
+				return nil, err
+			}
+		}
+		tok := p.cur
+		if tok.Type == lexer.EOF || tok.Type == lexer.Semicolon {
+			return nil, fmt.Errorf(
+				"expected RAISERROR argument %d at %d:%d", i+1, tok.Line, tok.Column,
+			)
+		}
+		args = append(args, tok.Value)
+		p.advance()
+	}
+
+	if _, err := p.expect(lexer.RParen); err != nil {
+		return nil, err
+	}
+
+	stmt := &RaiserrorStmt{Args: args}
+
+	// Optional WITH <option> [, <option>] clause.
+	if p.curKeyword("WITH") {
+		p.advance() // consume WITH
+		for {
+			if p.cur.Type == lexer.EOF || p.curIs(lexer.Semicolon) {
+				break
+			}
+			stmt.WithOptions = append(stmt.WithOptions, strings.ToLower(p.cur.Value))
+			p.advance()
+			if !p.curIs(lexer.Comma) {
+				break
+			}
+			p.advance() // consume comma between options
+		}
+	}
+
+	p.consumeSemicolon()
+	return stmt, nil
+}
+
 func (p *parser) parseThrow() (Statement, error) {
 	p.advance() // consume THROW
 
@@ -705,7 +760,7 @@ func (p *parser) parseControlFlowCondition() string {
 		case "BEGIN", "SELECT", "WITH", "INSERT", "UPDATE", "DELETE",
 			"SET", "DECLARE", "IF", "WHILE", "RETURN", "EXEC", "EXECUTE",
 			"TRUNCATE", "CREATE", "ALTER", "DROP", "MERGE", "PRINT",
-			"BREAK", "CONTINUE", "THROW":
+			"BREAK", "CONTINUE", "THROW", "RAISERROR":
 			return true
 		}
 		return false

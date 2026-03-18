@@ -264,6 +264,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("THROW") {
 		return p.parseThrow()
 	}
+	if p.curValue("RAISERROR") {
+		return p.parseRaiserror()
+	}
 	if p.curKeyword("PRINT") {
 		return p.parsePrint()
 	}

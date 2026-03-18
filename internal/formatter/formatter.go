@@ -117,6 +117,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatReturn(s)
 	case *parser.ThrowStmt:
 		return f.formatThrow(s)
+	case *parser.RaiserrorStmt:
+		return f.formatRaiserror(s)
 	case *parser.PrintStmt:
 		return f.formatPrint(s)
 	case *parser.ExecStmt:

@@ -80,12 +80,14 @@ func (l *linter) checkCreateProc(s *parser.CreateProcStmt) {
 	}
 }
 
-// containsThrow reports whether any ThrowStmt is reachable within stmts,
-// recursing into IfStmt, WhileStmt, and TryCatchStmt bodies.
+// containsThrow reports whether any ThrowStmt or RaiserrorStmt is reachable
+// within stmts, recursing into IfStmt, WhileStmt, and TryCatchStmt bodies.
 func containsThrow(stmts []parser.Statement) bool {
 	for _, stmt := range stmts {
 		switch s := stmt.(type) {
 		case *parser.ThrowStmt:
+			return true
+		case *parser.RaiserrorStmt:
 			return true
 		case *parser.IfStmt:
 			if containsThrow(s.Then) || containsThrow(s.Else) {
