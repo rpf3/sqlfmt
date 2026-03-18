@@ -224,6 +224,24 @@ type ThrowStmt struct {
 
 func (*ThrowStmt) statementNode() {}
 
+// --- RAISERROR ----------------------------------------------------------------
+
+// RaiserrorStmt represents a T-SQL RAISERROR statement.
+//
+//	RAISERROR('message', severity, state);
+//	RAISERROR(@variable, severity, state) WITH NOWAIT;
+//	RAISERROR(msg_id, severity, state) WITH LOG;
+//
+// Args holds the three required arguments [message/msg_id, severity, state]
+// as raw token values. WithOptions holds any options following the WITH
+// keyword (e.g. ["nowait"], ["log"], ["seterror"]), lowercased.
+type RaiserrorStmt struct {
+	Args        []string // len==3: [message_or_id, severity, state]
+	WithOptions []string // nil if no WITH clause; e.g. ["nowait"] or ["log", "seterror"]
+}
+
+func (*RaiserrorStmt) statementNode() {}
+
 // --- PRINT --------------------------------------------------------------------
 
 // PrintStmt represents a T-SQL PRINT statement.

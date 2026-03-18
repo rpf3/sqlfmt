@@ -342,6 +342,17 @@ func (f *formatter) formatThrow(s *parser.ThrowStmt) string {
 	return f.kw("throw") + " " + s.Args[0] + ", " + s.Args[1] + ", " + s.Args[2] + ";"
 }
 
+// formatRaiserror formats a RAISERROR statement.
+// Produces "raiserror(<msg>, <sev>, <state>);" with an optional
+// "with <option>" suffix when a WITH clause was present.
+func (f *formatter) formatRaiserror(s *parser.RaiserrorStmt) string {
+	out := f.kw("raiserror") + "(" + s.Args[0] + ", " + s.Args[1] + ", " + s.Args[2] + ")"
+	if len(s.WithOptions) > 0 {
+		out += " " + f.kw("with") + " " + strings.Join(s.WithOptions, ", ")
+	}
+	return out + ";"
+}
+
 // formatPrint formats a PRINT statement.
 func (f *formatter) formatPrint(s *parser.PrintStmt) string {
 	return f.kw("print") + " " + s.Value + ";"
