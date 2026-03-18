@@ -107,6 +107,10 @@ func needsSelectSpace(prev, cur lexer.TokenType, prevValue string) bool {
 	if prev == lexer.LParen || prev == lexer.Dot {
 		return false
 	}
+	// ~ is a unary prefix operator — no space between it and its operand.
+	if prev == lexer.Tilde {
+		return false
+	}
 	if cur == lexer.RParen || cur == lexer.Dot || cur == lexer.Comma {
 		return false
 	}

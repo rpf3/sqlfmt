@@ -26,17 +26,22 @@ const (
 	Keyword
 
 	// Operators.
-	Eq     // =
-	NotEq  // <> or !=
-	Lt     // <
-	Gt     // >
-	LtEq   // <=
-	GtEq   // >=
-	Plus   // +
-	Minus  // -
-	Star   // *
-	Slash  // /
-	Concat // ||
+	Eq        // =
+	NotEq     // <> or !=
+	Lt        // <
+	Gt        // >
+	LtEq      // <=
+	GtEq      // >=
+	Plus      // +
+	Minus     // -
+	Star      // *
+	Slash     // /
+	Percent   // %
+	Concat    // ||
+	Ampersand // & (bitwise AND)
+	Pipe      // | (bitwise OR)
+	Caret     // ^ (bitwise XOR)
+	Tilde     // ~ (bitwise NOT, unary)
 
 	// Punctuation.
 	LParen    // (
@@ -70,7 +75,12 @@ var tokenTypeNames = map[TokenType]string{
 	Minus:        "Minus",
 	Star:         "Star",
 	Slash:        "Slash",
+	Percent:      "Percent",
 	Concat:       "Concat",
+	Ampersand:    "Ampersand",
+	Pipe:         "Pipe",
+	Caret:        "Caret",
+	Tilde:        "Tilde",
 	LParen:       "LParen",
 	RParen:       "RParen",
 	Comma:        "Comma",

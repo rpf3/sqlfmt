@@ -140,10 +140,16 @@ func (l *Lexer) Next() Token {
 		if l.peekAt(1) == '|' {
 			return l.consumeDouble(Concat)
 		}
-		return l.consumeIllegal()
+		return l.consumeSingle(Pipe)
+	case '&':
+		return l.consumeSingle(Ampersand)
+	case '^':
+		return l.consumeSingle(Caret)
+	case '~':
+		return l.consumeSingle(Tilde)
 	}
 
-	// Single-character tokens
+	// Single-character tokens.
 	switch ch {
 	case '=':
 		return l.consumeSingle(Eq)
@@ -155,6 +161,8 @@ func (l *Lexer) Next() Token {
 		return l.consumeSingle(Star)
 	case '/':
 		return l.consumeSingle(Slash)
+	case '%':
+		return l.consumeSingle(Percent)
 	case '(':
 		return l.consumeSingle(LParen)
 	case ')':
