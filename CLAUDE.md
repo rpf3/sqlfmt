@@ -4,23 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`sqlfmt` is a SQL formatter written in Go, currently in early development on the `mvp` branch.
+`sqlfmt` is a SQL formatter written in Go. Module: `github.com/rpf3/sqlfmt`, Go 1.24.
 
 ## Commands
 
-Once `go.mod` exists, standard Go commands apply:
-
 ```sh
-go build ./...          # Build all packages
-go test ./...           # Run all tests
-go test ./pkg/foo/...   # Run tests in a specific package
-go test -run TestName   # Run a single test by name
-go vet ./...            # Static analysis
-```
-
-For linting, this project will likely use `golangci-lint`:
-```sh
-golangci-lint run       # Run linter (install: https://golangci-lint.run)
+go build ./...                      # Build all packages
+go test ./...                       # Run all tests
+go test ./internal/parser/...       # Run tests in a specific package
+go test -run TestName               # Run a single test by name
+go vet ./...                        # Static analysis
+golangci-lint run                   # Lint (install: https://golangci-lint.run)
 ```
 
 Before every commit, run the full check suite:
@@ -45,3 +39,7 @@ task fmt && task test && task vet && task lint
 
 - Use intermediate variables before `return` — avoid inline struct literals for complex returns
 - Build structs incrementally (`col.PrimaryKey = true`) rather than populating all fields in a struct literal
+- Error strings must be lowercase and must not end with `.` or `!` — they are often wrapped and appear mid-sentence in longer messages (e.g. `fmt.Errorf("parse %s: %w", path, err)`)
+- Use `%w` (not `%v`) when wrapping an existing error in `fmt.Errorf` — `%w` preserves the error chain for `errors.Is` / `errors.As`; use `%v` only when intentionally discarding the original error type
+- Every exported identifier (type, function, method, const, var) must have a godoc comment that begins with the name of the thing being documented (e.g. `// Format formats SQL input according to cfg.`)
+- Every package must have a `// Package foo ...` doc comment before the `package` declaration — explain the design intent and any non-obvious invariants, not just the package name
