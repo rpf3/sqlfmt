@@ -79,6 +79,7 @@ const (
 	RuleComputedColumnNullability   = "computed-column-nullability"
 	RuleNoNolockHint                = "no-nolock-hint"
 	RuleNoVarcharMax                = "no-varchar-max"
+	RulePreferThrow                 = "prefer-throw-over-raiserror"
 )
 
 // knownRules is the set of valid lint rule names for config validation.
@@ -112,6 +113,7 @@ var knownRules = map[string]bool{
 	RuleComputedColumnNullability:   true,
 	RuleNoNolockHint:                true,
 	RuleNoVarcharMax:                true,
+	RulePreferThrow:                 true,
 }
 
 // defaultOffRules are rules that are off unless explicitly enabled in config.
@@ -121,6 +123,7 @@ var knownRules = map[string]bool{
 var defaultOffRules = map[string]bool{
 	RuleNoNolockHint: true,
 	RuleNoVarcharMax: true,
+	RulePreferThrow:  true,
 }
 
 // DefaultSeverity returns the default severity for rule when no explicit

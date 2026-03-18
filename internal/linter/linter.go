@@ -182,6 +182,9 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkExecStmt(s)
 	case *parser.DeclareStmt:
 		l.checkDeclareStmt(s)
+	case *parser.RaiserrorStmt:
+		l.warn(config.RulePreferThrow,
+			"RAISERROR is deprecated; consider replacing with THROW <error_number>, <message>, <state>")
 	}
 	l.checkSchemaQualification(stmt)
 	l.checkIdentsWithSpaces(stmt)
