@@ -136,6 +136,17 @@ end catch;`,
 			wantRule: "",
 		},
 		{
+			name: "catch with raiserror satisfies catch-without-throw",
+			input: `begin try
+	insert into dbo.orders (customer_id) values (42);
+end try
+begin catch
+	rollback transaction;
+	raiserror('insert failed', 16, 1);
+end catch;`,
+			wantRule: "",
+		},
+		{
 			name: "throw inside if branch satisfies rule",
 			input: `begin try
 	insert into dbo.orders (customer_id) values (42);
@@ -207,4 +218,27 @@ func TestLintExecNamedParams(t *testing.T) {
 			checkRule(t, tt.input, tt.wantRule)
 		})
 	}
+}
+
+func TestLintPreferThrow(t *testing.T) {
+	const rule = config.RulePreferThrow
+
+	t.Run("off by default", func(t *testing.T) {
+		checkRule(t, `raiserror('something went wrong', 16, 1);`, "")
+	})
+	t.Run("warns when enabled", func(t *testing.T) {
+		checkRuleEnabled(t, `raiserror('something went wrong', 16, 1);`, rule)
+	})
+	t.Run("throw is clean", func(t *testing.T) {
+		checkRuleEnabledClean(t, `throw 50001, 'order not found', 1;`, rule)
+	})
+	t.Run("raiserror in catch warns when enabled", func(t *testing.T) {
+		checkRuleEnabled(t, `begin try
+	insert into dbo.orders (customer_id) values (42);
+end try
+begin catch
+	rollback transaction;
+	raiserror('insert failed', 16, 1);
+end catch;`, rule)
+	})
 }
