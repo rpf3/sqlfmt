@@ -41,6 +41,11 @@ func (f *formatter) formatCreateProc(s *parser.CreateProcStmt) string {
 	b.WriteString(f.ident(s.Name))
 	f.writeProcParamList(&b, s.Params)
 
+	if len(s.WithOptions) > 0 {
+		b.WriteString("\n" + f.kw("with"))
+		f.writeCommaList(&b, s.WithOptions)
+	}
+
 	b.WriteString("\n" + f.kw("as") + " " + f.kw("begin"))
 
 	for i, stmt := range s.Body {

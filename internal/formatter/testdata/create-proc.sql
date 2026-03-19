@@ -61,3 +61,35 @@ as begin
 	,	'processing_started'
 	);
 end;
+
+create procedure dbo.usp_DoWork
+with
+	recompile
+as begin
+	select 1;
+end;
+
+create procedure dbo.usp_SecureWork
+(
+	@id int
+)
+with
+	recompile
+,	execute as owner
+as begin
+	select @id;
+end;
+
+create procedure dbo.usp_Hidden
+with
+	encryption
+as begin
+	select 1;
+end;
+
+create procedure dbo.usp_AsUser
+with
+	execute as 'dbo'
+as begin
+	select 1;
+end;

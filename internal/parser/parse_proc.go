@@ -95,6 +95,13 @@ func (p *parser) parseCreateProc() (Statement, error) {
 	}
 	stmt.Params = params
 
+	// Optional WITH clause before AS: WITH RECOMPILE, ENCRYPTION, EXECUTE AS ...
+	withOpts, err := p.parseProcWithOptions()
+	if err != nil {
+		return nil, err
+	}
+	stmt.WithOptions = withOpts
+
 	// AS keyword before BEGIN
 	if p.curKeyword("AS") {
 		p.advance() // consume AS
@@ -109,6 +116,53 @@ func (p *parser) parseCreateProc() (Statement, error) {
 
 	p.consumeSemicolon()
 	return stmt, nil
+}
+
+// parseProcWithOptions parses the optional WITH clause that may appear between
+// the parameter list and the AS keyword in CREATE/ALTER PROCEDURE:
+//
+//	WITH RECOMPILE
+//	WITH ENCRYPTION
+//	WITH EXECUTE AS { CALLER | SELF | OWNER | 'user_name' }
+//	WITH RECOMPILE, EXECUTE AS OWNER   (multiple options)
+//
+// Returns nil when no WITH keyword is present. Each option is lowercased.
+func (p *parser) parseProcWithOptions() ([]string, error) {
+	if !p.curKeyword("WITH") {
+		return nil, nil
+	}
+	p.advance() // consume WITH
+
+	var opts []string
+	for {
+		var opt string
+		switch {
+		case p.curValue("RECOMPILE"):
+			opt = "recompile"
+			p.advance()
+		case p.curValue("ENCRYPTION"):
+			opt = "encryption"
+			p.advance()
+		case p.curKeyword("EXECUTE") && p.peekKeyword("AS"):
+			p.advance() // consume EXECUTE
+			p.advance() // consume AS
+			ctxTok := p.cur
+			p.advance() // consume context keyword or string literal
+			if ctxTok.Type == lexer.StringLit {
+				opt = "execute as " + ctxTok.Value
+			} else {
+				opt = "execute as " + strings.ToLower(ctxTok.Value)
+			}
+		default:
+			return nil, fmt.Errorf("unknown WITH option %q at %d:%d", p.cur.Value, p.cur.Line, p.cur.Column)
+		}
+		opts = append(opts, opt)
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+	return opts, nil
 }
 
 // parseProcParams reads the optional parameter list for a CREATE PROCEDURE statement.
@@ -169,8 +223,8 @@ func (p *parser) parseProcParams() ([]ProcParam, error) {
 
 	var params []ProcParam
 	for {
-		// Bail out if we've reached AS, BEGIN, ), or EOF.
-		if p.curKeyword("AS") || p.curKeyword("BEGIN") ||
+		// Bail out if we've reached AS, WITH, BEGIN, ), or EOF.
+		if p.curKeyword("AS") || p.curKeyword("WITH") || p.curKeyword("BEGIN") ||
 			p.curIs(lexer.RParen) || p.cur.Type == lexer.EOF {
 			break
 		}
