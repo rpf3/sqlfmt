@@ -386,6 +386,8 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		}
 	}
 
+	f.writeOptionClause(&b, s.Option)
+
 	b.WriteString(";")
 	return b.String()
 }

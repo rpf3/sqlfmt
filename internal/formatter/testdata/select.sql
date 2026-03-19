@@ -359,3 +359,29 @@ where
 select
 	@count = 0
 ,	@status = 'pending';
+
+select
+	t.col1
+from
+	dbo.t
+option
+	(recompile);
+
+select
+	t.col1
+from
+	dbo.t
+option
+	(
+		maxdop 4
+	,	recompile
+	);
+
+select
+	t.col1
+from
+	dbo.t
+where
+	t.id = 1
+option
+	(recompile);

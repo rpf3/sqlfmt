@@ -92,6 +92,7 @@ func (p *parser) parseSelectBranch() (*SelectStmt, error) {
 				p.curKeyword("WINDOW") ||
 				p.curKeyword("ORDER") || p.curKeyword("OFFSET") ||
 				p.curKeyword("FETCH") ||
+				p.curKeyword("OPTION") ||
 				p.isSetOpKeyword() ||
 				p.curIs(lexer.Semicolon) || p.curIs(lexer.RParen)
 		}
@@ -283,6 +284,12 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 		}
 		stmt.ForOpts = joinBodyTokens(tokBuf)
 	}
+
+	opt, err := p.parseOptionClause()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Option = opt
 
 	return stmt, nil
 }

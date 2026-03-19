@@ -31,3 +31,9 @@ SELECT @total = count(*) FROM orders AS t WHERE t.status = 'active';
 SELECT @min = min(t.amount),@max = max(t.amount) FROM orders AS t;
 SELECT @name = t.name FROM customers AS t WHERE t.id = @id;
 SELECT @count = 0,@status = 'pending';
+
+SELECT t.col1 FROM dbo.t OPTION (RECOMPILE);
+
+SELECT t.col1 FROM dbo.t OPTION (MAXDOP 4, RECOMPILE);
+
+SELECT t.col1 FROM dbo.t WHERE t.id = 1 OPTION (RECOMPILE);

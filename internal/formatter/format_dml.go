@@ -6,6 +6,26 @@ import (
 	"github.com/rpf3/sqlfmt/internal/parser"
 )
 
+// writeOptionClause writes an OPTION (...) clause into b, or does nothing
+// if option is empty. The keyword sits on its own line. A single hint is
+// written inline on the next line; multiple hints use a vertical paren block
+// with leading-comma style, matching how other comma lists are formatted.
+func (f *formatter) writeOptionClause(b *strings.Builder, option string) {
+	if option == "" {
+		return
+	}
+	// option is stored as "(hint1, hint2)" — strip the surrounding parens.
+	inner := strings.ToLower(option[1 : len(option)-1])
+	hints := splitDepthZeroCommas(inner)
+	b.WriteString("\n" + f.kw("option"))
+	if len(hints) == 1 {
+		ind := f.indent()
+		b.WriteString("\n" + ind + "(" + hints[0] + ")")
+	} else {
+		f.writeInListBlock(b, hints)
+	}
+}
+
 // writeOutputClause writes an OUTPUT clause into b.
 // The keyword sits on its own line; columns are indented one level via
 // writeCommaList — matching the style used for SELECT column lists.
@@ -50,9 +70,12 @@ func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 	f.writeOutputClause(&b, s.Output)
 
 	if s.Select != nil {
-		b.WriteString("\n")
-		b.WriteString(f.formatSelectStmt(s.Select))
-		return b.String() // formatSelectStmt supplies the trailing ";"
+		sel := f.formatSelectStmt(s.Select)
+		sel = strings.TrimSuffix(sel, ";")
+		b.WriteString("\n" + sel)
+		f.writeOptionClause(&b, s.Option)
+		b.WriteString(";")
+		return b.String()
 	}
 
 	// VALUES form — each row is a vertical block; rows separated by trailing ","
@@ -70,6 +93,7 @@ func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 			b.WriteString(",") // structural row separator, not a list comma
 		}
 	}
+	f.writeOptionClause(&b, s.Option)
 	b.WriteString(";")
 	return b.String()
 }
@@ -127,6 +151,7 @@ func (f *formatter) formatUpdate(s *parser.UpdateStmt) string {
 		b.WriteString("\n" + f.kw("where"))
 		f.writeExprPred(&b, s.Where)
 	}
+	f.writeOptionClause(&b, s.Option)
 	b.WriteString(";")
 	return b.String()
 }
@@ -170,6 +195,7 @@ func (f *formatter) formatDelete(s *parser.DeleteStmt) string {
 		b.WriteString("\n" + f.kw("where"))
 		f.writeExprPred(&b, s.Where)
 	}
+	f.writeOptionClause(&b, s.Option)
 	b.WriteString(";")
 	return b.String()
 }

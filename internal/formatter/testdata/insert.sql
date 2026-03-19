@@ -52,3 +52,25 @@ from
 	orders
 where
 	created_at < '2024-01-01';
+
+insert into orders
+(
+	id
+,	customer_id
+)
+values
+(
+	1
+,	42
+)
+option
+	(recompile);
+
+insert into order_archive
+select
+	id
+,	customer_id
+from
+	orders
+option
+	(hash join);
