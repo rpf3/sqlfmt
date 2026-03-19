@@ -9,3 +9,15 @@ CREATE PROCEDURE dbo.usp_GetOrderCount @customer_id INT, @order_count INT OUTPUT
 
 -- procedure using PROC alias with multiple body statements
 CREATE PROC dbo.usp_ProcessOrder @order_id INT AS BEGIN UPDATE dbo.orders SET status = 'processing' WHERE id = @order_id; INSERT INTO dbo.order_log (order_id, event) VALUES (@order_id, 'processing_started'); END;
+
+-- WITH single option
+CREATE PROCEDURE dbo.usp_DoWork WITH RECOMPILE AS BEGIN SELECT 1; END;
+
+-- WITH multiple options
+CREATE PROCEDURE dbo.usp_SecureWork @id INT WITH RECOMPILE, EXECUTE AS OWNER AS BEGIN SELECT @id; END;
+
+-- WITH ENCRYPTION
+CREATE PROCEDURE dbo.usp_Hidden WITH ENCRYPTION AS BEGIN SELECT 1; END;
+
+-- WITH EXECUTE AS user name (string literal)
+CREATE PROCEDURE dbo.usp_AsUser WITH EXECUTE AS 'dbo' AS BEGIN SELECT 1; END;

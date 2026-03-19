@@ -32,6 +32,7 @@ type CreateProcStmt struct {
 	IsAlter     bool        // true when this was ALTER PROCEDURE
 	Name        string      // procedure name (may be schema-qualified)
 	Params      []ProcParam // parameter list; nil if no parameters
+	WithOptions []string    // WITH clause options e.g. ["recompile", "execute as owner"]; nil if absent
 	HasBeginEnd bool        // true when body was explicitly wrapped in BEGIN...END
 	Body        []Statement // body statements; fully-parsed where possible, *RawStmt otherwise
 }
