@@ -385,3 +385,91 @@ where
 	t.id = 1
 option
 	(recompile);
+
+select
+	s.status_code
+,	s.label
+from
+(
+	values
+	(
+		'A'
+	,	'Active'
+	)
+) as s
+(
+	status_code
+,	label
+);
+
+select
+	s.status_code
+,	s.label
+from
+(
+	values
+	(
+		'A'
+	,	'Active'
+	),
+	(
+		'I'
+	,	'Inactive'
+	),
+	(
+		'P'
+	,	'Pending'
+	)
+) as s
+(
+	status_code
+,	label
+);
+
+select
+	o.order_id
+,	p.priority_label
+from
+	orders as o
+inner join
+(
+	values
+	(
+		1
+	,	'High'
+	),
+	(
+		2
+	,	'Medium'
+	)
+) as p
+(
+	priority_id
+,	priority_label
+)
+	on p.priority_id = o.priority_id;
+
+select
+	o.order_id
+,	p.priority_label
+from
+	orders as o
+inner join
+(
+	values
+	(
+		1
+	,	'High'
+	),
+	(
+		2
+	,	'Medium'
+	)
+) as p
+(
+	priority_id
+,	priority_label
+)
+	on p.priority_id = o.priority_id
+where
+	o.status = 'active';

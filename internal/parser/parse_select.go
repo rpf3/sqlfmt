@@ -343,6 +343,26 @@ func (p *parser) parseSelectItem() (SelectItem, error) {
 	return item, nil
 }
 
+// parseValuesRows parses a VALUES (...) [, (...)]... row list.
+// On entry: p.cur is the VALUES keyword.
+// On exit: p.cur is positioned after the last closing paren of the last row.
+func (p *parser) parseValuesRows() ([][]Expr, error) {
+	p.advance() // consume VALUES
+	var rows [][]Expr
+	for {
+		row, err := p.parseValueRow()
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ',' between rows
+	}
+	return rows, nil
+}
+
 // parseFromSource parses the target of a FROM clause: either a named table
 // or a derived table (SELECT ...) subquery. Bare aliases (without AS) are
 // also accepted for the lint rule in #34.
@@ -369,6 +389,39 @@ func (p *parser) parseFromSource() (SelectFromSource, error) {
 		} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
 			source.Alias = p.cur.Value
 			p.advance()
+		}
+		return source, nil
+	}
+
+	// VALUES derived table: (VALUES (...) [, (...)]...) AS alias [(cols)]
+	if p.curIs(lexer.LParen) && p.peekKeyword("VALUES") {
+		p.advance() // consume (
+		rows, err := p.parseValuesRows()
+		if err != nil {
+			return SelectFromSource{}, err
+		}
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return SelectFromSource{}, err
+		}
+		source := SelectFromSource{ValuesRows: rows}
+		if p.curKeyword("AS") {
+			p.advance()
+			aliasTok, err := p.expectIdent()
+			if err != nil {
+				return SelectFromSource{}, err
+			}
+			source.Alias = aliasTok.Value
+			source.AliasExplicit = true
+		} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+			source.Alias = p.cur.Value
+			p.advance()
+		}
+		if p.curIs(lexer.LParen) {
+			cols, err := p.parseIdentList()
+			if err != nil {
+				return SelectFromSource{}, err
+			}
+			source.ValuesCols = cols
 		}
 		return source, nil
 	}
@@ -707,6 +760,52 @@ func (p *parser) parseJoinClauses() ([]JoinClause, error) {
 			} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
 				jc.Alias = p.cur.Value
 				p.advance()
+			}
+			joins = append(joins, jc)
+			continue
+		}
+
+		// VALUES derived table: (VALUES (...) [, (...)]...) AS alias [(cols)]
+		if p.curIs(lexer.LParen) && p.peekKeyword("VALUES") {
+			p.advance() // consume (
+			rows, err := p.parseValuesRows()
+			if err != nil {
+				return nil, err
+			}
+			if _, err := p.expect(lexer.RParen); err != nil {
+				return nil, err
+			}
+			jc := JoinClause{Type: joinType, ValuesRows: rows}
+			if p.curKeyword("AS") {
+				p.advance()
+				aliasTok, err := p.expectIdent()
+				if err != nil {
+					return nil, err
+				}
+				jc.Alias = aliasTok.Value
+				jc.AliasExplicit = true
+			} else if p.curIs(lexer.Ident) || p.curIs(lexer.QuotedIdent) {
+				jc.Alias = p.cur.Value
+				p.advance()
+			}
+			if p.curIs(lexer.LParen) {
+				cols, err := p.parseIdentList()
+				if err != nil {
+					return nil, err
+				}
+				jc.ValuesCols = cols
+			}
+			if p.curKeyword("ON") {
+				p.advance()
+				jc.On = p.parseAndChain(func() bool {
+					return p.isNextJoin() ||
+						p.curKeyword("WHERE") || p.curKeyword("GROUP") ||
+						p.curKeyword("HAVING") || p.curKeyword("ORDER") ||
+						p.curKeyword("OFFSET") || p.curKeyword("FETCH") ||
+						p.curKeyword("OPTION") ||
+						p.isSetOpKeyword() ||
+						p.curIs(lexer.Semicolon)
+				})
 			}
 			joins = append(joins, jc)
 			continue

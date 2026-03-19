@@ -102,6 +102,36 @@ func (f *formatter) indentBodyStmt(stmt parser.Statement) string {
 	return b.String()
 }
 
+// writeValuesSource writes a VALUES(...) derived-table source into b.
+// The opening ( sits on its own line at root level (following the from/join
+// keyword line); the values keyword and each row paren are indented one level
+// via writeInListBlock; the closing ) as alias and optional column-alias list
+// follow at root level.
+func (f *formatter) writeValuesSource(b *strings.Builder, rows [][]parser.Expr, alias string, cols []string) {
+	ind := f.indent()
+	b.WriteString("\n(")
+	b.WriteString("\n" + ind + f.kw("values"))
+	for i, row := range rows {
+		rowStrs := make([]string, len(row))
+		for j, v := range row {
+			rowStrs[j] = parser.Render(v)
+		}
+		f.writeInListBlock(b, rowStrs)
+		if i < len(rows)-1 {
+			b.WriteString(",")
+		}
+	}
+	b.WriteString("\n)")
+	if alias != "" {
+		b.WriteString(" " + f.kw("as") + " " + f.ident(alias))
+	}
+	if len(cols) > 0 {
+		b.WriteString("\n(")
+		f.writeCommaList(b, cols)
+		b.WriteString("\n)")
+	}
+}
+
 // indentCTE formats s as a SELECT body with each non-empty line prefixed by
 // ind (single indent). Used for CTE bodies where the surrounding ( ) are at
 // column zero.
@@ -202,7 +232,7 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		cols = append(cols, c)
 	}
 
-	hasFrom := s.From.Name != "" || s.From.Subquery != nil
+	hasFrom := s.From.Name != "" || s.From.Subquery != nil || len(s.From.ValuesRows) > 0
 
 	// No-FROM SELECT: single column stays on the same line (e.g. "select 1;").
 	// When INTO is present the column list uses the normal multi-line style
@@ -234,6 +264,8 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 		if s.From.Alias != "" {
 			b.WriteString(" " + f.kw("as") + " " + f.ident(s.From.Alias))
 		}
+	} else if len(s.From.ValuesRows) > 0 {
+		f.writeValuesSource(&b, s.From.ValuesRows, s.From.Alias, s.From.ValuesCols)
 	} else {
 		b.WriteString("\n" + ind)
 		b.WriteString(f.ident(s.From.Name))
@@ -261,6 +293,15 @@ func (f *formatter) formatSelectStmt(s *parser.SelectStmt) string {
 			b.WriteString("\n" + ind + ")")
 			if jc.Alias != "" {
 				b.WriteString(" " + f.kw("as") + " " + f.ident(jc.Alias))
+			}
+		} else if len(jc.ValuesRows) > 0 {
+			f.writeValuesSource(&b, jc.ValuesRows, jc.Alias, jc.ValuesCols)
+			if jc.On != nil {
+				terms := parser.AndTerms(jc.On)
+				b.WriteString("\n" + ind + f.kw("on") + " " + parser.Render(terms[0]))
+				for _, term := range terms[1:] {
+					b.WriteString("\n" + ind + f.kw("and") + " " + parser.Render(term))
+				}
 			}
 		} else {
 			b.WriteString("\n" + ind + f.ident(jc.Name))

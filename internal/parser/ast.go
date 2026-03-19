@@ -52,13 +52,15 @@ const (
 // JoinClause is one JOIN clause attached to a SELECT's FROM source.
 type JoinClause struct {
 	Type          JoinType
-	Name          string      // joined table name; empty for APPLY subquery sources
+	Name          string      // joined table name; empty for APPLY subquery sources or VALUES sources
 	Hints         string      // table hints e.g. "(nolock)"; empty if none
 	Alias         string      // table alias; empty if none
 	AliasExplicit bool        // true when the AS keyword preceded the alias
 	On            Expr        // ON condition; nil for CROSS
 	TVFArgs       string      // parenthesised arg list for APPLY TVF sources e.g. "(@id)"; stored verbatim because TVF argument linting is not yet in scope; empty for regular joins
 	Subquery      *SelectStmt // subquery source for APPLY (SELECT ...) form; nil for regular joins
+	ValuesRows    [][]Expr    // non-nil when join source is a (VALUES (...), ...) row constructor
+	ValuesCols    []string    // column aliases declared after the table alias; nil if absent
 }
 
 // OrderItem is one term in an ORDER BY list.
@@ -121,13 +123,15 @@ type GroupByItem struct {
 }
 
 // SelectFromSource is the target of a FROM clause.
-// Exactly one of Name (a table name) or Subquery is non-zero.
+// Exactly one of Name (a table name), Subquery, or ValuesRows is non-zero.
 type SelectFromSource struct {
-	Name          string       // table name; empty for a subquery
+	Name          string       // table name; empty for a subquery or VALUES source
 	TVFArgs       string       // parenthesised arg list for TVF sources e.g. "(@id)"; stored verbatim because TVF argument linting is not yet in scope; empty for plain tables
 	Hints         string       // table hints e.g. "(nolock)"; empty if none
-	Subquery      *SelectStmt  // derived table; nil for a named table
-	Alias         string       // alias for either kind; empty if no alias
+	Subquery      *SelectStmt  // derived table; nil for a named table or VALUES source
+	ValuesRows    [][]Expr     // non-nil when source is a (VALUES (...), ...) row constructor; mutually exclusive with Name and Subquery
+	ValuesCols    []string     // column aliases declared after the table alias e.g. (status_code, label); nil if absent
+	Alias         string       // alias for any kind; empty if no alias
 	AliasExplicit bool         // true when the AS keyword preceded the alias
 	Pivot         *PivotClause // non-nil when a PIVOT or UNPIVOT operator follows the named source
 }
