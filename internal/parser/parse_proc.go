@@ -609,6 +609,34 @@ func (p *parser) parseExec() (Statement, error) {
 	return stmt, nil
 }
 
+// parseExecuteAs parses an EXECUTE AS / EXEC AS security-context statement.
+// On entry p.cur is EXEC or EXECUTE and p.peek is AS.
+func (p *parser) parseExecuteAs() (Statement, error) {
+	kw := strings.ToLower(p.cur.Value)
+	p.advance() // consume EXEC or EXECUTE
+	p.advance() // consume AS
+
+	// Collect everything up to the semicolon as the raw context string.
+	var tokBuf []lexer.Token
+	for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
+		tokBuf = append(tokBuf, p.cur)
+		p.advance()
+	}
+	p.consumeSemicolon()
+	return &ExecuteAsStmt{
+		Keyword: kw,
+		Context: joinBodyTokens(tokBuf),
+	}, nil
+}
+
+// parseRevert parses a REVERT statement.
+// On entry p.cur is REVERT.
+func (p *parser) parseRevert() (Statement, error) {
+	p.advance() // consume REVERT
+	p.consumeSemicolon()
+	return &RevertStmt{}, nil
+}
+
 // joinBodyTokens joins a slice of tokens into a whitespace-normalised string,
 // lowercasing keywords and applying SQL spacing conventions.
 func joinBodyTokens(tokens []lexer.Token) string {

@@ -392,3 +392,23 @@ func (f *formatter) formatExec(s *parser.ExecStmt) string {
 
 	return b.String()
 }
+
+// formatExecuteAs formats an EXECUTE AS security-context statement.
+// Produces "execute as <context>;" or "exec as <context>;", preserving
+// which keyword alias the user wrote. The context keyword (USER, LOGIN,
+// CALLER, SELF) has keyword casing applied; any string literal content
+// after the keyword is preserved verbatim.
+func (f *formatter) formatExecuteAs(s *parser.ExecuteAsStmt) string {
+	ctx := s.Context
+	if sp := strings.IndexByte(ctx, ' '); sp >= 0 {
+		ctx = f.kw(strings.ToLower(ctx[:sp])) + ctx[sp:]
+	} else {
+		ctx = f.kw(strings.ToLower(ctx))
+	}
+	return f.kw(s.Keyword) + " " + f.kw("as") + " " + ctx + ";"
+}
+
+// formatRevert formats a REVERT statement.
+func (f *formatter) formatRevert() string {
+	return f.kw("revert") + ";"
+}

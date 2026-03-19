@@ -270,8 +270,14 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("PRINT") {
 		return p.parsePrint()
 	}
+	if (p.curKeyword("EXEC") || p.curKeyword("EXECUTE")) && p.peekKeyword("AS") {
+		return p.parseExecuteAs()
+	}
 	if p.curKeyword("EXEC") || p.curKeyword("EXECUTE") {
 		return p.parseExec()
+	}
+	if p.curKeyword("REVERT") {
+		return p.parseRevert()
 	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",

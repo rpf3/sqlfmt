@@ -82,6 +82,7 @@ var keywords = map[string]bool{
 	"ROLLBACK":     true,
 	"RETURN":       true,
 	"RETURNS":      true,
+	"REVERT":       true,
 	"WHILE":        true,
 	"BREAK":        true,
 	"CONTINUE":     true,
