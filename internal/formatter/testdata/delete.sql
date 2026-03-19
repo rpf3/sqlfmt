@@ -17,3 +17,10 @@ where
 	created_at < '2020-01-01';
 
 delete from staging;
+
+delete from
+	orders
+where
+	status = 'cancelled'
+option
+	(recompile);

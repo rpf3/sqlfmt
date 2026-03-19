@@ -12,7 +12,7 @@ type OutputClause struct {
 
 // --- DELETE -------------------------------------------------------------------
 
-// DeleteStmt represents: DELETE [TOP (n)] [<alias>] FROM <table> [AS <alias>] [OUTPUT …] [WHERE <predicate>].
+// DeleteStmt represents: DELETE [TOP (n)] [<alias>] FROM <table> [AS <alias>] [OUTPUT …] [WHERE <predicate>] [OPTION (…)].
 type DeleteStmt struct {
 	CTEs          []CTEDef      // WITH clause; nil if no CTEs
 	Top           string        // expression inside TOP(n); empty if absent
@@ -21,14 +21,15 @@ type DeleteStmt struct {
 	AliasExplicit bool          // true when the AS keyword preceded the alias
 	Output        *OutputClause // OUTPUT clause; nil if absent
 	Where         Expr          // WHERE predicate; nil if absent
+	Option        string        // raw content of OPTION(...) including surrounding parens; stored verbatim because individual hint linting is not yet in scope; empty if absent
 }
 
 func (*DeleteStmt) statementNode() {}
 
 // --- INSERT -------------------------------------------------------------------
 
-// InsertStmt represents INSERT INTO <table> [(cols)] [OUTPUT …] VALUES (...) [, (...)]
-// or INSERT INTO <table> [(cols)] [OUTPUT …] <select>.
+// InsertStmt represents INSERT INTO <table> [(cols)] [OUTPUT …] VALUES (...) [, (...)] [OPTION (…)]
+// or INSERT INTO <table> [(cols)] [OUTPUT …] <select> [OPTION (…)].
 // Exactly one of Values or Select is non-nil.
 type InsertStmt struct {
 	CTEs    []CTEDef // WITH clause; nil if no CTEs
@@ -37,6 +38,7 @@ type InsertStmt struct {
 	Output  *OutputClause // OUTPUT clause; nil if absent
 	Values  [][]Expr      // rows of value expressions; nil if Select is set
 	Select  *SelectStmt   // INSERT … SELECT form; nil if Values is set
+	Option  string        // raw content of OPTION(...) including surrounding parens; stored verbatim because individual hint linting is not yet in scope; empty if absent
 }
 
 func (*InsertStmt) statementNode() {}
@@ -62,8 +64,8 @@ type UpdateFromSource struct {
 
 // UpdateStmt represents an UPDATE statement.
 //
-// ANSI:       UPDATE [TOP (n)] <table> SET <col=expr> [WHERE <pred>]
-// SQL Server: UPDATE [TOP (n)] <alias> SET <col=expr> FROM <table> AS <alias> [JOINs] [WHERE <pred>]
+// ANSI:       UPDATE [TOP (n)] <table> SET <col=expr> [WHERE <pred>] [OPTION (…)]
+// SQL Server: UPDATE [TOP (n)] <alias> SET <col=expr> FROM <table> AS <alias> [JOINs] [WHERE <pred>] [OPTION (…)]
 //
 // When From is nil the statement is ANSI style and Target is the table name.
 // When From is non-nil the statement is SQL Server style: Target is the alias
@@ -76,6 +78,7 @@ type UpdateStmt struct {
 	Output *OutputClause     // OUTPUT clause; nil if absent
 	From   *UpdateFromSource // non-nil for SQL Server FROM style
 	Where  Expr              // WHERE predicate; nil if absent
+	Option string            // raw content of OPTION(...) including surrounding parens; stored verbatim because individual hint linting is not yet in scope; empty if absent
 }
 
 func (*UpdateStmt) statementNode() {}

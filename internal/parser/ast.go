@@ -171,6 +171,7 @@ type SelectStmt struct {
 	Fetch         string        // n from FETCH NEXT n ROWS ONLY; empty if absent
 	ForKind       ForClauseKind // ForXML or ForJSON; ForNone if absent
 	ForOpts       string        // raw options after the XML/JSON mode keyword e.g. "PATH, ROOT('r')"; stored verbatim because FOR XML/JSON option linting is not yet in scope; empty if absent
+	Option        string        // raw content of OPTION(...) including surrounding parens e.g. "(recompile)"; stored verbatim because individual hint linting is not yet in scope; empty if absent
 }
 
 func (*SelectStmt) statementNode() {}

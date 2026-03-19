@@ -6,6 +6,21 @@ import (
 	"github.com/rpf3/sqlfmt/internal/lexer"
 )
 
+// parseOptionClause parses an OPTION (...) query hint clause and returns
+// the parenthesised content including surrounding parens, or empty string
+// if no OPTION keyword is present.
+func (p *parser) parseOptionClause() (string, error) {
+	if !p.curKeyword("OPTION") {
+		return "", nil
+	}
+	p.advance() // consume OPTION
+	raw, err := p.parseParenRaw()
+	if err != nil {
+		return "", err
+	}
+	return raw, nil
+}
+
 // parseTopClause parses an optional TOP (n) clause immediately after a DML
 // keyword (UPDATE, DELETE). Returns the expression string inside the parens,
 // or empty string if TOP is not present. PERCENT and WITH TIES are not valid
@@ -153,6 +168,12 @@ func (p *parser) parseInsert() (Statement, error) {
 		)
 	}
 
+	opt, err := p.parseOptionClause()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Option = opt
+
 	p.consumeSemicolon()
 	return stmt, nil
 }
@@ -220,9 +241,15 @@ func (p *parser) parseUpdate() (Statement, error) {
 	if p.curKeyword("WHERE") {
 		p.advance()
 		stmt.Where = p.parseAndChain(func() bool {
-			return p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
+			return p.curKeyword("OPTION") || p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
 		})
 	}
+
+	opt, err := p.parseOptionClause()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Option = opt
 
 	p.consumeSemicolon()
 	return stmt, nil
@@ -296,6 +323,7 @@ func (p *parser) parseSetClause() ([]UpdateSet, error) {
 				p.curKeyword("WHERE") ||
 				p.curKeyword("FROM") ||
 				p.curKeyword("OUTPUT") ||
+				p.curKeyword("OPTION") ||
 				p.curIs(lexer.Semicolon) ||
 				p.curIs(lexer.EOF)
 		})
@@ -364,9 +392,15 @@ func (p *parser) parseDelete() (Statement, error) {
 	if p.curKeyword("WHERE") {
 		p.advance()
 		stmt.Where = p.parseAndChain(func() bool {
-			return p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
+			return p.curKeyword("OPTION") || p.curIs(lexer.Semicolon) || p.curIs(lexer.EOF)
 		})
 	}
+
+	opt, err := p.parseOptionClause()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Option = opt
 
 	p.consumeSemicolon()
 

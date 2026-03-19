@@ -55,3 +55,10 @@ inner join
 		and o.region = c.region
 where
 	c.name = 'test';
+
+update
+	orders
+set
+	status = 'active'
+option
+	(maxdop 1);
