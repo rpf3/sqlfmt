@@ -37,3 +37,11 @@ SELECT t.col1 FROM dbo.t OPTION (RECOMPILE);
 SELECT t.col1 FROM dbo.t OPTION (MAXDOP 4, RECOMPILE);
 
 SELECT t.col1 FROM dbo.t WHERE t.id = 1 OPTION (RECOMPILE);
+
+SELECT s.status_code,s.label FROM (VALUES ('A','Active')) AS s (status_code,label);
+
+SELECT s.status_code,s.label FROM (VALUES ('A','Active'),('I','Inactive'),('P','Pending')) AS s (status_code,label);
+
+SELECT o.order_id,p.priority_label FROM orders AS o INNER JOIN (VALUES (1,'High'),(2,'Medium')) AS p (priority_id,priority_label) ON p.priority_id=o.priority_id;
+
+SELECT o.order_id,p.priority_label FROM orders AS o INNER JOIN (VALUES (1,'High'),(2,'Medium')) AS p (priority_id,priority_label) ON p.priority_id=o.priority_id WHERE o.status='active';
