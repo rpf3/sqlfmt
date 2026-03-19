@@ -223,11 +223,11 @@ func (p *parser) parseDrop() (Statement, error) {
 func (p *parser) parseCreate() (Statement, error) {
 	p.advance() // consume CREATE
 
-	if p.curKeyword("UNIQUE") && p.peekKeyword("INDEX") {
+	if p.curKeyword("UNIQUE") {
 		p.advance() // consume UNIQUE
 		return p.parseCreateIndex(true)
 	}
-	if p.curKeyword("INDEX") {
+	if p.curKeyword("INDEX") || p.curValue("CLUSTERED") || p.curValue("NONCLUSTERED") {
 		return p.parseCreateIndex(false)
 	}
 	if p.curKeyword("VIEW") {
@@ -308,11 +308,21 @@ func (p *parser) parseCreateTable() (Statement, error) {
 
 // parseCreateIndex handles CREATE [UNIQUE] INDEX [IF NOT EXISTS] <name> ON <table> (<cols>).
 func (p *parser) parseCreateIndex(unique bool) (Statement, error) {
+	// Optional CLUSTERED / NONCLUSTERED before INDEX keyword.
+	var clustering IndexClustering
+	if p.curValue("CLUSTERED") {
+		clustering = IndexClusteringClustered
+		p.advance()
+	} else if p.curValue("NONCLUSTERED") {
+		clustering = IndexClusteringNonclustered
+		p.advance()
+	}
+
 	if err := p.expectKeyword("INDEX"); err != nil {
 		return nil, err
 	}
 
-	stmt := &CreateIndexStmt{Unique: unique}
+	stmt := &CreateIndexStmt{Unique: unique, Clustering: clustering}
 
 	if p.curKeyword("IF") {
 		p.advance() // consume IF
@@ -346,6 +356,50 @@ func (p *parser) parseCreateIndex(unique bool) (Statement, error) {
 		return nil, err
 	}
 	stmt.Columns = cols
+
+	// INCLUDE clause for covering indexes.
+	if p.curValue("INCLUDE") {
+		p.advance() // consume INCLUDE
+		if _, err := p.expect(lexer.LParen); err != nil {
+			return nil, err
+		}
+		var includeCols []string
+		for !p.curIs(lexer.RParen) && p.cur.Type != lexer.EOF {
+			nameTok, err := p.expectIdent()
+			if err != nil {
+				return nil, err
+			}
+			includeCols = append(includeCols, nameTok.Value)
+			if p.curIs(lexer.Comma) {
+				p.advance()
+			}
+		}
+		if _, err := p.expect(lexer.RParen); err != nil {
+			return nil, err
+		}
+		stmt.Include = includeCols
+	}
+
+	// WHERE clause for filtered indexes.
+	if p.curKeyword("WHERE") {
+		p.advance() // consume WHERE
+		var tokBuf []lexer.Token
+		for !p.curKeyword("WITH") && !p.curIs(lexer.Semicolon) && p.cur.Type != lexer.EOF {
+			tokBuf = append(tokBuf, p.cur)
+			p.advance()
+		}
+		stmt.Where = joinBodyTokens(tokBuf)
+	}
+
+	// WITH options (index rebuild/creation options).
+	if p.curKeyword("WITH") {
+		p.advance() // consume WITH
+		raw, err := p.parseParenRaw()
+		if err != nil {
+			return nil, err
+		}
+		stmt.WithOptions = raw
+	}
 
 	p.consumeSemicolon()
 

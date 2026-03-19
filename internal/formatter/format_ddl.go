@@ -57,26 +57,49 @@ func (f *formatter) formatCreateIndex(s *parser.CreateIndexStmt) string {
 	if s.Unique {
 		b.WriteString(f.kw("unique "))
 	}
+	switch s.Clustering {
+	case parser.IndexClusteringClustered:
+		b.WriteString(f.kw("clustered "))
+	case parser.IndexClusteringNonclustered:
+		b.WriteString(f.kw("nonclustered "))
+	case parser.IndexClusteringDefault:
+		// no clustering keyword
+	}
 	b.WriteString(f.kw("index "))
 	if s.IfNotExists {
 		b.WriteString(f.kw("if not exists "))
 	}
 	b.WriteString(f.ident(s.Name))
-	b.WriteString("\n")
-	b.WriteString(ind)
-	b.WriteString(f.kw("on "))
-	b.WriteString(f.ident(s.Table))
-	b.WriteString(" (")
+	b.WriteString("\n" + ind + f.kw("on ") + f.ident(s.Table) + " (")
 	var colParts []string
 	for _, col := range s.Columns {
 		part := f.ident(col.Name)
-		if col.Direction == parser.DirectionDesc {
+		switch col.Direction {
+		case parser.DirectionAsc:
+			part += " " + f.kw("asc")
+		case parser.DirectionDesc:
 			part += " " + f.kw("desc")
+		case parser.DirectionNone:
+			// no direction keyword
 		}
 		colParts = append(colParts, part)
 	}
 	b.WriteString(strings.Join(colParts, ", "))
-	b.WriteString(");")
+	b.WriteString(")")
+	if len(s.Include) > 0 {
+		includeParts := make([]string, len(s.Include))
+		for i, col := range s.Include {
+			includeParts[i] = f.ident(col)
+		}
+		b.WriteString("\n" + ind + f.kw("include") + " (" + strings.Join(includeParts, ", ") + ")")
+	}
+	if s.Where != "" {
+		b.WriteString("\n" + ind + f.kw("where") + " " + s.Where)
+	}
+	if s.WithOptions != "" {
+		b.WriteString("\n" + ind + f.kw("with") + " " + strings.ToLower(s.WithOptions))
+	}
+	b.WriteString(";")
 	return b.String()
 }
 

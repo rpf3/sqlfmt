@@ -75,13 +75,33 @@ type IndexColumn struct {
 	Direction Direction
 }
 
-// CreateIndexStmt represents: CREATE [UNIQUE] INDEX [IF NOT EXISTS] <name> ON <table> (<cols>).
+// IndexClustering identifies whether a CREATE INDEX specifies CLUSTERED,
+// NONCLUSTERED, or neither.
+type IndexClustering int
+
+const (
+	IndexClusteringDefault      IndexClustering = iota // no clustering keyword
+	IndexClusteringClustered                           // CLUSTERED
+	IndexClusteringNonclustered                        // NONCLUSTERED
+)
+
+// CreateIndexStmt represents:
+//
+//	CREATE [UNIQUE] [CLUSTERED|NONCLUSTERED] INDEX [IF NOT EXISTS] <name>
+//	  ON <table> (<cols>)
+//	  [INCLUDE (<cols>)]
+//	  [WHERE <predicate>]
+//	  [WITH (<options>)]
 type CreateIndexStmt struct {
 	Unique      bool
+	Clustering  IndexClustering
 	IfNotExists bool
 	Name        string
 	Table       string
 	Columns     []IndexColumn
+	Include     []string // covering columns in INCLUDE (...); nil if absent
+	Where       string   // raw filter predicate; stored verbatim because filtered-index predicate linting is not yet in scope; empty if absent
+	WithOptions string   // raw content of WITH (...) including surrounding parens; stored verbatim because individual option linting is not yet in scope; empty if absent
 }
 
 func (*CreateIndexStmt) statementNode() {}
