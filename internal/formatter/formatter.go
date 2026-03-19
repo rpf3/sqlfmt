@@ -123,6 +123,10 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatPrint(s)
 	case *parser.ExecStmt:
 		return f.formatExec(s)
+	case *parser.ExecuteAsStmt:
+		return f.formatExecuteAs(s)
+	case *parser.RevertStmt:
+		return f.formatRevert()
 	case *parser.TransactionStmt:
 		return f.formatTransaction(s)
 	case *parser.RawStmt:

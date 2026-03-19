@@ -297,3 +297,29 @@ type ExecStmt struct {
 }
 
 func (*ExecStmt) statementNode() {}
+
+// --- EXECUTE AS / REVERT ------------------------------------------------------
+
+// ExecuteAsStmt represents a T-SQL EXECUTE AS security-context statement.
+//
+//	EXECUTE AS USER    = 'name'
+//	EXECUTE AS LOGIN   = 'name'
+//	EXECUTE AS CALLER
+//	EXECUTE AS SELF
+//
+// Context holds the full suffix after the AS keyword verbatim (e.g.
+// "USER = 'dbo'", "CALLER"); stored verbatim because the formatter
+// emits it unchanged and no lint rule needs to decompose the variants.
+type ExecuteAsStmt struct {
+	Keyword string // "execute" or "exec" — preserves which alias the user wrote
+	Context string // e.g. "USER = 'dbo'", "LOGIN = 'sa'", "CALLER", "SELF"
+}
+
+func (*ExecuteAsStmt) statementNode() {}
+
+// RevertStmt represents a T-SQL REVERT statement.
+//
+//	REVERT
+type RevertStmt struct{}
+
+func (*RevertStmt) statementNode() {}

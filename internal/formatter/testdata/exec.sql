@@ -20,3 +20,13 @@ exec sp_executesql
 	@sql
 ,	N'@id INT'
 ,	@id = 42;
+
+execute as user = 'dbo';
+
+execute as login = 'sa';
+
+execute as caller;
+
+exec as self;
+
+revert;

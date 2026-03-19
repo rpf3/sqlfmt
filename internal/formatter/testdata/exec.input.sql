@@ -21,3 +21,12 @@ EXEC (@sql);
 
 -- sp_executesql with multiple arguments
 EXEC sp_executesql @sql, N'@id INT', @id = 42;
+
+-- EXECUTE AS security context
+EXECUTE AS USER = 'dbo';
+EXECUTE AS LOGIN = 'sa';
+EXECUTE AS CALLER;
+EXEC AS SELF;
+
+-- REVERT
+REVERT;
