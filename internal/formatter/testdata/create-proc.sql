@@ -63,8 +63,7 @@ as begin
 end;
 
 create procedure dbo.usp_DoWork
-with
-	recompile
+with recompile
 as begin
 	select 1;
 end;
@@ -81,15 +80,13 @@ as begin
 end;
 
 create procedure dbo.usp_Hidden
-with
-	encryption
+with encryption
 as begin
 	select 1;
 end;
 
 create procedure dbo.usp_AsUser
-with
-	execute as 'dbo'
+with execute as 'dbo'
 as begin
 	select 1;
 end;
