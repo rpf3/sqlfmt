@@ -41,7 +41,9 @@ func (f *formatter) formatCreateProc(s *parser.CreateProcStmt) string {
 	b.WriteString(f.ident(s.Name))
 	f.writeProcParamList(&b, s.Params)
 
-	if len(s.WithOptions) > 0 {
+	if len(s.WithOptions) == 1 {
+		b.WriteString("\n" + f.kw("with") + " " + s.WithOptions[0])
+	} else if len(s.WithOptions) > 1 {
 		b.WriteString("\n" + f.kw("with"))
 		f.writeCommaList(&b, s.WithOptions)
 	}
