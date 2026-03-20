@@ -17,5 +17,8 @@ CREATE INDEX ix_orders_rebuild ON dbo.orders(customer_id) WITH (FILLFACTOR = 80,
 -- all together: clustered, unique, include, where, with
 CREATE UNIQUE NONCLUSTERED INDEX ix_full ON dbo.orders(customer_id ASC, created_at DESC) INCLUDE (status, total_amount) WHERE status != 'cancelled' WITH (FILLFACTOR = 90, ONLINE = ON, MAXDOP = 4);
 
--- multi-condition WHERE
-CREATE INDEX ix_orders_active ON dbo.orders(customer_id ASC, created_at DESC) WHERE status = 'active' AND total_amount > 100 AND region = 'us';
+-- multi-condition WHERE with WITH
+CREATE INDEX ix_orders_active ON dbo.orders(customer_id ASC, created_at DESC) WHERE status = 'active' AND total_amount > 100 AND region = 'us' WITH (FILLFACTOR = 80, ONLINE = ON);
+
+-- single INCLUDE column stays compact
+CREATE INDEX ix_orders_covering_single ON dbo.orders(customer_id) INCLUDE (status);

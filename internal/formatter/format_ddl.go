@@ -87,11 +87,17 @@ func (f *formatter) formatCreateIndex(s *parser.CreateIndexStmt) string {
 	b.WriteString(strings.Join(colParts, ", "))
 	b.WriteString(")")
 	if len(s.Include) > 0 {
-		includeParts := make([]string, len(s.Include))
-		for i, col := range s.Include {
-			includeParts[i] = f.ident(col)
+		if len(s.Include) == 1 {
+			b.WriteString("\n" + ind + f.kw("include") + " (" + f.ident(s.Include[0]) + ")")
+		} else {
+			b.WriteString("\n" + ind + f.kw("include"))
+			b.WriteString("\n" + ind + "(")
+			b.WriteString("\n" + ind + ind + f.ident(s.Include[0]))
+			for _, col := range s.Include[1:] {
+				b.WriteString("\n" + ind + "," + ind + f.ident(col))
+			}
+			b.WriteString("\n" + ind + ")")
 		}
-		b.WriteString("\n" + ind + f.kw("include") + " (" + strings.Join(includeParts, ", ") + ")")
 	}
 	if s.Where != "" {
 		b.WriteString("\n" + ind + f.kw("where") + " " + s.Where)

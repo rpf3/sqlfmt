@@ -12,7 +12,11 @@ create nonclustered index ix_orders_status
 
 create index ix_orders_covering
 	on dbo.orders (customer_id)
-	include (status, total_amount);
+	include
+	(
+		status
+	,	total_amount
+	);
 
 create index ix_orders_active
 	on dbo.orders (customer_id)
@@ -24,10 +28,19 @@ create index ix_orders_rebuild
 
 create unique nonclustered index ix_full
 	on dbo.orders (customer_id asc, created_at desc)
-	include (status, total_amount)
+	include
+	(
+		status
+	,	total_amount
+	)
 	where status != 'cancelled'
 	with (fillfactor = 90, online = on, maxdop = 4);
 
 create index ix_orders_active
 	on dbo.orders (customer_id asc, created_at desc)
-	where status = 'active' and total_amount > 100 and region = 'us';
+	where status = 'active' and total_amount > 100 and region = 'us'
+	with (fillfactor = 80, online = on);
+
+create index ix_orders_covering_single
+	on dbo.orders (customer_id)
+	include (status);
