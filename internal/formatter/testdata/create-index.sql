@@ -27,3 +27,7 @@ create unique nonclustered index ix_full
 	include (status, total_amount)
 	where status != 'cancelled'
 	with (fillfactor = 90, online = on, maxdop = 4);
+
+create index ix_orders_active
+	on dbo.orders (customer_id asc, created_at desc)
+	where status = 'active' and total_amount > 100 and region = 'us';
