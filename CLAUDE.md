@@ -30,6 +30,41 @@ task fmt && task test && task vet && task lint
 - **Work on one issue at a time** — fully implement, test, and commit one issue before starting the next. Never implement multiple issues in parallel even when they touch the same files; doing so requires backing out changes to split commits, which is error-prone and wastes effort
 - **Surface incidental fixes — never bundle or silently skip them** — when a bug or related improvement is discovered while implementing a feature, stop and ask: *"I noticed [X]. Should I handle this as a follow-up commit in this branch, or file a GitHub issue to track it separately?"* Never bundle incidental work into the current commit without asking, and never silently ignore it
 
+### Sub-issues for layered features
+
+Use GitHub sub-issues (numbered `#N.1`, `#N.2`, …) when a feature spans three or more layers that can each be merged independently and reviewed in under 10 minutes.
+
+**Threshold — when to use sub-issues:**
+
+| Scenario | Use sub-issues? |
+|---|---|
+| Bug fix or config change (< 50 lines) | No — single issue + commit |
+| Feature touching 2 tightly coupled layers | No — keep together |
+| Feature touching 3+ independent layers | Yes |
+| Feature requiring a DB migration | Yes — migration is always sub-issue #1 |
+| Feature with an accompanying lint rule | Yes — lint rule is always its own sub-issue |
+
+**sqlfmt layer split** (when sub-issues are warranted):
+
+| Sub-issue | Scope | Notes |
+|---|---|---|
+| `#N.1` | AST node + parser + dispatcher | Formatter dispatcher may stub-emit raw until #N.2 lands |
+| `#N.2` | Formatter + golden tests | The repo is green after #N.1 because the stub keeps builds passing |
+| `#N.3` | Companion lint rule | Always its own sub-issue — lint rules are independently useful |
+
+**Branch and commit structure:**
+
+One branch per parent feature; each commit closes one sub-issue and references it as `Closes #N.M`.
+
+```
+feat/42-user-invitations
+  commit 1 — feat: add InvitationsRepository       (Closes #42.1)
+  commit 2 — feat: add POST /invitations endpoint  (Closes #42.2)
+  commit 3 — feat: add InviteUserForm component    (Closes #42.3)
+```
+
+The PR description must list every sub-issue closed: `Closes #42, #42.1, #42.2, #42.3`.
+
 ## Commit messages
 
 **Subject line format:**
