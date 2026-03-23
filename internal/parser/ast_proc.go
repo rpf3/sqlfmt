@@ -334,8 +334,6 @@ func (*RevertStmt) statementNode() {}
 //	Extended: DECLARE name CURSOR [LOCAL|GLOBAL] [FORWARD_ONLY|SCROLL]
 //	          [STATIC|KEYSET|DYNAMIC|FAST_FORWARD] [READ_ONLY|SCROLL_LOCKS|OPTIMISTIC]
 //	          [TYPE_WARNING] FOR <select> [FOR UPDATE [OF col, ...]]
-//
-// Raw is stored verbatim because the formatter emits it unchanged until #96.4 lands.
 type DeclareCursorStmt struct {
 	Name        string      // cursor name (bare identifier, no @ prefix)
 	Insensitive bool        // ISO: INSENSITIVE keyword present
@@ -344,10 +342,9 @@ type DeclareCursorStmt struct {
 	CursorType  string      // "STATIC", "KEYSET", "DYNAMIC", "FAST_FORWARD"; empty if not specified
 	Locking     string      // "READ_ONLY", "SCROLL_LOCKS", "OPTIMISTIC"; empty if not specified
 	TypeWarning bool        // TYPE_WARNING keyword present
-	Select      *SelectStmt // embedded SELECT; nil until #96.3 lands
+	Select      *SelectStmt // embedded SELECT statement
 	ForUpdate   bool        // FOR UPDATE clause present
 	UpdateCols  []string    // columns after OF; nil means all columns
-	Raw         string      // stored verbatim because the formatter emits it unchanged until #96.4 lands
 }
 
 func (*DeclareCursorStmt) statementNode() {}
