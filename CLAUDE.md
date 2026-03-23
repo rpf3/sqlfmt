@@ -57,7 +57,24 @@ Use GitHub sub-issues (numbered `#N.1`, `#N.2`, …) when a feature spans three 
 Once the plan is confirmed, create each sub-issue (`#N.1`, `#N.2`, …) as a real GitHub issue so
 that commit references (`Closes #N.M`) resolve correctly and reviewers can navigate the work.
 Each sub-issue body should state its scope, list the files it will touch, and reference the parent
-issue.
+issue. Use the CLI (no `gh issue create --parent` flag exists yet):
+
+```sh
+# 1. Create each sub-issue
+gh issue create --label "<milestone>" --title "feat: ..." --body "..."
+
+# 2. Link to parent (requires node IDs — GitHub has no native CLI flag for this)
+PARENT=$(gh api /repos/OWNER/REPO/issues/N --jq '.node_id')
+CHILD=$(gh api /repos/OWNER/REPO/issues/M --jq '.node_id')
+gh api graphql -f query='
+  mutation($p: ID!, $c: ID!) {
+    addSubIssue(input: {issueId: $p, subIssueId: $c}) {
+      issue { number }
+      subIssue { number }
+    }
+  }
+' -f p="$PARENT" -f c="$CHILD"
+```
 
 **Branch and commit structure:**
 
