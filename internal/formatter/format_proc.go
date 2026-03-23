@@ -442,7 +442,23 @@ func (f *formatter) formatDeallocateCursor(s *parser.DeallocateCursorStmt) strin
 }
 
 // formatFetchCursor formats a FETCH CURSOR statement.
-// Raw-emits the stored token string until #96.2 lands the structured formatter.
+//
+//	fetch next from vend_cursor;
+//	fetch absolute 5 from vend_cursor
+//	into
+//		@vendor_id,
+//		@vendor_name;
 func (f *formatter) formatFetchCursor(s *parser.FetchCursorStmt) string {
-	return s.Raw + ";"
+	var b strings.Builder
+	b.WriteString(f.kw("fetch") + " " + f.kw(strings.ToLower(s.Direction)))
+	if s.Offset != "" {
+		b.WriteString(" " + s.Offset)
+	}
+	b.WriteString(" " + f.kw("from") + " " + f.ident(s.Name))
+	if len(s.Into) > 0 {
+		b.WriteString("\n" + f.kw("into"))
+		f.writeCommaList(&b, s.Into)
+	}
+	b.WriteString(";")
+	return b.String()
 }
