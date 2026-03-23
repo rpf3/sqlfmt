@@ -421,9 +421,9 @@ func (f *formatter) formatRevert() string {
 }
 
 // formatDeclareCursor formats a DECLARE CURSOR statement.
-// Raw-emits the stored token string until #96.4 lands the structured formatter.
-func (f *formatter) formatDeclareCursor(s *parser.DeclareCursorStmt) string {
-	return s.Raw + ";"
+// Stub: structured formatter lands in #96.4.
+func (f *formatter) formatDeclareCursor(_ *parser.DeclareCursorStmt) string {
+	return ";"
 }
 
 // formatOpenCursor formats an OPEN <cursor_name> statement.

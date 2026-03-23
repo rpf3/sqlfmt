@@ -974,18 +974,120 @@ func (p *parser) parseDeclare() (Statement, error) {
 	return stmt, nil
 }
 
-// parseDeclareCursor handles DECLARE <name> [INSENSITIVE|SCROLL] CURSOR ...;
+// parseDeclareCursor handles both DECLARE CURSOR syntax forms.
 // On entry DECLARE has already been consumed and p.cur is the cursor name token.
-// For #96.1 the full statement body is captured as a raw string; the structured
-// parser lands in #96.3.
+//
+//	ISO:      DECLARE name [INSENSITIVE] [SCROLL] CURSOR FOR <select>
+//	Extended: DECLARE name CURSOR [LOCAL|GLOBAL] [FORWARD_ONLY|SCROLL]
+//	          [STATIC|KEYSET|DYNAMIC|FAST_FORWARD] [READ_ONLY|SCROLL_LOCKS|OPTIMISTIC]
+//	          [TYPE_WARNING] FOR <select> [FOR UPDATE [OF col, ...]]
 func (p *parser) parseDeclareCursor() (Statement, error) {
-	var tokBuf []lexer.Token
-	for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
-		tokBuf = append(tokBuf, p.cur)
+	stmt := &DeclareCursorStmt{}
+
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Name = nameTok.Value
+
+	// ISO pre-CURSOR options: [INSENSITIVE] [SCROLL]
+	if p.curKeyword("INSENSITIVE") {
+		stmt.Insensitive = true
 		p.advance()
 	}
+	// SCROLL before CURSOR is the ISO form; SCROLL after CURSOR is the extended form.
+	if p.curKeyword("SCROLL") && p.peekKeyword("CURSOR") {
+		stmt.ScrollMode = "SCROLL"
+		p.advance()
+	}
+
+	if err := p.expectKeyword("CURSOR"); err != nil {
+		return nil, err
+	}
+
+	// T-SQL extended options (all appear after CURSOR, before FOR)
+	switch {
+	case p.curKeyword("LOCAL"):
+		stmt.Scope = "LOCAL"
+		p.advance()
+	case p.curKeyword("GLOBAL"):
+		stmt.Scope = "GLOBAL"
+		p.advance()
+	}
+
+	switch {
+	case p.curKeyword("FORWARD_ONLY"):
+		stmt.ScrollMode = "FORWARD_ONLY"
+		p.advance()
+	case p.curKeyword("SCROLL"):
+		stmt.ScrollMode = "SCROLL"
+		p.advance()
+	}
+
+	switch {
+	case p.curKeyword("STATIC"):
+		stmt.CursorType = "STATIC"
+		p.advance()
+	case p.curKeyword("KEYSET"):
+		stmt.CursorType = "KEYSET"
+		p.advance()
+	case p.curKeyword("DYNAMIC"):
+		stmt.CursorType = "DYNAMIC"
+		p.advance()
+	case p.curKeyword("FAST_FORWARD"):
+		stmt.CursorType = "FAST_FORWARD"
+		p.advance()
+	}
+
+	switch {
+	case p.curKeyword("READ_ONLY"):
+		stmt.Locking = "READ_ONLY"
+		p.advance()
+	case p.curKeyword("SCROLL_LOCKS"):
+		stmt.Locking = "SCROLL_LOCKS"
+		p.advance()
+	case p.curKeyword("OPTIMISTIC"):
+		stmt.Locking = "OPTIMISTIC"
+		p.advance()
+	}
+
+	if p.curKeyword("TYPE_WARNING") {
+		stmt.TypeWarning = true
+		p.advance()
+	}
+
+	if err := p.expectKeyword("FOR"); err != nil {
+		return nil, err
+	}
+	sel, err := p.parseSelectCore()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Select = sel
+
+	// Optional: FOR UPDATE [OF col1, col2, ...]
+	if p.curKeyword("FOR") && p.peekKeyword("UPDATE") {
+		p.advance() // consume FOR
+		p.advance() // consume UPDATE
+		stmt.ForUpdate = true
+		if p.curKeyword("OF") {
+			p.advance() // consume OF
+			for {
+				colTok, err := p.expectIdent()
+				if err != nil {
+					return nil, err
+				}
+				stmt.UpdateCols = append(stmt.UpdateCols, colTok.Value)
+				if !p.curIs(lexer.Comma) {
+					break
+				}
+				p.advance() // consume ','
+			}
+		}
+	}
+
 	p.consumeSemicolon()
-	return &DeclareCursorStmt{Raw: joinBodyTokens(tokBuf)}, nil
+	return stmt, nil
 }
 
 // parseOpenCursor handles OPEN <cursor_name> [;]
