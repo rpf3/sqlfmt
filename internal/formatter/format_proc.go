@@ -421,9 +421,58 @@ func (f *formatter) formatRevert() string {
 }
 
 // formatDeclareCursor formats a DECLARE CURSOR statement.
-// Stub: structured formatter lands in #96.4.
-func (f *formatter) formatDeclareCursor(_ *parser.DeclareCursorStmt) string {
-	return ";"
+//
+// Canonical output:
+//
+//	declare <name> [insensitive] cursor
+//	    [local|global]
+//	    [forward_only|scroll]
+//	    [static|keyset|dynamic|fast_forward]
+//	    [read_only|scroll_locks|optimistic]
+//	    [type_warning]
+//	for
+//	<select>;
+//	[for update [of col, ...];]
+func (f *formatter) formatDeclareCursor(s *parser.DeclareCursorStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+
+	b.WriteString(f.kw("declare") + " " + f.ident(s.Name))
+	if s.Insensitive {
+		b.WriteString(" " + f.kw("insensitive"))
+	}
+	b.WriteString(" " + f.kw("cursor"))
+
+	if s.Scope != "" {
+		b.WriteString("\n" + ind + f.kw(strings.ToLower(s.Scope)))
+	}
+	if s.ScrollMode != "" {
+		b.WriteString("\n" + ind + f.kw(strings.ToLower(s.ScrollMode)))
+	}
+	if s.CursorType != "" {
+		b.WriteString("\n" + ind + f.kw(strings.ToLower(s.CursorType)))
+	}
+	if s.Locking != "" {
+		b.WriteString("\n" + ind + f.kw(strings.ToLower(s.Locking)))
+	}
+	if s.TypeWarning {
+		b.WriteString("\n" + ind + f.kw("type_warning"))
+	}
+
+	b.WriteString("\n" + f.kw("for"))
+	selectSQL := f.formatSelectStmt(s.Select)
+	b.WriteString("\n" + strings.TrimSuffix(selectSQL, ";"))
+
+	if s.ForUpdate {
+		b.WriteString("\n" + f.kw("for") + " " + f.kw("update"))
+		if len(s.UpdateCols) > 0 {
+			b.WriteString("\n" + f.kw("of"))
+			f.writeCommaList(&b, s.UpdateCols)
+		}
+	}
+
+	b.WriteString(";")
+	return b.String()
 }
 
 // formatOpenCursor formats an OPEN <cursor_name> statement.

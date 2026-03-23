@@ -251,7 +251,8 @@ func (p *parser) parseSelectCore() (*SelectStmt, error) {
 	}
 
 	// FOR XML / FOR JSON — must appear after all other clauses.
-	if p.curKeyword("FOR") {
+	// FOR UPDATE is a cursor clause and must not be consumed here.
+	if p.curKeyword("FOR") && !p.peekKeyword("UPDATE") {
 		p.advance() // consume FOR
 		switch {
 		case p.curIs(lexer.Ident) && strings.EqualFold(p.cur.Value, "XML"):
