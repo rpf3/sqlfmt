@@ -913,6 +913,13 @@ func (p *parser) parseWhile() (Statement, error) {
 //	DECLARE @name TABLE (<col_defs>)                      -- table variable
 func (p *parser) parseDeclare() (Statement, error) {
 	p.advance() // consume DECLARE
+
+	// Cursor declaration: DECLARE <name> [INSENSITIVE|SCROLL] CURSOR ...
+	// p.cur is the cursor/variable name; p.peek is the token after it.
+	if p.peekKeyword("CURSOR") || p.peekKeyword("INSENSITIVE") || p.peekKeyword("SCROLL") {
+		return p.parseDeclareCursor()
+	}
+
 	var vars []VarDecl
 	for {
 		nameTok, err := p.expectIdent()
@@ -965,4 +972,68 @@ func (p *parser) parseDeclare() (Statement, error) {
 	p.consumeSemicolon()
 	stmt := &DeclareStmt{Vars: vars}
 	return stmt, nil
+}
+
+// parseDeclareCursor handles DECLARE <name> [INSENSITIVE|SCROLL] CURSOR ...;
+// On entry DECLARE has already been consumed and p.cur is the cursor name token.
+// For #96.1 the full statement body is captured as a raw string; the structured
+// parser lands in #96.3.
+func (p *parser) parseDeclareCursor() (Statement, error) {
+	var tokBuf []lexer.Token
+	for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
+		tokBuf = append(tokBuf, p.cur)
+		p.advance()
+	}
+	p.consumeSemicolon()
+	return &DeclareCursorStmt{Raw: joinBodyTokens(tokBuf)}, nil
+}
+
+// parseOpenCursor handles OPEN <cursor_name> [;]
+// On entry p.cur is OPEN.
+func (p *parser) parseOpenCursor() (Statement, error) {
+	p.advance() // consume OPEN
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	p.consumeSemicolon()
+	return &OpenCursorStmt{Name: nameTok.Value}, nil
+}
+
+// parseCloseCursor handles CLOSE <cursor_name> [;]
+// On entry p.cur is CLOSE.
+func (p *parser) parseCloseCursor() (Statement, error) {
+	p.advance() // consume CLOSE
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	p.consumeSemicolon()
+	return &CloseCursorStmt{Name: nameTok.Value}, nil
+}
+
+// parseDeallocateCursor handles DEALLOCATE <cursor_name> [;]
+// On entry p.cur is DEALLOCATE.
+func (p *parser) parseDeallocateCursor() (Statement, error) {
+	p.advance() // consume DEALLOCATE
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	p.consumeSemicolon()
+	return &DeallocateCursorStmt{Name: nameTok.Value}, nil
+}
+
+// parseFetchCursor handles FETCH [direction] FROM <cursor_name> [INTO @var, ...] [;]
+// On entry p.cur is FETCH.
+// For #96.1 the full statement body is captured as a raw string; the structured
+// parser lands in #96.2.
+func (p *parser) parseFetchCursor() (Statement, error) {
+	var tokBuf []lexer.Token
+	for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
+		tokBuf = append(tokBuf, p.cur)
+		p.advance()
+	}
+	p.consumeSemicolon()
+	return &FetchCursorStmt{Raw: joinBodyTokens(tokBuf)}, nil
 }

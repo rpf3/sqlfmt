@@ -276,6 +276,18 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("EXEC") || p.curKeyword("EXECUTE") {
 		return p.parseExec()
 	}
+	if p.curKeyword("OPEN") {
+		return p.parseOpenCursor()
+	}
+	if p.curKeyword("CLOSE") {
+		return p.parseCloseCursor()
+	}
+	if p.curKeyword("DEALLOCATE") {
+		return p.parseDeallocateCursor()
+	}
+	if p.curKeyword("FETCH") {
+		return p.parseFetchCursor()
+	}
 	if p.curKeyword("REVERT") {
 		return p.parseRevert()
 	}

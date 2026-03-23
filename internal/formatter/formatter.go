@@ -127,6 +127,16 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatExecuteAs(s)
 	case *parser.RevertStmt:
 		return f.formatRevert()
+	case *parser.DeclareCursorStmt:
+		return f.formatDeclareCursor(s)
+	case *parser.OpenCursorStmt:
+		return f.formatOpenCursor(s)
+	case *parser.CloseCursorStmt:
+		return f.formatCloseCursor(s)
+	case *parser.DeallocateCursorStmt:
+		return f.formatDeallocateCursor(s)
+	case *parser.FetchCursorStmt:
+		return f.formatFetchCursor(s)
 	case *parser.TransactionStmt:
 		return f.formatTransaction(s)
 	case *parser.RawStmt:

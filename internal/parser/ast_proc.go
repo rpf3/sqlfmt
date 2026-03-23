@@ -324,3 +324,66 @@ func (*ExecuteAsStmt) statementNode() {}
 type RevertStmt struct{}
 
 func (*RevertStmt) statementNode() {}
+
+// --- CURSORS ------------------------------------------------------------------
+
+// DeclareCursorStmt represents a T-SQL DECLARE CURSOR statement.
+// Both ISO and Transact-SQL extended syntax forms map to this node.
+//
+//	ISO:      DECLARE name [INSENSITIVE] [SCROLL] CURSOR FOR <select>
+//	Extended: DECLARE name CURSOR [LOCAL|GLOBAL] [FORWARD_ONLY|SCROLL]
+//	          [STATIC|KEYSET|DYNAMIC|FAST_FORWARD] [READ_ONLY|SCROLL_LOCKS|OPTIMISTIC]
+//	          [TYPE_WARNING] FOR <select> [FOR UPDATE [OF col, ...]]
+//
+// Raw is stored verbatim because the formatter emits it unchanged until #96.4 lands.
+type DeclareCursorStmt struct {
+	Name        string      // cursor name (bare identifier, no @ prefix)
+	Insensitive bool        // ISO: INSENSITIVE keyword present
+	Scope       string      // "LOCAL" or "GLOBAL"; empty if not specified
+	ScrollMode  string      // "FORWARD_ONLY" or "SCROLL"; empty if not specified
+	CursorType  string      // "STATIC", "KEYSET", "DYNAMIC", "FAST_FORWARD"; empty if not specified
+	Locking     string      // "READ_ONLY", "SCROLL_LOCKS", "OPTIMISTIC"; empty if not specified
+	TypeWarning bool        // TYPE_WARNING keyword present
+	Select      *SelectStmt // embedded SELECT; nil until #96.3 lands
+	ForUpdate   bool        // FOR UPDATE clause present
+	UpdateCols  []string    // columns after OF; nil means all columns
+	Raw         string      // stored verbatim because the formatter emits it unchanged until #96.4 lands
+}
+
+func (*DeclareCursorStmt) statementNode() {}
+
+// OpenCursorStmt represents a T-SQL OPEN <cursor_name> statement.
+type OpenCursorStmt struct {
+	Name string // cursor name
+}
+
+func (*OpenCursorStmt) statementNode() {}
+
+// CloseCursorStmt represents a T-SQL CLOSE <cursor_name> statement.
+type CloseCursorStmt struct {
+	Name string // cursor name
+}
+
+func (*CloseCursorStmt) statementNode() {}
+
+// DeallocateCursorStmt represents a T-SQL DEALLOCATE <cursor_name> statement.
+type DeallocateCursorStmt struct {
+	Name string // cursor name
+}
+
+func (*DeallocateCursorStmt) statementNode() {}
+
+// FetchCursorStmt represents a T-SQL FETCH CURSOR statement.
+//
+//	FETCH [NEXT|PRIOR|FIRST|LAST|ABSOLUTE n|RELATIVE n] FROM <cursor> [INTO @var, ...]
+//
+// Raw is stored verbatim because the formatter emits it unchanged until #96.2 lands.
+type FetchCursorStmt struct {
+	Direction string   // "NEXT", "PRIOR", "FIRST", "LAST", "ABSOLUTE", "RELATIVE"
+	Offset    string   // offset value for ABSOLUTE/RELATIVE; empty otherwise
+	Name      string   // cursor name
+	Into      []string // @var names after INTO; nil if no INTO clause
+	Raw       string   // stored verbatim because the formatter emits it unchanged until #96.2 lands
+}
+
+func (*FetchCursorStmt) statementNode() {}
