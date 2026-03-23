@@ -419,3 +419,30 @@ func (f *formatter) formatExecuteAs(s *parser.ExecuteAsStmt) string {
 func (f *formatter) formatRevert() string {
 	return f.kw("revert") + ";"
 }
+
+// formatDeclareCursor formats a DECLARE CURSOR statement.
+// Raw-emits the stored token string until #96.4 lands the structured formatter.
+func (f *formatter) formatDeclareCursor(s *parser.DeclareCursorStmt) string {
+	return s.Raw + ";"
+}
+
+// formatOpenCursor formats an OPEN <cursor_name> statement.
+func (f *formatter) formatOpenCursor(s *parser.OpenCursorStmt) string {
+	return f.kw("open") + " " + f.ident(s.Name) + ";"
+}
+
+// formatCloseCursor formats a CLOSE <cursor_name> statement.
+func (f *formatter) formatCloseCursor(s *parser.CloseCursorStmt) string {
+	return f.kw("close") + " " + f.ident(s.Name) + ";"
+}
+
+// formatDeallocateCursor formats a DEALLOCATE <cursor_name> statement.
+func (f *formatter) formatDeallocateCursor(s *parser.DeallocateCursorStmt) string {
+	return f.kw("deallocate") + " " + f.ident(s.Name) + ";"
+}
+
+// formatFetchCursor formats a FETCH CURSOR statement.
+// Raw-emits the stored token string until #96.2 lands the structured formatter.
+func (f *formatter) formatFetchCursor(s *parser.FetchCursorStmt) string {
+	return s.Raw + ";"
+}
