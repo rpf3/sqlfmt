@@ -1024,16 +1024,67 @@ func (p *parser) parseDeallocateCursor() (Statement, error) {
 	return &DeallocateCursorStmt{Name: nameTok.Value}, nil
 }
 
-// parseFetchCursor handles FETCH [direction] FROM <cursor_name> [INTO @var, ...] [;]
-// On entry p.cur is FETCH.
-// For #96.1 the full statement body is captured as a raw string; the structured
-// parser lands in #96.2.
+// parseFetchCursor handles:
+//
+//	FETCH [NEXT|PRIOR|FIRST|LAST|ABSOLUTE n|RELATIVE n] FROM <cursor> [INTO @var, ...]
+//
+// On entry p.cur is FETCH. Direction defaults to NEXT when omitted.
 func (p *parser) parseFetchCursor() (Statement, error) {
-	var tokBuf []lexer.Token
-	for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
-		tokBuf = append(tokBuf, p.cur)
+	p.advance() // consume FETCH
+
+	stmt := &FetchCursorStmt{}
+
+	switch {
+	case p.curKeyword("NEXT"):
+		stmt.Direction = "NEXT"
 		p.advance()
+	case p.curKeyword("PRIOR"):
+		stmt.Direction = "PRIOR"
+		p.advance()
+	case p.curKeyword("FIRST"):
+		stmt.Direction = "FIRST"
+		p.advance()
+	case p.curKeyword("LAST"):
+		stmt.Direction = "LAST"
+		p.advance()
+	case p.curKeyword("ABSOLUTE"):
+		stmt.Direction = "ABSOLUTE"
+		p.advance()
+		stmt.Offset = p.cur.Value
+		p.advance()
+	case p.curKeyword("RELATIVE"):
+		stmt.Direction = "RELATIVE"
+		p.advance()
+		stmt.Offset = p.cur.Value
+		p.advance()
+	default:
+		stmt.Direction = "NEXT" // implicit default; formatter always emits direction explicitly
 	}
+
+	if err := p.expectKeyword("FROM"); err != nil {
+		return nil, err
+	}
+	nameTok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Name = nameTok.Value
+
+	if p.curKeyword("INTO") {
+		p.advance() // consume INTO
+		for {
+			varTok, err := p.expectIdent()
+			if err != nil {
+				return nil, err
+			}
+			stmt.Into = append(stmt.Into, varTok.Value)
+			if !p.curIs(lexer.Comma) {
+				break
+			}
+			p.advance() // consume ','
+		}
+	}
+
 	p.consumeSemicolon()
-	return &FetchCursorStmt{Raw: joinBodyTokens(tokBuf)}, nil
+	return stmt, nil
 }

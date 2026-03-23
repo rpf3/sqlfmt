@@ -377,13 +377,13 @@ func (*DeallocateCursorStmt) statementNode() {}
 //
 //	FETCH [NEXT|PRIOR|FIRST|LAST|ABSOLUTE n|RELATIVE n] FROM <cursor> [INTO @var, ...]
 //
-// Raw is stored verbatim because the formatter emits it unchanged until #96.2 lands.
+// Direction defaults to "NEXT" when the keyword is omitted; the formatter always
+// emits it explicitly for clarity.
 type FetchCursorStmt struct {
 	Direction string   // "NEXT", "PRIOR", "FIRST", "LAST", "ABSOLUTE", "RELATIVE"
 	Offset    string   // offset value for ABSOLUTE/RELATIVE; empty otherwise
 	Name      string   // cursor name
 	Into      []string // @var names after INTO; nil if no INTO clause
-	Raw       string   // stored verbatim because the formatter emits it unchanged until #96.2 lands
 }
 
 func (*FetchCursorStmt) statementNode() {}
