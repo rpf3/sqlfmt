@@ -1070,7 +1070,7 @@ func (p *parser) parseDeclareCursor() (Statement, error) {
 		p.advance() // consume FOR
 		p.advance() // consume UPDATE
 		stmt.ForUpdate = true
-		if p.curKeyword("OF") {
+		if p.curValue("OF") {
 			p.advance() // consume OF
 			for {
 				colTok, err := p.expectIdent()
