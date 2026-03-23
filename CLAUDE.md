@@ -52,6 +52,13 @@ Use GitHub sub-issues (numbered `#N.1`, `#N.2`, …) when a feature spans three 
 | `#N.2` | Formatter + golden tests | The repo is green after #N.1 because the stub keeps builds passing |
 | `#N.3` | Companion lint rule | Always its own sub-issue — lint rules are independently useful |
 
+**Before writing any code — create the sub-issues on GitHub:**
+
+Once the plan is confirmed, create each sub-issue (`#N.1`, `#N.2`, …) as a real GitHub issue so
+that commit references (`Closes #N.M`) resolve correctly and reviewers can navigate the work.
+Each sub-issue body should state its scope, list the files it will touch, and reference the parent
+issue.
+
 **Branch and commit structure:**
 
 One branch per parent feature; each commit closes one sub-issue and references it as `Closes #N.M`.
