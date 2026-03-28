@@ -106,7 +106,6 @@ select
 ,	name
 from
 	purchasing.vendor
-for update
-of
+for update of
 	vendor_id
 ,	name;
