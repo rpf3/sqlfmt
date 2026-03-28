@@ -493,8 +493,7 @@ func (f *formatter) formatDeallocateCursor(s *parser.DeallocateCursorStmt) strin
 // formatFetchCursor formats a FETCH CURSOR statement.
 //
 //	fetch next from vend_cursor;
-//	fetch absolute 5 from vend_cursor
-//	into
+//	fetch absolute 5 from vend_cursor into
 //		@vendor_id,
 //		@vendor_name;
 func (f *formatter) formatFetchCursor(s *parser.FetchCursorStmt) string {
@@ -505,7 +504,7 @@ func (f *formatter) formatFetchCursor(s *parser.FetchCursorStmt) string {
 	}
 	b.WriteString(" " + f.kw("from") + " " + f.ident(s.Name))
 	if len(s.Into) > 0 {
-		b.WriteString("\n" + f.kw("into"))
+		b.WriteString(" " + f.kw("into"))
 		f.writeCommaList(&b, s.Into)
 	}
 	b.WriteString(";")
