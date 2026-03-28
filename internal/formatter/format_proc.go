@@ -466,7 +466,7 @@ func (f *formatter) formatDeclareCursor(s *parser.DeclareCursorStmt) string {
 	if s.ForUpdate {
 		b.WriteString("\n" + f.kw("for") + " " + f.kw("update"))
 		if len(s.UpdateCols) > 0 {
-			b.WriteString("\n" + f.kw("of"))
+			b.WriteString(" " + f.kw("of"))
 			f.writeCommaList(&b, s.UpdateCols)
 		}
 	}
