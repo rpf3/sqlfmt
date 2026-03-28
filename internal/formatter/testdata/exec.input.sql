@@ -30,3 +30,12 @@ EXEC AS SELF;
 
 -- REVERT
 REVERT;
+
+-- single OUTPUT arg (stays on one line)
+EXEC dbo.usp_GetValue @result OUTPUT;
+
+-- named OUTPUT arg (stays on one line)
+EXEC dbo.usp_GetValue @result = @result OUTPUT;
+
+-- multiple args, some with OUTPUT
+EXEC dbo.usp_GetCustomer @customer_id = 42, @name = @name OUTPUT, @email = @email OUTPUT;

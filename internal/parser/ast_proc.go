@@ -279,22 +279,24 @@ func (*TransactionStmt) statementNode() {}
 
 // --- EXEC ---------------------------------------------------------------------
 
+// ExecArg represents a single argument in an EXEC / EXECUTE call.
+type ExecArg struct {
+	Value    string // argument expression, e.g. "@customer_id = 42" or "@val"
+	IsOutput bool   // true when the OUTPUT keyword follows the value
+}
+
 // ExecStmt represents a T-SQL EXEC / EXECUTE statement.
 //
 //	EXEC [[@retvar =] <proc_name>] [<args>]
 //	EXEC (<dynamic_sql_expr>)
 //
 // For a normal procedure call Proc holds the (schema-qualified) name and Args
-// holds the raw argument list (everything between the proc name and the
-// terminating semicolon). For a dynamic-SQL EXEC (e.g. EXEC (@sql)) Proc is
-// empty and Args holds the full parenthesised expression.
-//
-// Argument parsing is kept as a raw string to avoid combinatorial complexity;
-// a future issue can add structured argument nodes.
+// holds the structured argument list. For a dynamic-SQL EXEC (e.g. EXEC (@sql))
+// Proc is empty and Args holds one entry with the full parenthesised expression.
 type ExecStmt struct {
-	ReturnVar string // optional capture: @var in "@var = proc_name …"; empty if absent
-	Proc      string // procedure name, possibly schema-qualified; empty for dynamic SQL
-	Args      string // raw argument list; empty if no arguments
+	ReturnVar string    // optional capture: @var in "@var = proc_name …"; empty if absent
+	Proc      string    // procedure name, possibly schema-qualified; empty for dynamic SQL
+	Args      []ExecArg // structured argument list; nil if no arguments
 }
 
 func (*ExecStmt) statementNode() {}
