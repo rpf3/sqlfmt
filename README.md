@@ -88,3 +88,43 @@ sqlfmt supports the following T-SQL statement types:
 **CTEs:** `WITH` (including recursive), `WITH` in DML statements
 
 **Clauses:** `TOP`, `OUTPUT`, `PIVOT`/`UNPIVOT`, `APPLY`, window functions, `GROUP BY` extensions (`ROLLUP`, `CUBE`, `GROUPING SETS`)
+
+## Development
+
+### Nix dev shell
+
+sqlfmt ships a `flake.nix` that provides a reproducible development environment with Go, golangci-lint, and go-task pinned to exact versions via `flake.lock`. This means every contributor and CI job uses the same toolchain without manual installation.
+
+**What this gives you:** `go`, `golangci-lint`, and `task` on your `PATH` — everything needed to build, test, lint, and format the project.
+
+**Install Nix** (Linux or macOS):
+
+```sh
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+```
+
+This uses the [Determinate Systems installer](https://github.com/DeterminateSystems/nix-installer), which enables flake support by default.
+
+**Enter the dev shell:**
+
+```sh
+nix develop
+```
+
+From inside the shell, all project tasks are available:
+
+```sh
+task test    # run tests
+task fmt     # format Go source
+task vet     # static analysis
+task lint    # run golangci-lint
+task build   # build ./bin/sqlfmt
+```
+
+**Without entering an interactive shell** (useful for scripts or CI):
+
+```sh
+nix develop --command task test
+```
+
+**Updating the toolchain:** run `nix flake update` to pull the latest nixpkgs and commit the updated `flake.lock`.
