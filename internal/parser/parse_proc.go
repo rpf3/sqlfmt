@@ -637,7 +637,7 @@ func (p *parser) parseExec() (Statement, error) {
 			tokBuf = append(tokBuf, p.cur)
 			p.advance()
 		}
-		stmt.Args = joinBodyTokens(tokBuf)
+		stmt.Args = []ExecArg{{Value: joinBodyTokens(tokBuf)}}
 		p.consumeSemicolon()
 		return stmt, nil
 	}
@@ -649,15 +649,39 @@ func (p *parser) parseExec() (Statement, error) {
 	}
 	stmt.Proc = procName
 
-	// Remaining tokens up to ; are the raw argument list.
+	// Parse structured argument list: split on depth-zero commas, detect OUTPUT.
+	var args []ExecArg
 	var tokBuf []lexer.Token
+	depth := 0
+
+	flushArg := func() {
+		if len(tokBuf) == 0 {
+			return
+		}
+		isOutput := false
+		if last := tokBuf[len(tokBuf)-1]; last.Type == lexer.Keyword && last.Value == "output" {
+			isOutput = true
+			tokBuf = tokBuf[:len(tokBuf)-1]
+		}
+		args = append(args, ExecArg{Value: joinBodyTokens(tokBuf), IsOutput: isOutput})
+		tokBuf = tokBuf[:0]
+	}
+
 	for p.cur.Type != lexer.EOF && !p.curIs(lexer.Semicolon) {
+		if p.curIs(lexer.LParen) {
+			depth++
+		} else if p.curIs(lexer.RParen) {
+			depth--
+		} else if p.curIs(lexer.Comma) && depth == 0 {
+			flushArg()
+			p.advance()
+			continue
+		}
 		tokBuf = append(tokBuf, p.cur)
 		p.advance()
 	}
-	if len(tokBuf) > 0 {
-		stmt.Args = joinBodyTokens(tokBuf)
-	}
+	flushArg()
+	stmt.Args = args
 
 	p.consumeSemicolon()
 	return stmt, nil

@@ -30,3 +30,12 @@ execute as caller;
 exec as self;
 
 revert;
+
+exec dbo.usp_GetValue @result output;
+
+exec dbo.usp_GetValue @result = @result output;
+
+exec dbo.usp_GetCustomer
+	@customer_id = 42
+,	@name = @name output
+,	@email = @email output;

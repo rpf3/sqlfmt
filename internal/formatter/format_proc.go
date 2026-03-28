@@ -378,22 +378,29 @@ func (f *formatter) formatExec(s *parser.ExecStmt) string {
 
 	// Dynamic SQL: EXEC (@expr)
 	if s.Proc == "" {
-		b.WriteString(" " + s.Args + ";")
+		b.WriteString(" " + s.Args[0].Value + ";")
 		return b.String()
 	}
 
 	b.WriteString(" " + f.ident(s.Proc))
 
-	if s.Args == "" {
+	if len(s.Args) == 0 {
 		b.WriteString(";")
 		return b.String()
 	}
 
-	args := splitDepthZeroCommas(s.Args)
-	if len(args) == 1 {
-		b.WriteString(" " + args[0] + ";")
+	rendered := make([]string, len(s.Args))
+	for i, arg := range s.Args {
+		if arg.IsOutput {
+			rendered[i] = arg.Value + " " + f.kw("output")
+		} else {
+			rendered[i] = arg.Value
+		}
+	}
+	if len(rendered) == 1 {
+		b.WriteString(" " + rendered[0] + ";")
 	} else {
-		f.writeCommaList(&b, args)
+		f.writeCommaList(&b, rendered)
 		b.WriteString(";")
 	}
 
