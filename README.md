@@ -95,7 +95,7 @@ sqlfmt supports the following T-SQL statement types:
 
 sqlfmt ships a `flake.nix` that provides a reproducible development environment with Go, golangci-lint, and go-task pinned to exact versions via `flake.lock`. This means every contributor and CI job uses the same toolchain without manual installation.
 
-**What this gives you:** `go`, `golangci-lint`, and `task` on your `PATH` — everything needed to build, test, lint, and format the project.
+**What this gives you:** all tools needed to build, test, lint, and format the project, pinned to the versions declared in `flake.nix`.
 
 **Install Nix** (Linux or macOS):
 
