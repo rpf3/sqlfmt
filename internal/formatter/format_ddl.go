@@ -378,6 +378,34 @@ func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
 	case parser.AlterAlterColumn:
 		b.WriteString(f.kw("alter column "))
 		f.writeColumnDef(&b, *s.Action.Column)
+	case parser.AlterEnableConstraint:
+		b.WriteString(f.kw("enable constraint "))
+		if s.Action.ConstraintName == "all" {
+			b.WriteString(f.kw("all"))
+		} else {
+			b.WriteString(f.ident(s.Action.ConstraintName))
+		}
+	case parser.AlterDisableConstraint:
+		b.WriteString(f.kw("disable constraint "))
+		if s.Action.ConstraintName == "all" {
+			b.WriteString(f.kw("all"))
+		} else {
+			b.WriteString(f.ident(s.Action.ConstraintName))
+		}
+	case parser.AlterCheckConstraint:
+		b.WriteString(f.kw("check constraint "))
+		if s.Action.ConstraintName == "all" {
+			b.WriteString(f.kw("all"))
+		} else {
+			b.WriteString(f.ident(s.Action.ConstraintName))
+		}
+	case parser.AlterNocheckConstraint:
+		b.WriteString(f.kw("nocheck constraint "))
+		if s.Action.ConstraintName == "all" {
+			b.WriteString(f.kw("all"))
+		} else {
+			b.WriteString(f.ident(s.Action.ConstraintName))
+		}
 	}
 
 	b.WriteString(";")

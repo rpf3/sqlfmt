@@ -53,7 +53,11 @@ func (l *linter) checkIdentsWithSpaces(stmt parser.Statement) {
 		case parser.AlterDropColumn,
 			parser.AlterAddConstraint,
 			parser.AlterDropConstraint,
-			parser.AlterAlterColumn:
+			parser.AlterAlterColumn,
+			parser.AlterEnableConstraint,
+			parser.AlterDisableConstraint,
+			parser.AlterCheckConstraint,
+			parser.AlterNocheckConstraint:
 			// these actions modify existing objects; no new identifier to check
 		}
 

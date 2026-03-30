@@ -77,10 +77,42 @@ func (p *parser) parseAlterTableAction() (AlterTableAction, error) {
 	if p.curKeyword("ALTER") {
 		return p.parseAlterAlter()
 	}
+	if p.curKeyword("ENABLE") {
+		return p.parseAlterConstraintControl(AlterEnableConstraint)
+	}
+	if p.curKeyword("DISABLE") {
+		return p.parseAlterConstraintControl(AlterDisableConstraint)
+	}
+	if p.curKeyword("CHECK") {
+		return p.parseAlterConstraintControl(AlterCheckConstraint)
+	}
+	if p.curKeyword("NOCHECK") {
+		return p.parseAlterConstraintControl(AlterNocheckConstraint)
+	}
 	return AlterTableAction{}, fmt.Errorf(
-		"expected ADD, DROP, or ALTER at %d:%d, got %s %q",
+		"expected ADD, DROP, ALTER, ENABLE, DISABLE, CHECK, or NOCHECK at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
+}
+
+// parseAlterConstraintControl handles ENABLE|DISABLE|CHECK|NOCHECK CONSTRAINT <name|ALL>.
+func (p *parser) parseAlterConstraintControl(at AlterTableActionType) (AlterTableAction, error) {
+	p.advance() // consume ENABLE/DISABLE/CHECK/NOCHECK
+	if err := p.expectKeyword("CONSTRAINT"); err != nil {
+		return AlterTableAction{}, err
+	}
+	var name string
+	if p.curKeyword("ALL") {
+		name = "all"
+		p.advance()
+	} else {
+		nameTok, err := p.expectIdent()
+		if err != nil {
+			return AlterTableAction{}, err
+		}
+		name = nameTok.Value
+	}
+	return AlterTableAction{Type: at, ConstraintName: name}, nil
 }
 
 // parseAlterAdd handles: ADD COLUMN <col_def> | ADD [CONSTRAINT ...] <constraint>.
