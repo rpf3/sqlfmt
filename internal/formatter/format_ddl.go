@@ -24,7 +24,17 @@ func (f *formatter) formatCreateView(s *parser.CreateViewStmt) string {
 }
 
 func (f *formatter) formatTruncate(s *parser.TruncateStmt) string {
-	return f.kw("truncate table ") + f.ident(s.Name) + ";"
+	var b strings.Builder
+	b.WriteString(f.kw("truncate table "))
+	b.WriteString(f.ident(s.Name))
+	if s.Partitions != "" {
+		b.WriteString("\n")
+		b.WriteString(f.indent())
+		b.WriteString(f.kw("with "))
+		b.WriteString(s.Partitions)
+	}
+	b.WriteString(";")
+	return b.String()
 }
 
 func (f *formatter) formatDrop(s *parser.DropStmt) string {

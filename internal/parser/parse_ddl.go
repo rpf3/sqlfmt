@@ -438,18 +438,26 @@ func (p *parser) parseCreateIndex(unique bool) (Statement, error) {
 	return stmt, nil
 }
 
-// parseTruncate handles: TRUNCATE [TABLE] <name> [;].
+// parseTruncate handles: TRUNCATE [TABLE] <name> [WITH (PARTITIONS (...))] [;].
 func (p *parser) parseTruncate() (Statement, error) {
 	p.advance() // consume TRUNCATE
 	if p.curKeyword("TABLE") {
 		p.advance() // consume optional TABLE
 	}
-	nameTok, err := p.expectIdent()
+	name, err := p.parseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
+	stmt := &TruncateStmt{Name: name}
+	if p.curKeyword("WITH") {
+		p.advance() // consume WITH
+		raw, err := p.parseParenRaw()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Partitions = raw
+	}
 	p.consumeSemicolon()
-	stmt := &TruncateStmt{Name: nameTok.Value}
 	return stmt, nil
 }
 
