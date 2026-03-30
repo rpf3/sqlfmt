@@ -167,6 +167,7 @@ var keywords = map[string]bool{
 	"DESC":      true,
 	"FETCH":     true,
 	"NEXT":      true,
+	"VALUE":     true,
 	"ONLY":      true,
 	"OPTION":    true,
 }

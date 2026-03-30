@@ -285,8 +285,32 @@ func (p *parser) parseIdentitySpec() (*IdentitySpec, error) {
 	return spec, nil
 }
 
-// parseDefaultLiteral parses a single literal token as a column default.
+// parseDefaultLiteral parses a column default value. Simple defaults are a
+// single literal token; NEXT VALUE FOR <name> is the only multi-token form.
 func (p *parser) parseDefaultLiteral() (*RawExpr, error) {
+	// NEXT VALUE FOR <qualified_sequence_name>
+	if p.curKeyword("NEXT") {
+		p.advance() // consume NEXT
+		if !p.curKeyword("VALUE") {
+			return nil, fmt.Errorf(
+				"expected VALUE after NEXT at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance() // consume VALUE
+		if !p.curKeyword("FOR") {
+			return nil, fmt.Errorf(
+				"expected FOR after NEXT VALUE at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance() // consume FOR
+		name, err := p.parseQualifiedName()
+		if err != nil {
+			return nil, err
+		}
+		return &RawExpr{Text: "next value for " + name}, nil
+	}
 	tok := p.cur
 	switch tok.Type {
 	case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
