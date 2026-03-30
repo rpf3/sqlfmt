@@ -136,11 +136,15 @@ type TableConstraint struct {
 type AlterTableActionType int
 
 const (
-	AlterAddColumn      AlterTableActionType = iota // ADD COLUMN <col_def>
-	AlterDropColumn                                 // DROP COLUMN <name>
-	AlterAddConstraint                              // ADD [CONSTRAINT <name>] <constraint>
-	AlterDropConstraint                             // DROP CONSTRAINT <name>
-	AlterAlterColumn                                // ALTER COLUMN <col_def>
+	AlterAddColumn         AlterTableActionType = iota // ADD COLUMN <col_def>
+	AlterDropColumn                                    // DROP COLUMN <name>
+	AlterAddConstraint                                 // ADD [CONSTRAINT <name>] <constraint>
+	AlterDropConstraint                                // DROP CONSTRAINT <name>
+	AlterAlterColumn                                   // ALTER COLUMN <col_def>
+	AlterEnableConstraint                              // ENABLE CONSTRAINT <name|ALL>
+	AlterDisableConstraint                             // DISABLE CONSTRAINT <name|ALL>
+	AlterCheckConstraint                               // CHECK CONSTRAINT <name|ALL>
+	AlterNocheckConstraint                             // NOCHECK CONSTRAINT <name|ALL>
 )
 
 // AlterTableAction holds the data for one ALTER TABLE action.

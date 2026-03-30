@@ -19,3 +19,15 @@ alter table dbo.orders
 
 alter table dbo.orders
 	alter column code nvarchar(max) not null;
+
+alter table dbo.orders
+	enable constraint fk_customer;
+
+alter table dbo.orders
+	disable constraint all;
+
+alter table dbo.orders
+	check constraint fk_customer;
+
+alter table dbo.orders
+	nocheck constraint all;
