@@ -187,9 +187,10 @@ type DropStmt struct {
 
 func (*DropStmt) statementNode() {}
 
-// TruncateStmt represents: TRUNCATE [TABLE] <name>.
+// TruncateStmt represents: TRUNCATE [TABLE] <name> [WITH (PARTITIONS (...))].
 type TruncateStmt struct {
-	Name string // table name
+	Name       string // table name
+	Partitions string // WITH (PARTITIONS (...)) clause stored verbatim because the partition list is not in scope for formatting; empty if absent
 }
 
 func (*TruncateStmt) statementNode() {}
