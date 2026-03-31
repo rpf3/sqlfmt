@@ -16,6 +16,16 @@ tasks:
     cmds:
       - go test ./...
 
+  coverage:
+    desc: Run tests with coverage profiling and write coverage.out
+    cmds:
+      - go test -coverprofile=coverage.out -covermode=count -coverpkg=./... ./...
+
+  bench:
+    desc: Run benchmarks with memory profiling and write bench.txt
+    cmds:
+      - go test -bench=. -benchmem -count=3 ./... | tee bench.txt
+
   fmt:
     desc: Format all Go source files with gofmt
     cmds:
@@ -27,10 +37,7 @@ tasks:
       - go vet ./...
 
   lint:
-    desc: Run golangci-lint (install from https://golangci-lint.run)
-    preconditions:
-      - sh: command -v golangci-lint
-        msg: golangci-lint not found — install it from https://golangci-lint.run
+    desc: Run golangci-lint
     cmds:
       - golangci-lint run
 
