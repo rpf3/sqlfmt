@@ -74,3 +74,7 @@ from
 	orders
 option
 	(hash join);
+
+insert into settings default values;
+
+insert into audit_log default values;
