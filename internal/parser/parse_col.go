@@ -401,10 +401,15 @@ func (p *parser) parseColumnDef() (ColumnDef, error) {
 	if err != nil {
 		return ColumnDef{}, err
 	}
+	collate, err := p.parseCollate()
+	if err != nil {
+		return ColumnDef{}, err
+	}
 
 	col := ColumnDef{
 		Name:     nameTok.Value,
 		DataType: dataType,
+		Collate:  collate,
 	}
 
 	if p.curKeyword("IDENTITY") {
@@ -500,4 +505,18 @@ func (p *parser) parseDataType() (string, error) {
 		return "", err
 	}
 	return name + "(" + strings.Join(params, ", ") + ")", nil
+}
+
+// parseCollate parses an optional COLLATE <name> clause following a data type.
+// Returns the collation name (e.g. "SQL_Latin1_General_CP1_CI_AS") or empty string if absent.
+func (p *parser) parseCollate() (string, error) {
+	if !p.curKeyword("COLLATE") {
+		return "", nil
+	}
+	p.advance() // consume COLLATE
+	tok, err := p.expectIdent()
+	if err != nil {
+		return "", err
+	}
+	return tok.Value, nil
 }

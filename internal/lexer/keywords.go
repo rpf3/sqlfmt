@@ -124,6 +124,7 @@ var keywords = map[string]bool{
 	"UNCOMMITTED":  true,
 	"SNAPSHOT":     true,
 	// Type-related
+	"COLLATE":    true,
 	"CAST":       true,
 	"IDENTITY":   true,
 	"PERSISTED":  true,
