@@ -71,3 +71,9 @@ create table order_lines
 ,	constraint pk_order_lines
 		primary key (id)
 );
+
+create table users
+(
+	username nvarchar(50) collate SQL_Latin1_General_CP1_CI_AS not null
+,	email varchar(100) collate Latin1_General_CI_AS null
+);

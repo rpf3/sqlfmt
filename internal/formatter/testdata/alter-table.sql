@@ -31,3 +31,6 @@ alter table dbo.orders
 
 alter table dbo.orders
 	nocheck constraint all;
+
+alter table users
+	alter column username nvarchar(100) collate SQL_Latin1_General_CP1_CI_AS not null;

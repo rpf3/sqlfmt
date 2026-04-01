@@ -180,7 +180,7 @@ func (p *parser) parseAlterDrop() (AlterTableAction, error) {
 	)
 }
 
-// parseAlterAlter handles: ALTER COLUMN <name> <datatype> [NULL|NOT NULL].
+// parseAlterAlter handles: ALTER COLUMN <name> <datatype> [COLLATE <name>] [NULL|NOT NULL].
 func (p *parser) parseAlterAlter() (AlterTableAction, error) {
 	p.advance() // consume ALTER
 	if err := p.expectKeyword("COLUMN"); err != nil {
@@ -194,9 +194,14 @@ func (p *parser) parseAlterAlter() (AlterTableAction, error) {
 	if err != nil {
 		return AlterTableAction{}, err
 	}
+	collate, err := p.parseCollate()
+	if err != nil {
+		return AlterTableAction{}, err
+	}
 	col := ColumnDef{
 		Name:        nameTok.Value,
 		DataType:    dataType,
+		Collate:     collate,
 		Nullability: p.parseColNullability(),
 	}
 	action := AlterTableAction{

@@ -53,6 +53,7 @@ type IdentitySpec struct {
 type ColumnDef struct {
 	Name              string           // column name
 	DataType          string           // pre-rendered type string e.g. "INTEGER", "VARCHAR(255)", "NUMERIC(10, 2)"; stored verbatim because the formatter emits it unchanged and lint rules match on the string directly
+	Collate           string           // optional collation name e.g. "SQL_Latin1_General_CP1_CI_AS"; stored verbatim because the formatter emits it unchanged and no lint rule needs to decompose it; empty if absent
 	Computed          bool             // true for AS <expr> computed columns
 	ComputedExpr      Expr             // expression for computed columns; nil for regular columns
 	Persisted         bool             // PERSISTED keyword present (computed columns only)

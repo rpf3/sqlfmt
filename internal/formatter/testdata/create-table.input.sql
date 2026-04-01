@@ -4,3 +4,5 @@ create table recipe_ingredients(recipe_id integer NOT NULL,ingredient_id integer
 create table documents(id int not null,title nvarchar(255) not null,body nvarchar(MAX) null,content varbinary(max) null,summary varchar(MAX) null,CONSTRAINT pk_documents PRIMARY KEY(id));
 create table orders(id int IDENTITY not null,code int IDENTITY(100,10) not null,CONSTRAINT pk_orders PRIMARY KEY(id));
 create table order_lines(id int not null,unit_price decimal(10,2) not null,quantity int not null,total AS unit_price * quantity,total_persisted AS unit_price * quantity PERSISTED,total_not_null AS unit_price * quantity PERSISTED NOT NULL,CONSTRAINT pk_order_lines PRIMARY KEY(id));
+
+CREATE TABLE users (username NVARCHAR(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL, email VARCHAR(100) COLLATE Latin1_General_CI_AS NULL);

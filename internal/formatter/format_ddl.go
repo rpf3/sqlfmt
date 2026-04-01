@@ -193,6 +193,9 @@ func (f *formatter) writeColumnDef(b *strings.Builder, col parser.ColumnDef) {
 
 	b.WriteString(" ")
 	b.WriteString(f.kw(strings.ToLower(col.DataType)))
+	if col.Collate != "" {
+		b.WriteString(" " + f.kw("collate") + " " + col.Collate)
+	}
 	if col.Identity != nil {
 		b.WriteString(" " + f.kw("identity"))
 		if col.Identity.Seed != "" {
