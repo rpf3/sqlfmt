@@ -97,6 +97,7 @@ var keywords = map[string]bool{
 	"LOCAL":        true,
 	"GLOBAL":       true,
 	// Transactions / flow control
+	"USE":          true,
 	"DECLARE":      true,
 	"BEGIN":        true,
 	"COMMIT":       true,
