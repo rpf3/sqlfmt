@@ -13,54 +13,85 @@ const (
 	// so all bad characters are surfaced in a single pass.
 	Illegal
 
-	// Identifiers and literals.
-	Ident       // unquoted identifier: foo, my_table
-	QuotedIdent // double-quoted identifier: "My Table"
-	StringLit   // single-quoted string: 'hello'
-	IntLit      // integer literal: 42
-	FloatLit    // floating-point literal: 3.14, .5, 1e10
+	// Ident is an unquoted identifier token (e.g. foo, my_table).
+	Ident
+	// QuotedIdent is a double-quoted identifier token (e.g. "My Table").
+	QuotedIdent
+	// StringLit is a single-quoted string literal token (e.g. 'hello').
+	StringLit
+	// IntLit is an integer literal token (e.g. 42) or hex literal (e.g. 0xFF).
+	IntLit
+	// FloatLit is a floating-point literal token (e.g. 3.14, .5, 1e10).
+	FloatLit
 
 	// Keyword is a single type for all SQL reserved words.
 	// The Value field preserves original casing; normalization is the
 	// formatter's responsibility, not the lexer's.
 	Keyword
 
-	// Operators.
-	Eq        // =
-	NotEq     // <> or !=
-	Lt        // <
-	Gt        // >
-	LtEq      // <=
-	GtEq      // >=
-	Plus      // +
-	Minus     // -
-	Star      // *
-	Slash     // /
-	Percent   // %
-	Concat    // ||
-	Ampersand // & (bitwise AND)
-	Pipe      // | (bitwise OR)
-	Caret     // ^ (bitwise XOR)
-	Tilde     // ~ (bitwise NOT, unary)
+	// Eq represents the = comparison or assignment operator.
+	Eq
+	// NotEq represents the <> or != not-equal operator.
+	NotEq
+	// Lt represents the < less-than operator.
+	Lt
+	// Gt represents the > greater-than operator.
+	Gt
+	// LtEq represents the <= less-than-or-equal operator.
+	LtEq
+	// GtEq represents the >= greater-than-or-equal operator.
+	GtEq
+	// Plus represents the + addition operator.
+	Plus
+	// Minus represents the - subtraction or negation operator.
+	Minus
+	// Star represents the * multiplication or wildcard token.
+	Star
+	// Slash represents the / division operator.
+	Slash
+	// Percent represents the % modulo operator.
+	Percent
+	// Concat represents the || string concatenation operator.
+	Concat
+	// Ampersand represents the & bitwise AND operator.
+	Ampersand
+	// Pipe represents the | bitwise OR operator.
+	Pipe
+	// Caret represents the ^ bitwise XOR operator.
+	Caret
+	// Tilde represents the ~ bitwise NOT (unary) operator.
+	Tilde
 
-	// Compound assignment operators.
-	PlusEq    // +=
-	MinusEq   // -=
-	StarEq    // *=
-	SlashEq   // /=
-	PercentEq // %=
+	// PlusEq represents the += compound assignment operator.
+	PlusEq
+	// MinusEq represents the -= compound assignment operator.
+	MinusEq
+	// StarEq represents the *= compound assignment operator.
+	StarEq
+	// SlashEq represents the /= compound assignment operator.
+	SlashEq
+	// PercentEq represents the %= compound assignment operator.
+	PercentEq
 
-	// Punctuation.
-	LParen    // (
-	RParen    // )
-	Comma     // ,
-	Semicolon // ;
-	Dot       // .
-	Colon     // :
+	// LParen represents the ( left parenthesis.
+	LParen
+	// RParen represents the ) right parenthesis.
+	RParen
+	// Comma represents the , separator.
+	Comma
+	// Semicolon represents the ; statement terminator.
+	Semicolon
+	// Dot represents the . member-access separator.
+	Dot
+	// Colon represents the : label separator.
+	Colon
 
-	// Comments are preserved as tokens — user comments must never be dropped.
-	LineComment  // -- comment text (includes leading --)
-	BlockComment // /* comment text */ (includes delimiters)
+	// LineComment is a -- comment token; includes the leading --.
+	// User comments must never be dropped.
+	LineComment
+	// BlockComment is a /* ... */ comment token; includes the delimiters.
+	// User comments must never be dropped.
+	BlockComment
 )
 
 var tokenTypeNames = map[TokenType]string{

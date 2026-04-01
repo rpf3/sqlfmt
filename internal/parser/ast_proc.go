@@ -6,8 +6,10 @@ package parser
 type ParamDirection int
 
 const (
-	ParamDirectionIn  ParamDirection = iota // default: input parameter
-	ParamDirectionOut                       // OUTPUT or OUT keyword
+	// ParamDirectionIn is the default input parameter direction.
+	ParamDirectionIn ParamDirection = iota
+	// ParamDirectionOut indicates the OUTPUT or OUT keyword was present.
+	ParamDirectionOut
 )
 
 // ProcParam is one parameter in a CREATE PROCEDURE or CREATE FUNCTION parameter list.
@@ -53,9 +55,12 @@ func (*RawStmt) statementNode() {}
 type CreateFuncKind int
 
 const (
-	CreateFuncScalar      CreateFuncKind = iota // RETURNS <type> AS BEGIN...END
-	CreateFuncInlineTable                       // RETURNS TABLE AS RETURN (SELECT...)
-	CreateFuncMultiTable                        // RETURNS @var TABLE (...) AS BEGIN...END
+	// CreateFuncScalar is a scalar function: RETURNS <type> AS BEGIN...END.
+	CreateFuncScalar CreateFuncKind = iota
+	// CreateFuncInlineTable is an inline TVF: RETURNS TABLE AS RETURN (SELECT...).
+	CreateFuncInlineTable
+	// CreateFuncMultiTable is a multi-statement TVF: RETURNS @var TABLE (...) AS BEGIN...END.
+	CreateFuncMultiTable
 )
 
 // CreateFuncStmt represents a CREATE FUNCTION statement.
@@ -84,9 +89,12 @@ func (*CreateFuncStmt) statementNode() {}
 type SetKind int
 
 const (
-	SetSimple               SetKind = iota // SET <option> <value>
-	SetTransactionIsolation                // SET TRANSACTION ISOLATION LEVEL <level>
-	SetIdentityInsert                      // SET IDENTITY_INSERT <table> ON|OFF
+	// SetSimple is a plain SET <option> <value> statement.
+	SetSimple SetKind = iota
+	// SetTransactionIsolation represents SET TRANSACTION ISOLATION LEVEL <level>.
+	SetTransactionIsolation
+	// SetIdentityInsert represents SET IDENTITY_INSERT <table> ON|OFF.
+	SetIdentityInsert
 )
 
 // SetStmt represents a T-SQL SET statement.
@@ -263,10 +271,14 @@ func (*PrintStmt) statementNode() {}
 type TransactionStmtKind int
 
 const (
-	TxnBegin    TransactionStmtKind = iota // BEGIN TRANSACTION
-	TxnCommit                              // COMMIT [TRANSACTION]
-	TxnRollback                            // ROLLBACK [TRANSACTION] [name]
-	TxnSave                                // SAVE TRANSACTION name
+	// TxnBegin represents BEGIN TRANSACTION.
+	TxnBegin TransactionStmtKind = iota
+	// TxnCommit represents COMMIT [TRANSACTION].
+	TxnCommit
+	// TxnRollback represents ROLLBACK [TRANSACTION] [name].
+	TxnRollback
+	// TxnSave represents SAVE TRANSACTION name.
+	TxnSave
 )
 
 // TransactionStmt represents a transaction control statement.

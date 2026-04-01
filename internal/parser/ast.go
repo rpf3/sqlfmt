@@ -7,9 +7,12 @@ type Statement interface{ statementNode() }
 type Direction int
 
 const (
-	DirectionNone Direction = iota // no direction specified by the user
-	DirectionAsc                   // explicit ASC
-	DirectionDesc                  // explicit DESC
+	// DirectionNone indicates no sort direction was specified by the user.
+	DirectionNone Direction = iota
+	// DirectionAsc represents an explicit ASC sort direction.
+	DirectionAsc
+	// DirectionDesc represents an explicit DESC sort direction.
+	DirectionDesc
 )
 
 // --- SELECT statement ---------------------------------------------------------
@@ -18,10 +21,14 @@ const (
 type SetOpType int
 
 const (
-	SetOpUnion     SetOpType = iota // UNION (distinct)
-	SetOpUnionAll                   // UNION ALL
-	SetOpIntersect                  // INTERSECT
-	SetOpExcept                     // EXCEPT
+	// SetOpUnion represents UNION (distinct rows).
+	SetOpUnion SetOpType = iota
+	// SetOpUnionAll represents UNION ALL.
+	SetOpUnionAll
+	// SetOpIntersect represents INTERSECT.
+	SetOpIntersect
+	// SetOpExcept represents EXCEPT.
+	SetOpExcept
 )
 
 // SetOp pairs a set operator with the right-hand SELECT branch.
@@ -40,13 +47,20 @@ type SelectItem struct {
 type JoinType int
 
 const (
-	JoinInner      JoinType = iota // [INNER] JOIN
-	JoinLeft                       // LEFT [OUTER] JOIN
-	JoinRight                      // RIGHT [OUTER] JOIN
-	JoinFullOuter                  // FULL OUTER JOIN
-	JoinCross                      // CROSS JOIN
-	JoinCrossApply                 // CROSS APPLY
-	JoinOuterApply                 // OUTER APPLY
+	// JoinInner represents [INNER] JOIN.
+	JoinInner JoinType = iota
+	// JoinLeft represents LEFT [OUTER] JOIN.
+	JoinLeft
+	// JoinRight represents RIGHT [OUTER] JOIN.
+	JoinRight
+	// JoinFullOuter represents FULL OUTER JOIN.
+	JoinFullOuter
+	// JoinCross represents CROSS JOIN.
+	JoinCross
+	// JoinCrossApply represents CROSS APPLY.
+	JoinCrossApply
+	// JoinOuterApply represents OUTER APPLY.
+	JoinOuterApply
 )
 
 // JoinClause is one JOIN clause attached to a SELECT's FROM source.
@@ -85,8 +99,10 @@ type WindowDef struct {
 type PivotKind int
 
 const (
-	PivotPivot   PivotKind = iota // PIVOT
-	PivotUnpivot                  // UNPIVOT
+	// PivotPivot represents the PIVOT operator.
+	PivotPivot PivotKind = iota
+	// PivotUnpivot represents the UNPIVOT operator.
+	PivotUnpivot
 )
 
 // PivotClause holds the parsed PIVOT or UNPIVOT operator attached to a FROM source.
@@ -104,11 +120,16 @@ type PivotClause struct {
 type GroupByModifier int
 
 const (
-	GroupBySimple     GroupByModifier = iota // plain expression
-	GroupByRollup                            // ROLLUP(...)
-	GroupByCube                              // CUBE(...)
-	GroupBySets                              // GROUPING SETS(...)
-	GroupByGrandTotal                        // () grand total
+	// GroupBySimple is a plain GROUP BY expression.
+	GroupBySimple GroupByModifier = iota
+	// GroupByRollup represents ROLLUP(...).
+	GroupByRollup
+	// GroupByCube represents CUBE(...).
+	GroupByCube
+	// GroupBySets represents GROUPING SETS(...).
+	GroupBySets
+	// GroupByGrandTotal represents the () grand total grouping.
+	GroupByGrandTotal
 )
 
 // GroupByItem is one element in a GROUP BY clause.
@@ -140,9 +161,12 @@ type SelectFromSource struct {
 type ForClauseKind int
 
 const (
-	ForNone ForClauseKind = iota // no FOR clause
-	ForXML                       // FOR XML ...
-	ForJSON                      // FOR JSON ...
+	// ForNone indicates no FOR clause is present.
+	ForNone ForClauseKind = iota
+	// ForXML represents a FOR XML clause.
+	ForXML
+	// ForJSON represents a FOR JSON clause.
+	ForJSON
 )
 
 // SelectStmt represents a [WITH ...] SELECT statement.
