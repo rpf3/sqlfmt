@@ -424,3 +424,30 @@ func (f *formatter) formatAlterTable(s *parser.AlterTableStmt) string {
 	b.WriteString(";")
 	return b.String()
 }
+
+// formatAlterIndex formats an ALTER INDEX statement.
+func (f *formatter) formatAlterIndex(s *parser.AlterIndexStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+	b.WriteString(f.kw("alter index") + " ")
+	if s.All {
+		b.WriteString(f.kw("all"))
+	} else {
+		b.WriteString(f.ident(s.Name))
+	}
+	var action string
+	switch s.Action {
+	case parser.AlterIndexRebuild:
+		action = f.kw("rebuild")
+	case parser.AlterIndexReorganize:
+		action = f.kw("reorganize")
+	case parser.AlterIndexDisable:
+		action = f.kw("disable")
+	}
+	b.WriteString("\n" + ind + f.kw("on") + " " + f.ident(s.Table) + " " + action)
+	if s.WithOptions != "" {
+		b.WriteString("\n" + ind + f.kw("with") + " " + strings.ToLower(s.WithOptions))
+	}
+	b.WriteString(";")
+	return b.String()
+}

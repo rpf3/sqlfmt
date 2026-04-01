@@ -176,6 +176,8 @@ var keywords = map[string]bool{
 	"ENABLE":     true,
 	"DISABLE":    true,
 	"NOCHECK":    true,
+	"REBUILD":    true,
+	"REORGANIZE": true,
 }
 
 // isKeyword reports whether word (any casing) is a SQL reserved word.

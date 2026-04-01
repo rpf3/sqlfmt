@@ -190,6 +190,35 @@ type AlterTableStmt struct {
 
 func (*AlterTableStmt) statementNode() {}
 
+// --- ALTER INDEX --------------------------------------------------------------
+
+// AlterIndexActionType identifies the action in an ALTER INDEX statement.
+type AlterIndexActionType int
+
+const (
+	// AlterIndexRebuild represents ALTER INDEX ... REBUILD [WITH (...)].
+	AlterIndexRebuild AlterIndexActionType = iota
+	// AlterIndexReorganize represents ALTER INDEX ... REORGANIZE [WITH (...)].
+	AlterIndexReorganize
+	// AlterIndexDisable represents ALTER INDEX ... DISABLE.
+	AlterIndexDisable
+)
+
+// AlterIndexStmt represents an ALTER INDEX statement.
+//
+//	ALTER INDEX <name>|ALL ON <table> REBUILD [WITH (...)]
+//	ALTER INDEX <name>|ALL ON <table> REORGANIZE [WITH (...)]
+//	ALTER INDEX <name>|ALL ON <table> DISABLE
+type AlterIndexStmt struct {
+	All         bool   // true when ALTER INDEX ALL
+	Name        string // index name; empty when All is true
+	Table       string // table name after ON
+	Action      AlterIndexActionType
+	WithOptions string // raw WITH(...) clause including parens; stored verbatim because the formatter emits it lowercased and no lint rule needs to decompose it; empty if absent
+}
+
+func (*AlterIndexStmt) statementNode() {}
+
 // --- DROP / TRUNCATE / VIEW ---------------------------------------------------
 
 // DropObjectType identifies what kind of object a DROP statement targets.
