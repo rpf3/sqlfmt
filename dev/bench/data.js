@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775056745224,
+  "lastUpdate": 1775068478728,
   "repoUrl": "https://github.com/rpf3/sqlfmt",
   "entries": {
     "Benchmark": [
@@ -87153,6 +87153,1110 @@ window.BENCHMARK_DATA = {
             "value": 151,
             "unit": "allocs/op",
             "extra": "89840 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "hello@rpf3.xyz",
+            "name": "Richard P. Field III",
+            "username": "rpf3"
+          },
+          "committer": {
+            "email": "hello@rpf3.xyz",
+            "name": "Richard P. Field III",
+            "username": "rpf3"
+          },
+          "distinct": true,
+          "id": "90d488afa9d35c8642b57deab65cf0d79f7143c7",
+          "message": "feat: add USE statement support\n\nUSE <database> is present in nearly every production T-SQL script and\nwas previously a parse error. This is a minimal addition: one keyword,\none AST node, one parser function, and one formatter function.\n\nThe formatter uses f.ident() so bracket-quoted names with spaces round-\ntrip correctly (e.g. [My Database] → [My Database]) while plain names\nlike AdventureWorks2019 have unnecessary brackets stripped.\n\nCloses #170",
+          "timestamp": "2026-04-01T14:33:05-04:00",
+          "tree_id": "4269a2fcc6ca1f1b5f983bfe396c358101e835b3",
+          "url": "https://github.com/rpf3/sqlfmt/commit/90d488afa9d35c8642b57deab65cf0d79f7143c7"
+        },
+        "date": 1775068478442,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 354810,
+            "unit": "ns/op\t  185676 B/op\t    2713 allocs/op",
+            "extra": "3220 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 354810,
+            "unit": "ns/op",
+            "extra": "3220 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 185676,
+            "unit": "B/op",
+            "extra": "3220 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 2713,
+            "unit": "allocs/op",
+            "extra": "3220 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 351749,
+            "unit": "ns/op\t  185674 B/op\t    2713 allocs/op",
+            "extra": "3256 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 351749,
+            "unit": "ns/op",
+            "extra": "3256 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 185674,
+            "unit": "B/op",
+            "extra": "3256 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 2713,
+            "unit": "allocs/op",
+            "extra": "3256 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 352469,
+            "unit": "ns/op\t  185674 B/op\t    2713 allocs/op",
+            "extra": "3429 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 352469,
+            "unit": "ns/op",
+            "extra": "3429 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 185674,
+            "unit": "B/op",
+            "extra": "3429 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/tables (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 2713,
+            "unit": "allocs/op",
+            "extra": "3429 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 200788,
+            "unit": "ns/op\t   73961 B/op\t    2128 allocs/op",
+            "extra": "5835 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 200788,
+            "unit": "ns/op",
+            "extra": "5835 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 73961,
+            "unit": "B/op",
+            "extra": "5835 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 2128,
+            "unit": "allocs/op",
+            "extra": "5835 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 207472,
+            "unit": "ns/op\t   73961 B/op\t    2128 allocs/op",
+            "extra": "5571 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 207472,
+            "unit": "ns/op",
+            "extra": "5571 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 73961,
+            "unit": "B/op",
+            "extra": "5571 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 2128,
+            "unit": "allocs/op",
+            "extra": "5571 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 200052,
+            "unit": "ns/op\t   73961 B/op\t    2128 allocs/op",
+            "extra": "5708 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 200052,
+            "unit": "ns/op",
+            "extra": "5708 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 73961,
+            "unit": "B/op",
+            "extra": "5708 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/views (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 2128,
+            "unit": "allocs/op",
+            "extra": "5708 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 59450,
+            "unit": "ns/op\t   23560 B/op\t     647 allocs/op",
+            "extra": "20167 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 59450,
+            "unit": "ns/op",
+            "extra": "20167 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 23560,
+            "unit": "B/op",
+            "extra": "20167 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 647,
+            "unit": "allocs/op",
+            "extra": "20167 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 59499,
+            "unit": "ns/op\t   23560 B/op\t     647 allocs/op",
+            "extra": "20215 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 59499,
+            "unit": "ns/op",
+            "extra": "20215 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 23560,
+            "unit": "B/op",
+            "extra": "20215 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 647,
+            "unit": "allocs/op",
+            "extra": "20215 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 59859,
+            "unit": "ns/op\t   23560 B/op\t     647 allocs/op",
+            "extra": "20194 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 59859,
+            "unit": "ns/op",
+            "extra": "20194 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 23560,
+            "unit": "B/op",
+            "extra": "20194 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/indexes (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 647,
+            "unit": "allocs/op",
+            "extra": "20194 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 265898,
+            "unit": "ns/op\t  126393 B/op\t    2295 allocs/op",
+            "extra": "4642 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 265898,
+            "unit": "ns/op",
+            "extra": "4642 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 126393,
+            "unit": "B/op",
+            "extra": "4642 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 2295,
+            "unit": "allocs/op",
+            "extra": "4642 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 262925,
+            "unit": "ns/op\t  126393 B/op\t    2295 allocs/op",
+            "extra": "4417 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 262925,
+            "unit": "ns/op",
+            "extra": "4417 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 126393,
+            "unit": "B/op",
+            "extra": "4417 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 2295,
+            "unit": "allocs/op",
+            "extra": "4417 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 265115,
+            "unit": "ns/op\t  126393 B/op\t    2295 allocs/op",
+            "extra": "4494 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 265115,
+            "unit": "ns/op",
+            "extra": "4494 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 126393,
+            "unit": "B/op",
+            "extra": "4494 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormat/migrations (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 2295,
+            "unit": "allocs/op",
+            "extra": "4494 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 957103,
+            "unit": "ns/op\t  409589 B/op\t    7783 allocs/op",
+            "extra": "1260 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 957103,
+            "unit": "ns/op",
+            "extra": "1260 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 409589,
+            "unit": "B/op",
+            "extra": "1260 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 7783,
+            "unit": "allocs/op",
+            "extra": "1260 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 946092,
+            "unit": "ns/op\t  409588 B/op\t    7783 allocs/op",
+            "extra": "1268 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 946092,
+            "unit": "ns/op",
+            "extra": "1268 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 409588,
+            "unit": "B/op",
+            "extra": "1268 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 7783,
+            "unit": "allocs/op",
+            "extra": "1268 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter)",
+            "value": 949451,
+            "unit": "ns/op\t  409589 B/op\t    7783 allocs/op",
+            "extra": "1242 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter) - ns/op",
+            "value": 949451,
+            "unit": "ns/op",
+            "extra": "1242 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter) - B/op",
+            "value": 409589,
+            "unit": "B/op",
+            "extra": "1242 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkFormatFull (github.com/rpf3/sqlfmt/internal/formatter) - allocs/op",
+            "value": 7783,
+            "unit": "allocs/op",
+            "extra": "1242 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer)",
+            "value": 1006,
+            "unit": "ns/op\t    1360 B/op\t      12 allocs/op",
+            "extra": "1188861 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer) - ns/op",
+            "value": 1006,
+            "unit": "ns/op",
+            "extra": "1188861 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer) - B/op",
+            "value": 1360,
+            "unit": "B/op",
+            "extra": "1188861 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer) - allocs/op",
+            "value": 12,
+            "unit": "allocs/op",
+            "extra": "1188861 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer)",
+            "value": 1009,
+            "unit": "ns/op\t    1360 B/op\t      12 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer) - ns/op",
+            "value": 1009,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer) - B/op",
+            "value": 1360,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer) - allocs/op",
+            "value": 12,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer)",
+            "value": 1006,
+            "unit": "ns/op\t    1360 B/op\t      12 allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer) - ns/op",
+            "value": 1006,
+            "unit": "ns/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer) - B/op",
+            "value": 1360,
+            "unit": "B/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/simple (github.com/rpf3/sqlfmt/internal/lexer) - allocs/op",
+            "value": 12,
+            "unit": "allocs/op",
+            "extra": "1000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer)",
+            "value": 5628,
+            "unit": "ns/op\t    6224 B/op\t      59 allocs/op",
+            "extra": "211602 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer) - ns/op",
+            "value": 5628,
+            "unit": "ns/op",
+            "extra": "211602 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer) - B/op",
+            "value": 6224,
+            "unit": "B/op",
+            "extra": "211602 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer) - allocs/op",
+            "value": 59,
+            "unit": "allocs/op",
+            "extra": "211602 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer)",
+            "value": 5612,
+            "unit": "ns/op\t    6224 B/op\t      59 allocs/op",
+            "extra": "213144 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer) - ns/op",
+            "value": 5612,
+            "unit": "ns/op",
+            "extra": "213144 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer) - B/op",
+            "value": 6224,
+            "unit": "B/op",
+            "extra": "213144 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer) - allocs/op",
+            "value": 59,
+            "unit": "allocs/op",
+            "extra": "213144 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer)",
+            "value": 5653,
+            "unit": "ns/op\t    6224 B/op\t      59 allocs/op",
+            "extra": "208647 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer) - ns/op",
+            "value": 5653,
+            "unit": "ns/op",
+            "extra": "208647 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer) - B/op",
+            "value": 6224,
+            "unit": "B/op",
+            "extra": "208647 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/medium (github.com/rpf3/sqlfmt/internal/lexer) - allocs/op",
+            "value": 59,
+            "unit": "allocs/op",
+            "extra": "208647 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer)",
+            "value": 10291,
+            "unit": "ns/op\t   12584 B/op\t      94 allocs/op",
+            "extra": "119682 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer) - ns/op",
+            "value": 10291,
+            "unit": "ns/op",
+            "extra": "119682 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer) - B/op",
+            "value": 12584,
+            "unit": "B/op",
+            "extra": "119682 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer) - allocs/op",
+            "value": 94,
+            "unit": "allocs/op",
+            "extra": "119682 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer)",
+            "value": 10190,
+            "unit": "ns/op\t   12584 B/op\t      94 allocs/op",
+            "extra": "120168 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer) - ns/op",
+            "value": 10190,
+            "unit": "ns/op",
+            "extra": "120168 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer) - B/op",
+            "value": 12584,
+            "unit": "B/op",
+            "extra": "120168 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer) - allocs/op",
+            "value": 94,
+            "unit": "allocs/op",
+            "extra": "120168 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer)",
+            "value": 10073,
+            "unit": "ns/op\t   12584 B/op\t      94 allocs/op",
+            "extra": "117799 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer) - ns/op",
+            "value": 10073,
+            "unit": "ns/op",
+            "extra": "117799 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer) - B/op",
+            "value": 12584,
+            "unit": "B/op",
+            "extra": "117799 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkTokenize/complex (github.com/rpf3/sqlfmt/internal/lexer) - allocs/op",
+            "value": 94,
+            "unit": "allocs/op",
+            "extra": "117799 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter)",
+            "value": 15074,
+            "unit": "ns/op\t    7081 B/op\t     135 allocs/op",
+            "extra": "78295 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter) - ns/op",
+            "value": 15074,
+            "unit": "ns/op",
+            "extra": "78295 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter) - B/op",
+            "value": 7081,
+            "unit": "B/op",
+            "extra": "78295 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter) - allocs/op",
+            "value": 135,
+            "unit": "allocs/op",
+            "extra": "78295 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter)",
+            "value": 15059,
+            "unit": "ns/op\t    7081 B/op\t     135 allocs/op",
+            "extra": "78988 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter) - ns/op",
+            "value": 15059,
+            "unit": "ns/op",
+            "extra": "78988 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter) - B/op",
+            "value": 7081,
+            "unit": "B/op",
+            "extra": "78988 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter) - allocs/op",
+            "value": 135,
+            "unit": "allocs/op",
+            "extra": "78988 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter)",
+            "value": 15097,
+            "unit": "ns/op\t    7081 B/op\t     135 allocs/op",
+            "extra": "79118 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter) - ns/op",
+            "value": 15097,
+            "unit": "ns/op",
+            "extra": "79118 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter) - B/op",
+            "value": 7081,
+            "unit": "B/op",
+            "extra": "79118 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/ddl (github.com/rpf3/sqlfmt/internal/linter) - allocs/op",
+            "value": 135,
+            "unit": "allocs/op",
+            "extra": "79118 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter)",
+            "value": 16278,
+            "unit": "ns/op\t    4545 B/op\t     199 allocs/op",
+            "extra": "74049 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter) - ns/op",
+            "value": 16278,
+            "unit": "ns/op",
+            "extra": "74049 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter) - B/op",
+            "value": 4545,
+            "unit": "B/op",
+            "extra": "74049 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter) - allocs/op",
+            "value": 199,
+            "unit": "allocs/op",
+            "extra": "74049 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter)",
+            "value": 16138,
+            "unit": "ns/op\t    4545 B/op\t     199 allocs/op",
+            "extra": "74446 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter) - ns/op",
+            "value": 16138,
+            "unit": "ns/op",
+            "extra": "74446 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter) - B/op",
+            "value": 4545,
+            "unit": "B/op",
+            "extra": "74446 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter) - allocs/op",
+            "value": 199,
+            "unit": "allocs/op",
+            "extra": "74446 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter)",
+            "value": 16152,
+            "unit": "ns/op\t    4545 B/op\t     199 allocs/op",
+            "extra": "73495 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter) - ns/op",
+            "value": 16152,
+            "unit": "ns/op",
+            "extra": "73495 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter) - B/op",
+            "value": 4545,
+            "unit": "B/op",
+            "extra": "73495 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/select (github.com/rpf3/sqlfmt/internal/linter) - allocs/op",
+            "value": 199,
+            "unit": "allocs/op",
+            "extra": "73495 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter)",
+            "value": 14885,
+            "unit": "ns/op\t    4593 B/op\t     185 allocs/op",
+            "extra": "80617 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter) - ns/op",
+            "value": 14885,
+            "unit": "ns/op",
+            "extra": "80617 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter) - B/op",
+            "value": 4593,
+            "unit": "B/op",
+            "extra": "80617 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter) - allocs/op",
+            "value": 185,
+            "unit": "allocs/op",
+            "extra": "80617 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter)",
+            "value": 14669,
+            "unit": "ns/op\t    4593 B/op\t     185 allocs/op",
+            "extra": "81836 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter) - ns/op",
+            "value": 14669,
+            "unit": "ns/op",
+            "extra": "81836 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter) - B/op",
+            "value": 4593,
+            "unit": "B/op",
+            "extra": "81836 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter) - allocs/op",
+            "value": 185,
+            "unit": "allocs/op",
+            "extra": "81836 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter)",
+            "value": 14742,
+            "unit": "ns/op\t    4593 B/op\t     185 allocs/op",
+            "extra": "81280 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter) - ns/op",
+            "value": 14742,
+            "unit": "ns/op",
+            "extra": "81280 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter) - B/op",
+            "value": 4593,
+            "unit": "B/op",
+            "extra": "81280 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkLint/dml (github.com/rpf3/sqlfmt/internal/linter) - allocs/op",
+            "value": 185,
+            "unit": "allocs/op",
+            "extra": "81280 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 16853,
+            "unit": "ns/op\t    4488 B/op\t     215 allocs/op",
+            "extra": "70586 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 16853,
+            "unit": "ns/op",
+            "extra": "70586 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 4488,
+            "unit": "B/op",
+            "extra": "70586 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 215,
+            "unit": "allocs/op",
+            "extra": "70586 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 16846,
+            "unit": "ns/op\t    4488 B/op\t     215 allocs/op",
+            "extra": "70598 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 16846,
+            "unit": "ns/op",
+            "extra": "70598 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 4488,
+            "unit": "B/op",
+            "extra": "70598 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 215,
+            "unit": "allocs/op",
+            "extra": "70598 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 16888,
+            "unit": "ns/op\t    4488 B/op\t     215 allocs/op",
+            "extra": "70215 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 16888,
+            "unit": "ns/op",
+            "extra": "70215 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 4488,
+            "unit": "B/op",
+            "extra": "70215 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/select (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 215,
+            "unit": "allocs/op",
+            "extra": "70215 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 10090,
+            "unit": "ns/op\t    4648 B/op\t      90 allocs/op",
+            "extra": "120138 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 10090,
+            "unit": "ns/op",
+            "extra": "120138 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 4648,
+            "unit": "B/op",
+            "extra": "120138 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 90,
+            "unit": "allocs/op",
+            "extra": "120138 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 10058,
+            "unit": "ns/op\t    4648 B/op\t      90 allocs/op",
+            "extra": "118830 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 10058,
+            "unit": "ns/op",
+            "extra": "118830 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 4648,
+            "unit": "B/op",
+            "extra": "118830 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 90,
+            "unit": "allocs/op",
+            "extra": "118830 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 10268,
+            "unit": "ns/op\t    4648 B/op\t      90 allocs/op",
+            "extra": "118454 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 10268,
+            "unit": "ns/op",
+            "extra": "118454 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 4648,
+            "unit": "B/op",
+            "extra": "118454 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/create_table (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 90,
+            "unit": "allocs/op",
+            "extra": "118454 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 6574,
+            "unit": "ns/op\t    2952 B/op\t     129 allocs/op",
+            "extra": "181858 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 6574,
+            "unit": "ns/op",
+            "extra": "181858 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 2952,
+            "unit": "B/op",
+            "extra": "181858 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 129,
+            "unit": "allocs/op",
+            "extra": "181858 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 6593,
+            "unit": "ns/op\t    2952 B/op\t     129 allocs/op",
+            "extra": "178488 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 6593,
+            "unit": "ns/op",
+            "extra": "178488 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 2952,
+            "unit": "B/op",
+            "extra": "178488 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 129,
+            "unit": "allocs/op",
+            "extra": "178488 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 6576,
+            "unit": "ns/op\t    2952 B/op\t     129 allocs/op",
+            "extra": "183940 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 6576,
+            "unit": "ns/op",
+            "extra": "183940 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 2952,
+            "unit": "B/op",
+            "extra": "183940 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/insert (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 129,
+            "unit": "allocs/op",
+            "extra": "183940 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 13003,
+            "unit": "ns/op\t    3528 B/op\t     151 allocs/op",
+            "extra": "91806 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 13003,
+            "unit": "ns/op",
+            "extra": "91806 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 3528,
+            "unit": "B/op",
+            "extra": "91806 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 151,
+            "unit": "allocs/op",
+            "extra": "91806 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 13071,
+            "unit": "ns/op\t    3528 B/op\t     151 allocs/op",
+            "extra": "92120 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 13071,
+            "unit": "ns/op",
+            "extra": "92120 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 3528,
+            "unit": "B/op",
+            "extra": "92120 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 151,
+            "unit": "allocs/op",
+            "extra": "92120 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser)",
+            "value": 13086,
+            "unit": "ns/op\t    3528 B/op\t     151 allocs/op",
+            "extra": "90182 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser) - ns/op",
+            "value": 13086,
+            "unit": "ns/op",
+            "extra": "90182 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser) - B/op",
+            "value": 3528,
+            "unit": "B/op",
+            "extra": "90182 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkParse/merge (github.com/rpf3/sqlfmt/internal/parser) - allocs/op",
+            "value": 151,
+            "unit": "allocs/op",
+            "extra": "90182 times\n4 procs"
           }
         ]
       }
