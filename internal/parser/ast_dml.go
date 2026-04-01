@@ -89,17 +89,23 @@ func (*UpdateStmt) statementNode() {}
 type MergeMatchType int
 
 const (
-	MergeMatched            MergeMatchType = iota // WHEN MATCHED
-	MergeNotMatchedByTarget                       // WHEN NOT MATCHED [BY TARGET]
-	MergeNotMatchedBySource                       // WHEN NOT MATCHED BY SOURCE
+	// MergeMatched represents WHEN MATCHED.
+	MergeMatched MergeMatchType = iota
+	// MergeNotMatchedByTarget represents WHEN NOT MATCHED [BY TARGET].
+	MergeNotMatchedByTarget
+	// MergeNotMatchedBySource represents WHEN NOT MATCHED BY SOURCE.
+	MergeNotMatchedBySource
 )
 
 // MergeActionType identifies the action in a WHEN clause.
 type MergeActionType int
 
 const (
+	// MergeActionUpdate represents the UPDATE action in a MERGE WHEN clause.
 	MergeActionUpdate MergeActionType = iota
+	// MergeActionDelete represents the DELETE action in a MERGE WHEN clause.
 	MergeActionDelete
+	// MergeActionInsert represents the INSERT action in a MERGE WHEN clause.
 	MergeActionInsert
 )
 

@@ -6,20 +6,28 @@ package parser
 type Nullability int
 
 const (
-	NullabilityNone    Nullability = iota // constraint not specified
-	NullabilityNotNull                    // NOT NULL
-	NullabilityNull                       // NULL
+	// NullabilityNone indicates no nullability constraint was specified.
+	NullabilityNone Nullability = iota
+	// NullabilityNotNull represents NOT NULL.
+	NullabilityNotNull
+	// NullabilityNull represents NULL.
+	NullabilityNull
 )
 
 // RefAction represents an ON DELETE / ON UPDATE referential action.
 type RefAction int
 
 const (
-	RefActionNone       RefAction = iota // not specified
-	RefActionCascade                     // CASCADE
-	RefActionSetNull                     // SET NULL
-	RefActionSetDefault                  // SET DEFAULT
-	RefActionNoAction                    // NO ACTION
+	// RefActionNone indicates no referential action was specified.
+	RefActionNone RefAction = iota
+	// RefActionCascade represents CASCADE.
+	RefActionCascade
+	// RefActionSetNull represents SET NULL.
+	RefActionSetNull
+	// RefActionSetDefault represents SET DEFAULT.
+	RefActionSetDefault
+	// RefActionNoAction represents NO ACTION.
+	RefActionNoAction
 )
 
 // ColumnReference holds the target of an inline REFERENCES clause.
@@ -80,9 +88,12 @@ type IndexColumn struct {
 type IndexClustering int
 
 const (
-	IndexClusteringDefault      IndexClustering = iota // no clustering keyword
-	IndexClusteringClustered                           // CLUSTERED
-	IndexClusteringNonclustered                        // NONCLUSTERED
+	// IndexClusteringDefault indicates no clustering keyword was specified.
+	IndexClusteringDefault IndexClustering = iota
+	// IndexClusteringClustered represents the CLUSTERED keyword.
+	IndexClusteringClustered
+	// IndexClusteringNonclustered represents the NONCLUSTERED keyword.
+	IndexClusteringNonclustered
 )
 
 // CreateIndexStmt represents:
@@ -112,9 +123,13 @@ func (*CreateIndexStmt) statementNode() {}
 type TableConstraintType int
 
 const (
+	// ConstraintPrimaryKey is a PRIMARY KEY table constraint.
 	ConstraintPrimaryKey TableConstraintType = iota
+	// ConstraintForeignKey is a FOREIGN KEY table constraint.
 	ConstraintForeignKey
+	// ConstraintCheck is a CHECK table constraint.
 	ConstraintCheck
+	// ConstraintUnique is a UNIQUE table constraint.
 	ConstraintUnique
 )
 
@@ -136,15 +151,24 @@ type TableConstraint struct {
 type AlterTableActionType int
 
 const (
-	AlterAddColumn         AlterTableActionType = iota // ADD COLUMN <col_def>
-	AlterDropColumn                                    // DROP COLUMN <name>
-	AlterAddConstraint                                 // ADD [CONSTRAINT <name>] <constraint>
-	AlterDropConstraint                                // DROP CONSTRAINT <name>
-	AlterAlterColumn                                   // ALTER COLUMN <col_def>
-	AlterEnableConstraint                              // ENABLE CONSTRAINT <name|ALL>
-	AlterDisableConstraint                             // DISABLE CONSTRAINT <name|ALL>
-	AlterCheckConstraint                               // CHECK CONSTRAINT <name|ALL>
-	AlterNocheckConstraint                             // NOCHECK CONSTRAINT <name|ALL>
+	// AlterAddColumn represents ADD COLUMN <col_def>.
+	AlterAddColumn AlterTableActionType = iota
+	// AlterDropColumn represents DROP COLUMN <name>.
+	AlterDropColumn
+	// AlterAddConstraint represents ADD [CONSTRAINT <name>] <constraint>.
+	AlterAddConstraint
+	// AlterDropConstraint represents DROP CONSTRAINT <name>.
+	AlterDropConstraint
+	// AlterAlterColumn represents ALTER COLUMN <col_def>.
+	AlterAlterColumn
+	// AlterEnableConstraint represents ENABLE CONSTRAINT <name|ALL>.
+	AlterEnableConstraint
+	// AlterDisableConstraint represents DISABLE CONSTRAINT <name|ALL>.
+	AlterDisableConstraint
+	// AlterCheckConstraint represents CHECK CONSTRAINT <name|ALL>.
+	AlterCheckConstraint
+	// AlterNocheckConstraint represents NOCHECK CONSTRAINT <name|ALL>.
+	AlterNocheckConstraint
 )
 
 // AlterTableAction holds the data for one ALTER TABLE action.
@@ -171,11 +195,16 @@ func (*AlterTableStmt) statementNode() {}
 type DropObjectType int
 
 const (
-	DropTable     DropObjectType = iota // DROP TABLE
-	DropView                            // DROP VIEW
-	DropIndex                           // DROP INDEX
-	DropProcedure                       // DROP PROCEDURE / DROP PROC
-	DropFunction                        // DROP FUNCTION
+	// DropTable represents DROP TABLE.
+	DropTable DropObjectType = iota
+	// DropView represents DROP VIEW.
+	DropView
+	// DropIndex represents DROP INDEX.
+	DropIndex
+	// DropProcedure represents DROP PROCEDURE / DROP PROC.
+	DropProcedure
+	// DropFunction represents DROP FUNCTION.
+	DropFunction
 )
 
 // DropStmt represents: DROP (TABLE|VIEW|INDEX|PROCEDURE|FUNCTION) [IF EXISTS] <name>.
@@ -220,8 +249,10 @@ func (*CreateSchemaStmt) statementNode() {}
 type CreateTypeKind int
 
 const (
-	CreateTypeAlias CreateTypeKind = iota // CREATE TYPE <name> FROM <base_type> [NULL|NOT NULL]
-	CreateTypeTable                       // CREATE TYPE <name> AS TABLE (<col_defs>)
+	// CreateTypeAlias represents CREATE TYPE <name> FROM <base_type> [NULL|NOT NULL].
+	CreateTypeAlias CreateTypeKind = iota
+	// CreateTypeTable represents CREATE TYPE <name> AS TABLE (<col_defs>).
+	CreateTypeTable
 )
 
 // CreateTypeStmt represents:

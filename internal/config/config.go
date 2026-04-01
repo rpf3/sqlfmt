@@ -19,7 +19,9 @@ import (
 type KeywordCase string
 
 const (
+	// KeywordLower renders keywords in lowercase.
 	KeywordLower KeywordCase = "lower"
+	// KeywordUpper renders keywords in uppercase.
 	KeywordUpper KeywordCase = "upper"
 )
 
@@ -27,7 +29,9 @@ const (
 type IndentStyle string
 
 const (
-	IndentTab    IndentStyle = "tab"
+	// IndentTab indents using tab characters.
+	IndentTab IndentStyle = "tab"
+	// IndentSpaces indents using space characters (width set by IndentWidth).
 	IndentSpaces IndentStyle = "spaces"
 )
 
@@ -35,7 +39,9 @@ const (
 type CommaStyle string
 
 const (
-	CommaLeading  CommaStyle = "leading"
+	// CommaLeading places commas before each list item.
+	CommaLeading CommaStyle = "leading"
+	// CommaTrailing places commas after each list item.
 	CommaTrailing CommaStyle = "trailing"
 )
 
@@ -43,8 +49,11 @@ const (
 type RuleSeverity string
 
 const (
-	RuleSeverityOff   RuleSeverity = "off"
-	RuleSeverityWarn  RuleSeverity = "warn"
+	// RuleSeverityOff disables the lint rule.
+	RuleSeverityOff RuleSeverity = "off"
+	// RuleSeverityWarn reports violations as warnings.
+	RuleSeverityWarn RuleSeverity = "warn"
+	// RuleSeverityError reports violations as errors.
 	RuleSeverityError RuleSeverity = "error"
 )
 
