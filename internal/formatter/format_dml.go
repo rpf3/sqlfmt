@@ -69,6 +69,13 @@ func (f *formatter) formatInsert(s *parser.InsertStmt) string {
 
 	f.writeOutputClause(&b, s.Output)
 
+	if s.DefaultValues {
+		b.WriteString(" " + f.kw("default values"))
+		f.writeOptionClause(&b, s.Option)
+		b.WriteString(";")
+		return b.String()
+	}
+
 	if s.Select != nil {
 		sel := f.formatSelectStmt(s.Select)
 		sel = strings.TrimSuffix(sel, ";")

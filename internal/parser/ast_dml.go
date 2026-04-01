@@ -28,17 +28,22 @@ func (*DeleteStmt) statementNode() {}
 
 // --- INSERT -------------------------------------------------------------------
 
-// InsertStmt represents INSERT INTO <table> [(cols)] [OUTPUT …] VALUES (...) [, (...)] [OPTION (…)]
-// or INSERT INTO <table> [(cols)] [OUTPUT …] <select> [OPTION (…)].
-// Exactly one of Values or Select is non-nil.
+// InsertStmt represents one of three INSERT forms:
+//
+//	INSERT INTO <table> [(cols)] [OUTPUT …] VALUES (...) [, (...)] [OPTION (…)]
+//	INSERT INTO <table> [(cols)] [OUTPUT …] <select> [OPTION (…)]
+//	INSERT INTO <table> DEFAULT VALUES [OPTION (…)]
+//
+// Exactly one of Values, Select, or DefaultValues is set.
 type InsertStmt struct {
-	CTEs    []CTEDef // WITH clause; nil if no CTEs
-	Table   string
-	Columns []string      // target column list; nil if no explicit column list
-	Output  *OutputClause // OUTPUT clause; nil if absent
-	Values  [][]Expr      // rows of value expressions; nil if Select is set
-	Select  *SelectStmt   // INSERT … SELECT form; nil if Values is set
-	Option  string        // raw content of OPTION(...) including surrounding parens; stored verbatim because individual hint linting is not yet in scope; empty if absent
+	CTEs          []CTEDef // WITH clause; nil if no CTEs
+	Table         string
+	Columns       []string      // target column list; nil if no explicit column list
+	Output        *OutputClause // OUTPUT clause; nil if absent
+	Values        [][]Expr      // rows of value expressions; nil unless Values form
+	DefaultValues bool          // true for INSERT DEFAULT VALUES; Values and Select are nil
+	Select        *SelectStmt   // INSERT … SELECT form; nil unless Select form
+	Option        string        // raw content of OPTION(...) including surrounding parens; stored verbatim because individual hint linting is not yet in scope; empty if absent
 }
 
 func (*InsertStmt) statementNode() {}

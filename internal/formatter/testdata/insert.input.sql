@@ -11,3 +11,7 @@ INSERT INTO order_archive SELECT id, customer_id FROM orders WHERE created_at < 
 INSERT INTO orders (id, customer_id) VALUES (1, 42) OPTION (RECOMPILE);
 
 INSERT INTO order_archive SELECT id, customer_id FROM orders OPTION (HASH JOIN);
+
+INSERT INTO settings DEFAULT VALUES;
+
+insert into audit_log default values

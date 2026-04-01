@@ -114,6 +114,7 @@ func (p *parser) parseOutputItem() (SelectItem, error) {
 //
 //	INSERT INTO <table> [(cols)] VALUES (...) [, (...)] [;]
 //	INSERT INTO <table> [(cols)] SELECT ... [;]
+//	INSERT INTO <table> DEFAULT VALUES [;]
 func (p *parser) parseInsert() (Statement, error) {
 	p.advance() // consume INSERT
 	if err := p.expectKeyword("INTO"); err != nil {
@@ -142,7 +143,11 @@ func (p *parser) parseInsert() (Statement, error) {
 		stmt.Output = out
 	}
 
-	if p.curKeyword("VALUES") {
+	if p.curKeyword("DEFAULT") && p.peekKeyword("VALUES") {
+		p.advance() // consume DEFAULT
+		p.advance() // consume VALUES
+		stmt.DefaultValues = true
+	} else if p.curKeyword("VALUES") {
 		p.advance() // consume VALUES
 		for {
 			row, err := p.parseValueRow()
@@ -163,7 +168,7 @@ func (p *parser) parseInsert() (Statement, error) {
 		stmt.Select = sel
 	} else {
 		return nil, fmt.Errorf(
-			"expected VALUES or SELECT after INSERT INTO %s at %d:%d",
+			"expected DEFAULT VALUES, VALUES, or SELECT after INSERT INTO %s at %d:%d",
 			stmt.Table, p.cur.Line, p.cur.Column,
 		)
 	}
