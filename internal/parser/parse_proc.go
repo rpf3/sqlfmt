@@ -502,6 +502,17 @@ func (p *parser) parseReturn() (Statement, error) {
 	return stmt, nil
 }
 
+// parseUse handles: USE <database_name>.
+func (p *parser) parseUse() (Statement, error) {
+	p.advance() // consume USE
+	tok, err := p.expectIdent()
+	if err != nil {
+		return nil, err
+	}
+	p.consumeSemicolon()
+	return &UseStmt{Database: tok.Value}, nil
+}
+
 // parseRaiserror handles:
 //
 //	RAISERROR(<msg_or_id>, <severity>, <state>) [WITH <option> [, <option>]] [;]

@@ -218,6 +218,15 @@ type ReturnStmt struct {
 
 func (*ReturnStmt) statementNode() {}
 
+// --- USE ----------------------------------------------------------------------
+
+// UseStmt represents a T-SQL USE <database> statement.
+type UseStmt struct {
+	Database string // database name, unquoted or bracket-quoted
+}
+
+func (*UseStmt) statementNode() {}
+
 // --- THROW --------------------------------------------------------------------
 
 // ThrowStmt represents a T-SQL THROW statement.

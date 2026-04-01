@@ -331,6 +331,11 @@ func (f *formatter) formatBreak() string { return f.kw("break") + ";" }
 // formatContinue formats a CONTINUE statement.
 func (f *formatter) formatContinue() string { return f.kw("continue") + ";" }
 
+// formatUse formats a USE statement.
+func (f *formatter) formatUse(s *parser.UseStmt) string {
+	return f.kw("use") + " " + f.ident(s.Database) + ";"
+}
+
 // formatReturn formats a RETURN statement.
 // Bare RETURN produces "return;". RETURN with a value produces "return <expr>;".
 func (f *formatter) formatReturn(s *parser.ReturnStmt) string {

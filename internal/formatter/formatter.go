@@ -109,6 +109,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatWhile(s)
 	case *parser.TryCatchStmt:
 		return f.formatTryCatch(s)
+	case *parser.UseStmt:
+		return f.formatUse(s)
 	case *parser.BreakStmt:
 		return f.formatBreak()
 	case *parser.ContinueStmt:
