@@ -28,7 +28,9 @@ task fmt && task test && task vet && task lint
 - Prefer rebase + fast-forward; always open a PR, never merge locally
 - One issue per commit maximum — a large feature may span multiple commits, but a single commit must not touch more than one issue. When a shared file (e.g. `config.go`) needs changes for multiple issues, add only the changes for the current issue to that file before committing; add the next issue's changes in the next commit.
 - **Work on one issue at a time** — fully implement, test, and commit one issue before starting the next. Never implement multiple issues in parallel even when they touch the same files; doing so requires backing out changes to split commits, which is error-prone and wastes effort
-- **Surface incidental fixes — never bundle or silently skip them** — when a bug or related improvement is discovered while implementing a feature, stop and ask: *"I noticed [X]. Should I handle this as a follow-up commit in this branch, or file a GitHub issue to track it separately?"* Never bundle incidental work into the current commit without asking, and never silently ignore it
+- **Surface blockers — never bundle or silently skip them** — when an unexpected bug, version incompatibility, or related improvement is discovered mid-implementation, always surface it to the user before acting. Then apply the rule for its type:
+  - **Bug:** fix it inline as a separate `fix:` commit on the same branch; always include a regression test. Only file a GitHub issue if the fix cannot be done inline right now.
+  - **Non-bug blocker** (major tooling or dependency version upgrade, ecosystem-level change such as a nixpkgs channel switch, refactor, or new feature): stop and ask how to proceed — file a GitHub issue, block the current work, or defer. Never implement inline without asking first.
 
 ### Sub-issues for layered features
 
