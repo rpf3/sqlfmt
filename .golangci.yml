@@ -1,51 +1,57 @@
+version: "2"
+
 run:
   timeout: 5m
 
 linters:
+  default: none
   enable:
     # Doc comment style: every declaration comment should end with a period.
     - godot
     # Export coverage + naming rules (replaces the older golint).
     - revive
-    # Enforces stdlib / third-party / internal import group ordering.
-    - goimports
     # Miscellaneous style and correctness hints.
     - gocritic
     # Exhaustiveness checks on switches over local iota enum types.
     - exhaustive
+  settings:
+    godot:
+      # Only check exported declaration comments; ignore inline and block comments.
+      scope: declarations
+      # Don't require the first word to be capitalised (already enforced by convention).
+      capital: false
 
-linters-settings:
-  godot:
-    # Only check exported declaration comments; ignore inline and block comments.
-    scope: declarations
-    # Don't require the first word to be capitalised (already enforced by convention).
-    capital: false
+    revive:
+      rules:
+        # Exported identifiers must have doc comments.
+        - name: exported
+          severity: warning
 
-  revive:
-    rules:
-      # Exported identifiers must have doc comments.
-      - name: exported
-        severity: warning
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+      disabled-checks:
+        # Too opinionated about comment phrasing.
+        - commentFormatting
+        # filepath.Join("testdata/bench", ...) is intentional — the first segment
+        # is a two-part relative path, not an accidental separator.
+        - filepathJoin
+        # Flags 2-branch if/else-if/else chains; not always an improvement over
+        # a readable if-else when only two keyword alternatives exist.
+        - ifElseChain
 
-  goimports:
-    # Local package prefixes are separated from third-party imports by a blank line.
-    local-prefixes: github.com/rpf3/sqlfmt
+    exhaustive:
+      # A default: case satisfies exhaustiveness — many switches use it for
+      # error/fallthrough handling and should not be forced to list every variant.
+      default-signifies-exhaustive: true
 
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-    disabled-checks:
-      # Too opinionated about comment phrasing.
-      - commentFormatting
-      # filepath.Join("testdata/bench", ...) is intentional — the first segment
-      # is a two-part relative path, not an accidental separator.
-      - filepathJoin
-      # Flags 2-branch if/else-if/else chains; not always an improvement over
-      # a readable if-else when only two keyword alternatives exist.
-      - ifElseChain
-
-  exhaustive:
-    # A default: case satisfies exhaustiveness — many switches use it for
-    # error/fallthrough handling and should not be forced to list every variant.
-    default-signifies-exhaustive: true
+formatters:
+  enable:
+    # Enforces stdlib / third-party / internal import group ordering.
+    - goimports
+  settings:
+    goimports:
+      # Local package prefixes are separated from third-party imports by a blank line.
+      local-prefixes:
+        - github.com/rpf3/sqlfmt
