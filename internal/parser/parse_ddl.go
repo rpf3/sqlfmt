@@ -35,8 +35,11 @@ func (p *parser) parseAlter() (Statement, error) {
 		raw.(*CreateViewStmt).IsAlter = true
 		return raw, nil
 	}
+	if p.curKeyword("INDEX") {
+		return p.parseAlterIndex()
+	}
 	return nil, fmt.Errorf(
-		"expected TABLE, PROCEDURE, FUNCTION, or VIEW after ALTER at %d:%d, got %s %q",
+		"expected TABLE, INDEX, PROCEDURE, FUNCTION, or VIEW after ALTER at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
 }
@@ -209,6 +212,56 @@ func (p *parser) parseAlterAlter() (AlterTableAction, error) {
 		Column: &col,
 	}
 	return action, nil
+}
+
+// parseAlterIndex handles ALTER INDEX <name>|ALL ON <table> REBUILD|REORGANIZE|DISABLE [WITH (...)].
+func (p *parser) parseAlterIndex() (Statement, error) {
+	p.advance() // consume INDEX
+	stmt := &AlterIndexStmt{}
+	if p.curKeyword("ALL") {
+		stmt.All = true
+		p.advance() // consume ALL
+	} else {
+		name, err := p.parseQualifiedName()
+		if err != nil {
+			return nil, err
+		}
+		stmt.Name = name
+	}
+	if err := p.expectKeyword("ON"); err != nil {
+		return nil, err
+	}
+	table, err := p.parseQualifiedName()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Table = table
+	switch {
+	case p.curKeyword("REBUILD"):
+		p.advance()
+		stmt.Action = AlterIndexRebuild
+	case p.curKeyword("REORGANIZE"):
+		p.advance()
+		stmt.Action = AlterIndexReorganize
+	case p.curKeyword("DISABLE"):
+		p.advance()
+		stmt.Action = AlterIndexDisable
+	default:
+		return nil, fmt.Errorf(
+			"expected REBUILD, REORGANIZE, or DISABLE at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+	if p.curKeyword("WITH") {
+		p.advance() // consume WITH
+		opts, err := p.parseParenRaw()
+		if err != nil {
+			return nil, err
+		}
+		stmt.WithOptions = opts
+	}
+	p.consumeSemicolon()
+	return stmt, nil
 }
 
 // parseDrop handles DROP TABLE, DROP VIEW, and DROP INDEX.

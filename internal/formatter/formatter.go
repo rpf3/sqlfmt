@@ -73,6 +73,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatCreateIndex(s)
 	case *parser.AlterTableStmt:
 		return f.formatAlterTable(s)
+	case *parser.AlterIndexStmt:
+		return f.formatAlterIndex(s)
 	case *parser.DropStmt:
 		return f.formatDrop(s)
 	case *parser.TruncateStmt:
