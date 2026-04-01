@@ -128,3 +128,29 @@ nix develop --command task test
 ```
 
 **Updating the toolchain:** run `nix flake update` to pull the latest nixpkgs and commit the updated `flake.lock`.
+
+### direnv (optional)
+
+[direnv](https://direnv.net) automatically activates the Nix devShell whenever you `cd` into the repo — no manual `nix develop` required.
+
+**Install direnv:**
+
+- macOS: `brew install direnv`
+- Linux: use your system package manager, or see [direnv installation docs](https://direnv.net/docs/installation.html)
+- Nix: `nix profile install nixpkgs#direnv`
+
+**Hook direnv into your shell** (one-time setup — add to your shell rc file):
+
+| Shell | Line to add |
+|---|---|
+| bash | `eval "$(direnv hook bash)"` |
+| zsh | `eval "$(direnv hook zsh)"` |
+| fish | `direnv hook fish \| source` |
+
+**Allow the repo** (one-time per clone):
+
+```sh
+direnv allow
+```
+
+After that, entering the repo directory automatically activates the devShell. `task`, `go`, and `golangci-lint` are all available without any further setup.
