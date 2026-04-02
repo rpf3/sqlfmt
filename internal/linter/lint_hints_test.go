@@ -130,3 +130,45 @@ func TestLintNoNolockHint(t *testing.T) {
 		}
 	})
 }
+
+func TestLintNoFunctionInWhere(t *testing.T) {
+	const rule = config.RuleNoFunctionInWhere
+
+	t.Run("off by default", func(t *testing.T) {
+		checkRule(t, `select id from dbo.orders as o where year(o.created_at) = 2024;`, "")
+	})
+
+	t.Run("scalar function wrapping column warns", func(t *testing.T) {
+		checkRuleEnabled(t, `select id from dbo.orders as o where year(o.created_at) = 2024;`, rule)
+	})
+
+	t.Run("UPPER wrapping column warns", func(t *testing.T) {
+		checkRuleEnabled(t, `select id from dbo.customers as c where upper(c.status) = 'ACTIVE';`, rule)
+	})
+
+	t.Run("function in UPDATE WHERE warns", func(t *testing.T) {
+		checkRuleEnabled(t, `update dbo.orders set status = 'done' where year(created_at) = 2024;`, rule)
+	})
+
+	t.Run("function in DELETE WHERE warns", func(t *testing.T) {
+		checkRuleEnabled(t, `delete from dbo.orders where year(created_at) < 2020;`, rule)
+	})
+
+	t.Run("function wrapping @variable is clean", func(t *testing.T) {
+		checkRuleEnabledClean(t, `select id from dbo.orders as o where isnull(@param, 0) = 1;`, rule)
+	})
+
+	t.Run("no function in WHERE is clean", func(t *testing.T) {
+		checkRuleEnabledClean(t, `select id from dbo.orders as o where o.created_at >= '2024-01-01';`, rule)
+	})
+
+	t.Run("function with no column args is clean", func(t *testing.T) {
+		checkRuleEnabledClean(t, `select id from dbo.orders as o where o.created_at > getdate();`, rule)
+	})
+
+	t.Run("function in subquery WHERE warns", func(t *testing.T) {
+		checkRuleEnabled(t,
+			`select id from dbo.orders as o where o.id in (select id from dbo.items as i where year(i.created_at) = 2024);`,
+			rule)
+	})
+}

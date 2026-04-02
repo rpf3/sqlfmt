@@ -164,8 +164,11 @@ func (p *parser) parseAndChain(stopFn func() bool) Expr {
 
 // parseExprNode wraps parseExprRaw but lifts top-level function calls into
 // *FunctionCallExpr nodes. When the expression does not start with a function
-// call, or when the function call is only part of a larger expression (e.g.
+// call, or when the function call is part of a non-comparison expression (e.g.
 // count(*) + 1), it falls back to *RawExpr — preserving the Render invariant.
+// When a function call is followed immediately by a comparison operator (=, <>,
+// !=, <, >, <=, >=), it is structured as a BinaryExpr so that linters can walk
+// into the FunctionCallExpr (e.g. to detect non-sargable WHERE predicates).
 func (p *parser) parseExprNode(stopFn func() bool) Expr {
 	if p.cur.Type == lexer.Ident && p.peek.Type == lexer.LParen {
 		fn := p.parseFunctionCall()
@@ -173,12 +176,41 @@ func (p *parser) parseExprNode(stopFn func() bool) Expr {
 		if p.cur.Type == lexer.EOF || p.cur.Type == lexer.RParen || stopFn() {
 			return fn
 		}
-		// More tokens follow — render fn back to string and accumulate the rest.
+		// Function call followed by a comparison operator: preserve as BinaryExpr
+		// so the FunctionCallExpr remains walkable. Render output is identical.
+		if op, ok := p.curComparisonOp(); ok {
+			p.advance() // consume operator
+			rhs := p.parseExprNode(stopFn)
+			return &BinaryExpr{Left: fn, Op: op, Right: rhs}
+		}
+		// More tokens follow in a non-comparison context — render fn back to
+		// string and accumulate the rest.
 		rest, _ := p.parseExprRaw(stopFn)
 		return &RawExpr{Text: Render(fn) + " " + rest}
 	}
 	text, _ := p.parseExprRaw(stopFn)
 	return &RawExpr{Text: text}
+}
+
+// curComparisonOp reports whether the current token is a comparison operator
+// and returns its canonical string form. Used by parseExprNode to decide when
+// to build a structured BinaryExpr rather than falling back to RawExpr.
+func (p *parser) curComparisonOp() (string, bool) {
+	switch p.cur.Type { //nolint:exhaustive // only comparison operators are relevant
+	case lexer.Eq:
+		return "=", true
+	case lexer.NotEq:
+		return p.cur.Value, true // preserves <> or !=
+	case lexer.Lt:
+		return "<", true
+	case lexer.Gt:
+		return ">", true
+	case lexer.LtEq:
+		return "<=", true
+	case lexer.GtEq:
+		return ">=", true
+	}
+	return "", false
 }
 
 // parseFunctionCall parses a function call starting at the current Ident token.

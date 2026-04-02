@@ -115,6 +115,9 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 		}
 	}
 
+	// no-function-in-where
+	l.checkNoFunctionInWhere(s.Where)
+
 	// Recurse into subqueries and set-operation branches.
 	if s.From.Subquery != nil {
 		l.checkSelectStmt(s.From.Subquery)
@@ -130,6 +133,46 @@ func (l *linter) checkSelectStmt(s *parser.SelectStmt) {
 	for _, setOp := range s.SetOps {
 		l.checkSelectStmt(setOp.Select)
 	}
+}
+
+// checkNoFunctionInWhere walks a WHERE predicate Expr and warns for each
+// FunctionCallExpr that wraps at least one plain column reference. Function
+// calls are structured as BinaryExpr{Left: FunctionCallExpr, ...} by the
+// parser when followed by a comparison operator, so Walk reaches them.
+// Args that are plain identifiers (not @variables) are detected by inspecting
+// the rendered RawExpr text. e is nil when the statement has no WHERE clause.
+func (l *linter) checkNoFunctionInWhere(e parser.Expr) {
+	if e == nil {
+		return
+	}
+	parser.Walk(e, func(node parser.Expr) {
+		fn, ok := node.(*parser.FunctionCallExpr)
+		if !ok {
+			return
+		}
+		for _, arg := range fn.Args {
+			text := strings.TrimSpace(parser.Render(arg))
+			if text == "" || text == "*" {
+				continue
+			}
+			// Skip @variables, string/hex literals, numeric literals, and
+			// sub-expressions with operators or parens.
+			if strings.HasPrefix(text, "@") ||
+				strings.HasPrefix(text, "'") ||
+				strings.HasPrefix(text, "N'") ||
+				strings.HasPrefix(text, "0x") ||
+				strings.ContainsAny(text, "()+'\"") {
+				continue
+			}
+			if text != "" && text[0] >= '0' && text[0] <= '9' {
+				continue
+			}
+			l.warn(config.RuleNoFunctionInWhere,
+				fmt.Sprintf("function call %s() in WHERE clause wraps column %q; this prevents index seeks — rewrite as a sargable predicate",
+					fn.Name, text))
+			return // one warning per function call is enough
+		}
+	})
 }
 
 // checkNolockHint emits a no-nolock-hint warning when the hints string for a

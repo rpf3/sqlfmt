@@ -19,6 +19,7 @@ func (l *linter) checkUpdateStmt(s *parser.UpdateStmt) {
 		l.warn(config.RuleUpdateWithoutWhere,
 			fmt.Sprintf("UPDATE on table %q has no WHERE clause", s.Target))
 	}
+	l.checkNoFunctionInWhere(s.Where)
 }
 
 func (l *linter) checkMergeStmt(s *parser.MergeStmt) {
@@ -56,4 +57,5 @@ func (l *linter) checkDeleteStmt(s *parser.DeleteStmt) {
 		l.warn(config.RuleDeleteWithoutWhere,
 			fmt.Sprintf("DELETE on table %q has no WHERE clause", s.Table))
 	}
+	l.checkNoFunctionInWhere(s.Where)
 }
