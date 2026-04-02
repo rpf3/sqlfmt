@@ -75,6 +75,10 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatAlterTable(s)
 	case *parser.AlterIndexStmt:
 		return f.formatAlterIndex(s)
+	case *parser.CreateTriggerStmt:
+		return f.formatCreateTrigger(s)
+	case *parser.TriggerToggleStmt:
+		return f.formatTriggerToggle(s)
 	case *parser.DropStmt:
 		return f.formatDrop(s)
 	case *parser.TruncateStmt:

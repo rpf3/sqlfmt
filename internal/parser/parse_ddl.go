@@ -38,8 +38,16 @@ func (p *parser) parseAlter() (Statement, error) {
 	if p.curKeyword("INDEX") {
 		return p.parseAlterIndex()
 	}
+	if p.curKeyword("TRIGGER") {
+		raw, err := p.parseCreateTrigger()
+		if err != nil {
+			return nil, err
+		}
+		raw.(*CreateTriggerStmt).IsAlter = true
+		return raw, nil
+	}
 	return nil, fmt.Errorf(
-		"expected TABLE, INDEX, PROCEDURE, FUNCTION, or VIEW after ALTER at %d:%d, got %s %q",
+		"expected TABLE, INDEX, PROCEDURE, FUNCTION, VIEW, or TRIGGER after ALTER at %d:%d, got %s %q",
 		p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 	)
 }
@@ -280,9 +288,11 @@ func (p *parser) parseDrop() (Statement, error) {
 		objType = DropProcedure
 	case p.curValue("FUNCTION"):
 		objType = DropFunction
+	case p.curKeyword("TRIGGER"):
+		objType = DropTrigger
 	default:
 		return nil, fmt.Errorf(
-			"expected TABLE, VIEW, INDEX, PROCEDURE, or FUNCTION after DROP at %d:%d, got %s %q",
+			"expected TABLE, VIEW, INDEX, PROCEDURE, FUNCTION, or TRIGGER after DROP at %d:%d, got %s %q",
 			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 		)
 	}
@@ -334,6 +344,9 @@ func (p *parser) parseCreate() (Statement, error) {
 	}
 	if p.curValue("FUNCTION") {
 		return p.parseCreateFunc()
+	}
+	if p.curKeyword("TRIGGER") {
+		return p.parseCreateTrigger()
 	}
 	return p.parseCreateTable()
 }
@@ -558,4 +571,130 @@ func (p *parser) parseCreateView() (Statement, error) {
 
 	stmt := &CreateViewStmt{Name: nameTok.Value, Select: sel}
 	return stmt, nil
+}
+
+// parseCreateTrigger handles CREATE TRIGGER and (via IsAlter) ALTER TRIGGER.
+// On entry p.cur is TRIGGER.
+func (p *parser) parseCreateTrigger() (Statement, error) {
+	p.advance() // consume TRIGGER
+
+	name, err := p.parseQualifiedName()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.expectKeyword("ON"); err != nil {
+		return nil, err
+	}
+	table, err := p.parseQualifiedName()
+	if err != nil {
+		return nil, err
+	}
+
+	var timing TriggerTiming
+	switch {
+	case p.curKeyword("AFTER") || p.curKeyword("FOR"):
+		timing = TriggerTimingAfter
+		p.advance() // consume AFTER/FOR
+	case p.curKeyword("INSTEAD"):
+		timing = TriggerTimingInstead
+		p.advance() // consume INSTEAD
+		// consume OF (not a keyword; parsed as ident or keyword)
+		if !p.curValue("OF") {
+			return nil, fmt.Errorf(
+				"expected OF after INSTEAD at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance() // consume OF
+	default:
+		return nil, fmt.Errorf(
+			"expected AFTER, FOR, or INSTEAD OF after trigger table at %d:%d, got %s %q",
+			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+		)
+	}
+
+	var events []TriggerEvent
+	for {
+		switch {
+		case p.curValue("INSERT"):
+			events = append(events, TriggerEventInsert)
+		case p.curValue("UPDATE"):
+			events = append(events, TriggerEventUpdate)
+		case p.curValue("DELETE"):
+			events = append(events, TriggerEventDelete)
+		default:
+			return nil, fmt.Errorf(
+				"expected INSERT, UPDATE, or DELETE in trigger event list at %d:%d, got %s %q",
+				p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
+			)
+		}
+		p.advance()
+		if !p.curIs(lexer.Comma) {
+			break
+		}
+		p.advance() // consume ','
+	}
+
+	if err := p.expectKeyword("AS"); err != nil {
+		return nil, err
+	}
+
+	body, hasBeginEnd, err := p.parseProcBody()
+	if err != nil {
+		return nil, err
+	}
+
+	p.consumeSemicolon()
+
+	return &CreateTriggerStmt{
+		Name:        name,
+		Table:       table,
+		Timing:      timing,
+		Events:      events,
+		Body:        body,
+		HasBeginEnd: hasBeginEnd,
+	}, nil
+}
+
+// parseTriggerToggle handles ENABLE TRIGGER and DISABLE TRIGGER.
+// On entry p.cur is ENABLE or DISABLE.
+func (p *parser) parseTriggerToggle() (Statement, error) {
+	enable := p.curKeyword("ENABLE")
+	p.advance() // consume ENABLE/DISABLE
+
+	if err := p.expectKeyword("TRIGGER"); err != nil {
+		return nil, err
+	}
+
+	var name string
+	if p.curKeyword("ALL") {
+		name = "all"
+		p.advance()
+	} else {
+		n, err := p.parseQualifiedName()
+		if err != nil {
+			return nil, err
+		}
+		name = n
+	}
+
+	if err := p.expectKeyword("ON"); err != nil {
+		return nil, err
+	}
+
+	var scope string
+	if p.curKeyword("DATABASE") {
+		scope = "database"
+		p.advance()
+	} else {
+		s, err := p.parseQualifiedName()
+		if err != nil {
+			return nil, err
+		}
+		scope = s
+	}
+
+	p.consumeSemicolon()
+	return &TriggerToggleStmt{Enable: enable, Name: name, Scope: scope}, nil
 }

@@ -90,6 +90,15 @@ func (l *linter) checkSchemaQualification(stmt parser.Statement) {
 	case *parser.ExecStmt:
 		// Dynamic SQL (Proc == "") has no qualifiable name; skip.
 		l.warnUnqualified(s.Proc, "EXEC")
+
+	case *parser.CreateTriggerStmt:
+		l.warnUnqualified(s.Name, "CREATE TRIGGER")
+
+	case *parser.TriggerToggleStmt:
+		// Scope is a table name when not "database"; check it.
+		if s.Scope != "database" {
+			l.warnUnqualified(s.Scope, "TRIGGER ON")
+		}
 	}
 }
 

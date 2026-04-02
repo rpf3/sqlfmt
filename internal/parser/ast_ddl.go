@@ -235,9 +235,11 @@ const (
 	DropProcedure
 	// DropFunction represents DROP FUNCTION.
 	DropFunction
+	// DropTrigger represents DROP TRIGGER.
+	DropTrigger
 )
 
-// DropStmt represents: DROP (TABLE|VIEW|INDEX|PROCEDURE|FUNCTION) [IF EXISTS] <name>.
+// DropStmt represents: DROP (TABLE|VIEW|INDEX|PROCEDURE|FUNCTION|TRIGGER) [IF EXISTS] <name>.
 type DropStmt struct {
 	Type     DropObjectType
 	IfExists bool
@@ -299,3 +301,49 @@ type CreateTypeStmt struct {
 }
 
 func (*CreateTypeStmt) statementNode() {}
+
+// --- Triggers -----------------------------------------------------------------
+
+// TriggerTiming indicates when the trigger fires relative to the triggering DML.
+type TriggerTiming int
+
+const (
+	// TriggerTimingAfter represents AFTER or FOR (synonymous in T-SQL).
+	TriggerTimingAfter TriggerTiming = iota
+	// TriggerTimingInstead represents INSTEAD OF.
+	TriggerTimingInstead
+)
+
+// TriggerEvent is one of the DML events that fires a trigger.
+type TriggerEvent int
+
+const (
+	// TriggerEventInsert represents the INSERT event.
+	TriggerEventInsert TriggerEvent = iota
+	// TriggerEventUpdate represents the UPDATE event.
+	TriggerEventUpdate
+	// TriggerEventDelete represents the DELETE event.
+	TriggerEventDelete
+)
+
+// CreateTriggerStmt represents CREATE TRIGGER or ALTER TRIGGER.
+type CreateTriggerStmt struct {
+	Name        string
+	Table       string         // ON <table>
+	Timing      TriggerTiming  // AFTER/FOR or INSTEAD OF
+	Events      []TriggerEvent // INSERT, UPDATE, DELETE (one or more)
+	Body        []Statement
+	HasBeginEnd bool
+	IsAlter     bool
+}
+
+func (*CreateTriggerStmt) statementNode() {}
+
+// TriggerToggleStmt represents ENABLE TRIGGER or DISABLE TRIGGER.
+type TriggerToggleStmt struct {
+	Enable bool   // true = ENABLE, false = DISABLE
+	Name   string // trigger name, or "all" for ALL
+	Scope  string // table name or "database"
+}
+
+func (*TriggerToggleStmt) statementNode() {}

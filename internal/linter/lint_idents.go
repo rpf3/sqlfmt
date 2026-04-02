@@ -77,5 +77,13 @@ func (l *linter) checkIdentsWithSpaces(stmt parser.Statement) {
 
 	case *parser.CreateFuncStmt:
 		l.checkIdentSpaces(s.Name, "function")
+
+	case *parser.CreateTriggerStmt:
+		l.checkIdentSpaces(s.Name, "trigger")
+
+	case *parser.TriggerToggleStmt:
+		if s.Name != "all" {
+			l.checkIdentSpaces(s.Name, "trigger")
+		}
 	}
 }
