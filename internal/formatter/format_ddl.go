@@ -53,11 +53,51 @@ func (f *formatter) formatDrop(s *parser.DropStmt) string {
 		b.WriteString(f.kw("function "))
 	case parser.DropTrigger:
 		b.WriteString(f.kw("trigger "))
+	case parser.DropSequence:
+		b.WriteString(f.kw("sequence "))
 	}
 	if s.IfExists {
 		b.WriteString(f.kw("if exists "))
 	}
 	b.WriteString(f.ident(s.Name))
+	b.WriteString(";")
+	return b.String()
+}
+
+func (f *formatter) formatCreateSequence(s *parser.CreateSequenceStmt) string {
+	ind := f.indent()
+	var b strings.Builder
+	b.WriteString(f.kw("create sequence "))
+	b.WriteString(f.ident(s.Name))
+	if s.DataType != "" {
+		b.WriteString("\n" + ind + f.kw("as ") + f.kw(strings.ToLower(s.DataType)))
+	}
+	if s.Start != "" {
+		b.WriteString("\n" + ind + f.kw("start with ") + s.Start)
+	}
+	if s.Increment != "" {
+		b.WriteString("\n" + ind + f.kw("increment by ") + s.Increment)
+	}
+	if s.MinValue != "" {
+		b.WriteString("\n" + ind + f.kw("minvalue ") + s.MinValue)
+	} else if s.NoMinValue {
+		b.WriteString("\n" + ind + f.kw("no minvalue"))
+	}
+	if s.MaxValue != "" {
+		b.WriteString("\n" + ind + f.kw("maxvalue ") + s.MaxValue)
+	} else if s.NoMaxValue {
+		b.WriteString("\n" + ind + f.kw("no maxvalue"))
+	}
+	if s.Cycle {
+		b.WriteString("\n" + ind + f.kw("cycle"))
+	} else if s.NoCycle {
+		b.WriteString("\n" + ind + f.kw("no cycle"))
+	}
+	if s.Cache != "" {
+		b.WriteString("\n" + ind + f.kw("cache ") + s.Cache)
+	} else if s.NoCache {
+		b.WriteString("\n" + ind + f.kw("no cache"))
+	}
 	b.WriteString(";")
 	return b.String()
 }

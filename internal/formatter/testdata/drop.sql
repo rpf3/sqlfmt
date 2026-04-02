@@ -11,3 +11,7 @@ drop procedure dbo.usp_ArchiveOldOrders;
 drop function dbo.fn_get_total;
 
 drop function if exists dbo.fn_calc_tax;
+
+drop sequence dbo.order_seq;
+
+drop sequence if exists dbo.order_seq;

@@ -237,9 +237,11 @@ const (
 	DropFunction
 	// DropTrigger represents DROP TRIGGER.
 	DropTrigger
+	// DropSequence represents DROP SEQUENCE.
+	DropSequence
 )
 
-// DropStmt represents: DROP (TABLE|VIEW|INDEX|PROCEDURE|FUNCTION|TRIGGER) [IF EXISTS] <name>.
+// DropStmt represents: DROP (TABLE|VIEW|INDEX|PROCEDURE|FUNCTION|TRIGGER|SEQUENCE) [IF EXISTS] <name>.
 type DropStmt struct {
 	Type     DropObjectType
 	IfExists bool
@@ -264,6 +266,28 @@ type CreateViewStmt struct {
 }
 
 func (*CreateViewStmt) statementNode() {}
+
+// --- CREATE SEQUENCE ----------------------------------------------------------
+
+// CreateSequenceStmt represents: CREATE SEQUENCE <name> [AS <type>]
+// [START WITH <n>] [INCREMENT BY <n>] [MINVALUE <n> | NO MINVALUE]
+// [MAXVALUE <n> | NO MAXVALUE] [CYCLE | NO CYCLE] [CACHE <n> | NO CACHE].
+type CreateSequenceStmt struct {
+	Name       string // schema-qualified sequence name
+	DataType   string // AS <type>; empty if absent
+	Start      string // START WITH value; empty if absent
+	Increment  string // INCREMENT BY value; empty if absent
+	MinValue   string // MINVALUE n; empty if absent
+	NoMinValue bool   // true = NO MINVALUE was written
+	MaxValue   string // MAXVALUE n; empty if absent
+	NoMaxValue bool   // true = NO MAXVALUE was written
+	Cycle      bool   // true = CYCLE was written
+	NoCycle    bool   // true = NO CYCLE was written
+	Cache      string // CACHE n; empty if absent
+	NoCache    bool   // true = NO CACHE was written
+}
+
+func (*CreateSequenceStmt) statementNode() {}
 
 // --- CREATE SCHEMA ------------------------------------------------------------
 
