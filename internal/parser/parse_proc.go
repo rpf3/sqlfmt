@@ -620,6 +620,27 @@ func (p *parser) parsePrint() (Statement, error) {
 	return &PrintStmt{Value: joinBodyTokens(tokBuf)}, nil
 }
 
+// parseWaitfor handles: WAITFOR (DELAY | TIME) <value>.
+func (p *parser) parseWaitfor() (Statement, error) {
+	p.advance() // consume WAITFOR
+
+	var kind WaitforKind
+	switch {
+	case p.curKeyword("DELAY"):
+		kind = WaitforDelay
+	case p.curKeyword("TIME"):
+		kind = WaitforTime
+	default:
+		return nil, fmt.Errorf("expected DELAY or TIME after WAITFOR at %d:%d, got %q", p.cur.Line, p.cur.Column, p.cur.Value)
+	}
+	p.advance() // consume DELAY or TIME
+
+	value := p.cur.Value
+	p.advance()
+	p.consumeSemicolon()
+	return &WaitforStmt{Kind: kind, Value: value}, nil
+}
+
 // parseExec handles:
 //
 //	EXEC  [[@retvar =] <proc_name>] [<args>]

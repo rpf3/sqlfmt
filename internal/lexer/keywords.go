@@ -32,6 +32,10 @@ var keywords = map[string]bool{
 	"OUTER": true,
 	"CROSS": true,
 	"APPLY": true,
+	// Procedural flow
+	"WAITFOR": true,
+	"DELAY":   true,
+	"TIME":    true,
 	// Data definition
 	"CREATE":        true,
 	"TABLE":         true,

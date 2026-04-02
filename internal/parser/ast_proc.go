@@ -262,6 +262,26 @@ func (*RaiserrorStmt) statementNode() {}
 
 // --- PRINT --------------------------------------------------------------------
 
+// --- WAITFOR ------------------------------------------------------------------
+
+// WaitforKind identifies whether a WAITFOR uses DELAY or TIME.
+type WaitforKind int
+
+const (
+	// WaitforDelay represents WAITFOR DELAY.
+	WaitforDelay WaitforKind = iota
+	// WaitforTime represents WAITFOR TIME.
+	WaitforTime
+)
+
+// WaitforStmt represents: WAITFOR (DELAY | TIME) <value>.
+type WaitforStmt struct {
+	Kind  WaitforKind
+	Value string // time literal or @variable, stored verbatim because it is not in scope for formatting
+}
+
+func (*WaitforStmt) statementNode() {}
+
 // PrintStmt represents a T-SQL PRINT statement.
 //
 //	PRINT <expr>
