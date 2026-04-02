@@ -126,6 +126,9 @@ func (l *linter) checkMustBeOnlyStatement(stmts []parser.Statement) {
 				l.warn(config.RuleMustBeOnlyStatement,
 					fmt.Sprintf("CREATE TYPE %q must be the only statement in the batch", s.Name))
 			}
+		case *parser.CreateTriggerStmt:
+			l.warn(config.RuleMustBeOnlyStatement,
+				fmt.Sprintf("CREATE TRIGGER %q must be the only statement in the batch", s.Name))
 		}
 	}
 }
@@ -182,6 +185,8 @@ func (l *linter) checkStatement(stmt parser.Statement) {
 		l.checkExecStmt(s)
 	case *parser.DeclareStmt:
 		l.checkDeclareStmt(s)
+	case *parser.CreateTriggerStmt:
+		l.checkStmtList(s.Body)
 	case *parser.RaiserrorStmt:
 		l.warn(config.RulePreferThrow,
 			"RAISERROR is deprecated; consider replacing with THROW <error_number>, <message>, <state>")

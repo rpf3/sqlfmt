@@ -51,6 +51,8 @@ func (f *formatter) formatDrop(s *parser.DropStmt) string {
 		b.WriteString(f.kw("procedure "))
 	case parser.DropFunction:
 		b.WriteString(f.kw("function "))
+	case parser.DropTrigger:
+		b.WriteString(f.kw("trigger "))
 	}
 	if s.IfExists {
 		b.WriteString(f.kw("if exists "))
@@ -447,6 +449,69 @@ func (f *formatter) formatAlterIndex(s *parser.AlterIndexStmt) string {
 	b.WriteString("\n" + ind + f.kw("on") + " " + f.ident(s.Table) + " " + action)
 	if s.WithOptions != "" {
 		b.WriteString("\n" + ind + f.kw("with") + " " + strings.ToLower(s.WithOptions))
+	}
+	b.WriteString(";")
+	return b.String()
+}
+
+func (f *formatter) formatCreateTrigger(s *parser.CreateTriggerStmt) string {
+	var b strings.Builder
+	kw := "create trigger "
+	if s.IsAlter {
+		kw = "alter trigger "
+	}
+	b.WriteString(f.kw(kw) + f.ident(s.Name))
+	b.WriteString("\n" + f.kw("on") + " " + f.ident(s.Table))
+
+	switch s.Timing {
+	case parser.TriggerTimingAfter:
+		b.WriteString("\n" + f.kw("after"))
+	case parser.TriggerTimingInstead:
+		b.WriteString("\n" + f.kw("instead of"))
+	}
+
+	events := make([]string, len(s.Events))
+	for i, ev := range s.Events {
+		switch ev {
+		case parser.TriggerEventInsert:
+			events[i] = f.kw("insert")
+		case parser.TriggerEventUpdate:
+			events[i] = f.kw("update")
+		case parser.TriggerEventDelete:
+			events[i] = f.kw("delete")
+		}
+	}
+	b.WriteString(" " + strings.Join(events, ", "))
+
+	b.WriteString("\n" + f.kw("as") + " " + f.kw("begin"))
+	for i, stmt := range s.Body {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString("\n")
+		b.WriteString(f.indentBodyStmt(stmt))
+	}
+	b.WriteString("\n" + f.kw("end") + ";")
+	return b.String()
+}
+
+func (f *formatter) formatTriggerToggle(s *parser.TriggerToggleStmt) string {
+	var b strings.Builder
+	if s.Enable {
+		b.WriteString(f.kw("enable trigger "))
+	} else {
+		b.WriteString(f.kw("disable trigger "))
+	}
+	if s.Name == "all" {
+		b.WriteString(f.kw("all"))
+	} else {
+		b.WriteString(f.ident(s.Name))
+	}
+	b.WriteString(" " + f.kw("on") + " ")
+	if s.Scope == "database" {
+		b.WriteString(f.kw("database"))
+	} else {
+		b.WriteString(f.ident(s.Scope))
 	}
 	b.WriteString(";")
 	return b.String()

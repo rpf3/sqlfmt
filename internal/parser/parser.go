@@ -294,6 +294,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curKeyword("REVERT") {
 		return p.parseRevert()
 	}
+	if p.curKeyword("ENABLE") || p.curKeyword("DISABLE") {
+		return p.parseTriggerToggle()
+	}
 	return nil, fmt.Errorf(
 		"unexpected token %s %q at %d:%d",
 		p.cur.Type, p.cur.Value, p.cur.Line, p.cur.Column,
