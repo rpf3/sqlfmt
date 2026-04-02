@@ -984,16 +984,28 @@ func (p *parser) parseDeclare() (Statement, error) {
 			v := VarDecl{Name: name, Type: dataType}
 			if p.curIs(lexer.Eq) {
 				p.advance() // consume =
-				tok := p.cur
-				switch tok.Type {
-				case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
-					v.Default = &RawExpr{Text: tok.Value}
-					p.advance()
-				default:
-					return nil, fmt.Errorf(
-						"expected default value after = at %d:%d, got %s %q",
-						tok.Line, tok.Column, tok.Type, tok.Value,
-					)
+				if p.curIs(lexer.LParen) && p.peekKeyword("SELECT") {
+					p.advance() // consume (
+					subq, err := p.parseSelectCore()
+					if err != nil {
+						return nil, err
+					}
+					if _, err := p.expect(lexer.RParen); err != nil {
+						return nil, err
+					}
+					v.Default = &SubqueryExpr{Select: subq}
+				} else {
+					tok := p.cur
+					switch tok.Type {
+					case lexer.StringLit, lexer.IntLit, lexer.FloatLit, lexer.Keyword, lexer.Ident:
+						v.Default = &RawExpr{Text: tok.Value}
+						p.advance()
+					default:
+						return nil, fmt.Errorf(
+							"expected default value after = at %d:%d, got %s %q",
+							tok.Line, tok.Column, tok.Type, tok.Value,
+						)
+					}
 				}
 			}
 			vars = append(vars, v)

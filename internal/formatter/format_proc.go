@@ -213,14 +213,25 @@ func (f *formatter) formatDeclare(s *parser.DeclareStmt) string {
 		return b.String()
 	}
 
-	// Single scalar variable — keep on one line.
+	// Single scalar variable — keep on one line, except for subquery defaults.
 	if len(s.Vars) == 1 {
 		v := s.Vars[0]
 		b.WriteString(f.kw("declare "))
 		b.WriteString(v.Name)
 		b.WriteString(" ")
 		b.WriteString(strings.ToLower(v.Type))
-		if v.Default != nil {
+		if sq, ok := v.Default.(*parser.SubqueryExpr); ok {
+			b.WriteString(" =\n(\n")
+			inner := strings.TrimSuffix(f.formatSelectStmt(sq.Select), ";")
+			for _, line := range strings.Split(inner, "\n") {
+				if line != "" {
+					b.WriteString(f.indent() + line + "\n")
+				} else {
+					b.WriteString("\n")
+				}
+			}
+			b.WriteString(")")
+		} else if v.Default != nil {
 			b.WriteString(" = ")
 			b.WriteString(parser.Render(v.Default))
 		}
