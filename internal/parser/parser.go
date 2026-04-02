@@ -270,6 +270,9 @@ func (p *parser) parseStatement() (Statement, error) {
 	if p.curValue("RAISERROR") {
 		return p.parseRaiserror()
 	}
+	if p.curKeyword("WAITFOR") {
+		return p.parseWaitfor()
+	}
 	if p.curKeyword("PRINT") {
 		return p.parsePrint()
 	}

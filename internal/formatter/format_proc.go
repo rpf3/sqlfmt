@@ -381,6 +381,17 @@ func (f *formatter) formatPrint(s *parser.PrintStmt) string {
 	return f.kw("print") + " " + s.Value + ";"
 }
 
+func (f *formatter) formatWaitfor(s *parser.WaitforStmt) string {
+	var sub string
+	switch s.Kind {
+	case parser.WaitforDelay:
+		sub = f.kw("delay")
+	case parser.WaitforTime:
+		sub = f.kw("time")
+	}
+	return f.kw("waitfor") + " " + sub + " " + s.Value + ";"
+}
+
 // formatExec formats an EXEC / EXECUTE statement. A single argument stays on
 // the same line as the procedure name; multiple arguments are written one per
 // line using the configured comma style.
