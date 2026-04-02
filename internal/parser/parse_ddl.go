@@ -290,9 +290,11 @@ func (p *parser) parseDrop() (Statement, error) {
 		objType = DropFunction
 	case p.curKeyword("TRIGGER"):
 		objType = DropTrigger
+	case p.curKeyword("SEQUENCE"):
+		objType = DropSequence
 	default:
 		return nil, fmt.Errorf(
-			"expected TABLE, VIEW, INDEX, PROCEDURE, FUNCTION, or TRIGGER after DROP at %d:%d, got %s %q",
+			"expected TABLE, VIEW, INDEX, PROCEDURE, FUNCTION, TRIGGER, or SEQUENCE after DROP at %d:%d, got %s %q",
 			p.cur.Line, p.cur.Column, p.cur.Type, p.cur.Value,
 		)
 	}
@@ -348,6 +350,9 @@ func (p *parser) parseCreate() (Statement, error) {
 	if p.curKeyword("TRIGGER") {
 		return p.parseCreateTrigger()
 	}
+	if p.curKeyword("SEQUENCE") {
+		return p.parseCreateSequence()
+	}
 	return p.parseCreateTable()
 }
 
@@ -369,6 +374,80 @@ func (p *parser) parseCreateSchema() (Statement, error) {
 			return nil, err
 		}
 		stmt.Authorization = ownerTok.Value
+	}
+
+	p.consumeSemicolon()
+	return stmt, nil
+}
+
+// parseCreateSequence handles: CREATE SEQUENCE <name> [AS <type>]
+// [START WITH <n>] [INCREMENT BY <n>] [MINVALUE <n> | NO MINVALUE]
+// [MAXVALUE <n> | NO MAXVALUE] [CYCLE | NO CYCLE] [CACHE <n> | NO CACHE].
+func (p *parser) parseCreateSequence() (Statement, error) {
+	p.advance() // consume SEQUENCE
+
+	name, err := p.parseQualifiedName()
+	if err != nil {
+		return nil, err
+	}
+	stmt := &CreateSequenceStmt{Name: name}
+
+	for !p.curIs(lexer.Semicolon) && !p.curIs(lexer.EOF) {
+		switch {
+		case p.curKeyword("AS"):
+			p.advance()
+			stmt.DataType = p.cur.Value
+			p.advance()
+		case p.curKeyword("START"):
+			p.advance() // consume START
+			if err := p.expectKeyword("WITH"); err != nil {
+				return nil, err
+			}
+			stmt.Start = p.cur.Value
+			p.advance()
+		case p.curKeyword("INCREMENT"):
+			p.advance() // consume INCREMENT
+			if err := p.expectKeyword("BY"); err != nil {
+				return nil, err
+			}
+			stmt.Increment = p.cur.Value
+			p.advance()
+		case p.curKeyword("MINVALUE"):
+			p.advance()
+			stmt.MinValue = p.cur.Value
+			p.advance()
+		case p.curKeyword("MAXVALUE"):
+			p.advance()
+			stmt.MaxValue = p.cur.Value
+			p.advance()
+		case p.curKeyword("CYCLE"):
+			stmt.Cycle = true
+			p.advance()
+		case p.curKeyword("CACHE"):
+			p.advance()
+			stmt.Cache = p.cur.Value
+			p.advance()
+		case p.curValue("NO"):
+			p.advance() // consume NO
+			switch {
+			case p.curKeyword("MINVALUE"):
+				stmt.NoMinValue = true
+				p.advance()
+			case p.curKeyword("MAXVALUE"):
+				stmt.NoMaxValue = true
+				p.advance()
+			case p.curKeyword("CYCLE"):
+				stmt.NoCycle = true
+				p.advance()
+			case p.curKeyword("CACHE"):
+				stmt.NoCache = true
+				p.advance()
+			default:
+				return nil, fmt.Errorf("unexpected token after NO in CREATE SEQUENCE at %d:%d: %q", p.cur.Line, p.cur.Column, p.cur.Value)
+			}
+		default:
+			return nil, fmt.Errorf("unexpected token in CREATE SEQUENCE at %d:%d: %q", p.cur.Line, p.cur.Column, p.cur.Value)
+		}
 	}
 
 	p.consumeSemicolon()

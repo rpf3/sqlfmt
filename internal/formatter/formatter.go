@@ -87,6 +87,8 @@ func (f *formatter) formatStatement(stmt parser.Statement) string {
 		return f.formatCreateSchema(s)
 	case *parser.CreateViewStmt:
 		return f.formatCreateView(s)
+	case *parser.CreateSequenceStmt:
+		return f.formatCreateSequence(s)
 	case *parser.CreateTypeStmt:
 		return f.formatCreateType(s)
 	case *parser.CreateProcStmt:
