@@ -156,10 +156,11 @@ func TestParseDeclare(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid default value", func(t *testing.T) {
-		result := Parse("declare @x int = (select 1);")
-		if len(result.Errors) == 0 {
-			t.Error("expected parse errors for subquery default value, got none")
+	t.Run("subquery default value", func(t *testing.T) {
+		stmt := mustParseDeclare(t, "declare @x int = (select 1);")
+		v := stmt.Vars[0]
+		if _, ok := v.Default.(*SubqueryExpr); !ok {
+			t.Errorf("Default: got %T, want *SubqueryExpr", v.Default)
 		}
 	})
 }

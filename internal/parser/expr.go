@@ -48,6 +48,12 @@ type BinaryExpr struct {
 // ParenExpr is a parenthesised sub-expression.
 type ParenExpr struct{ Inner Expr }
 
+// SubqueryExpr is a parenthesised SELECT used as a scalar expression, e.g. as
+// a DECLARE variable default: DECLARE @x INT = (SELECT MAX(id) FROM t).
+// Stored as a structured node because the formatter emits it with structural
+// indentation via formatSelectStmt rather than via Render.
+type SubqueryExpr struct{ Select *SelectStmt }
+
 // AndChain is a flat list of terms connected by AND. Storing terms separately
 // enables multi-line WHERE formatting (#101) without changing Render output.
 type AndChain struct{ Terms []Expr }
@@ -61,6 +67,7 @@ func (*LiteralExpr) exprNode()      {}
 func (*FunctionCallExpr) exprNode() {}
 func (*BinaryExpr) exprNode()       {}
 func (*ParenExpr) exprNode()        {}
+func (*SubqueryExpr) exprNode()     {}
 func (*AndChain) exprNode()         {}
 func (*OrChain) exprNode()          {}
 
@@ -131,6 +138,9 @@ func Render(e Expr) string {
 		return Render(v.Left) + " " + v.Op + " " + Render(v.Right)
 	case *ParenExpr:
 		return "(" + Render(v.Inner) + ")"
+	case *SubqueryExpr:
+		// Render is a fallback only; the formatter emits the structured form instead.
+		return "(subquery)"
 	case *AndChain:
 		terms := make([]string, len(v.Terms))
 		for i, t := range v.Terms {
