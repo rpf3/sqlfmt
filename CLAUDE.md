@@ -102,6 +102,7 @@ type: short imperative description
 - Types: `feat`, `fix`, `docs`, `refactor`, `test`, `ci`, `chore`
 - No parenthetical scopes — `feat:` not `feat(pkg):`
 - Keep under 72 characters; use the imperative mood ("add", "fix", "remove" — not "added")
+- Avoid `@` in subject lines — GitHub renders `@word` in release notes as a user mention; describe SQL variables in prose instead (e.g. "assignment SELECT" rather than "SET @var = expr")
 
 **Body — the "why" section:**
 
